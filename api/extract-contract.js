@@ -14,28 +14,26 @@ export default async function handler(req, res) {
   }
 
   try {
-    const prompt = `Você é um auditor pericial de contratos de locação residencial da imobiliária M&IC.
-Extraia com precisão cirúrgica os dados deste contrato brasileiro da Clicksign.
-
-REGRAS OBRIGATÓRIAS:
-1. "proprietario": É a pessoa indicada no cabeçalho após "LOCADOR(A):". Ignore corretores e procuradores.
-2. "inquilino": É a pessoa indicada no cabeçalho após "LOCATÁRIO(A):". 
-   ATENÇÃO: NUNCA confunda com o corretor "Mario Chalfoun Junior" ou "Ivy Carla". O inquilino é quem está alugando para residir.
-3. "endereco": Endereço completo após "IMÓVEL:". Corrija qualquer erro de acentuação como "PraÁa" para "Praça", "n∫" para "nº".
-4. "data_inicio" e "data_fim": Extraia da CLÁUSULA PRIMEIRA ("com início em DD/MM/AAAA até... DD/MM/AAAA"). Converta estritamente para formato AAAA-MM-DD.
-5. "valor_aluguel": Extraia da CLÁUSULA SEGUNDA ("estabelecido em R$ XXXX,XX"). Retorne somente o número decimal (ex: 1000.00).
-
-Responda EXCLUSIVAMENTE em formato JSON estrito, sem crases e sem markdown:
+    const prompt = `Você é um auditor pericial de contratos de locação da M&IC.
+Extraia os dados contratuais com absoluta precisão e responda EXCLUSIVAMENTE em formato JSON estrito (sem markdown, sem crases):
 {
   "proprietario": "Nome completo do Locador",
   "inquilino": "Nome completo do Locatário",
-  "endereco": "Endereço corrigido em Português do Brasil",
+  "endereco": "Endereço completo do imóvel locado",
   "data_inicio": "AAAA-MM-DD",
   "data_fim": "AAAA-MM-DD",
   "valor_aluguel": 0.00
 }
 
-TEXTO DO CONTRATO:
+REGRAS OBRIGATÓRIAS:
+1. "proprietario": Localize no preâmbulo quem é o "LOCADOR(A)". Exemplo: Rodrigo dos Santos de Oliveira.
+2. "inquilino": Localize no preâmbulo quem é o "LOCATÁRIO(A)". Exemplo: Cristiano Nogueira da Costa.
+   ATENÇÃO: NUNCA coloque os corretores "Mario Chalfoun Junior" ou "Ivy Carla" como inquilino.
+3. "endereco": Endereço completo sem prefixo "na" ou "no". Corrija erros de encoding como "PraÁa" para "Praça", "n∫" para "nº".
+4. "data_inicio" e "data_fim": Converta as datas da CLÁUSULA PRIMEIRA para o padrão AAAA-MM-DD.
+5. "valor_aluguel": Valor numérico puro da CLÁUSULA SEGUNDA (exemplo: 1000.00).
+
+Texto do Contrato:
 ${text.substring(0, 25000)}`;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
@@ -54,9 +52,7 @@ ${text.substring(0, 25000)}`;
     const data = await response.json();
     let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(rawText);
-
-    return res.status(200).json(parsed);
+    return res.status(200).json(JSON.parse(rawText));
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
