@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gestão de Locação Imobiliária — M&IC</title>
+<!-- Leitor de PDF apenas para miniatura visual -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -122,7 +123,6 @@
   input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; background: #fff; color: var(--text); outline: none; transition: 0.15s; }
   input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(197,155,39,0.2); }
 
-  .ai-loader { display: none; padding: 12px; background: #e0f2fe; color: #0369a1; border-radius: 8px; font-size: 0.85rem; font-weight: 700; text-align: center; margin-bottom: 16px; }
   .summary-box { background: #0f172a; border: 1px solid var(--accent); color: #fff; border-radius: 10px; padding: 16px; margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; text-align: center; }
   .summary-item .label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
   .summary-item .val { font-size: 1.35rem; font-weight: 800; color: var(--gold); }
@@ -140,6 +140,7 @@
   table.data-table td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
   table.data-table tr:hover { background: #f8fafc; }
 
+  /* MODAIS */
   #auth-modal, #pdf-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(4px);
@@ -168,18 +169,21 @@
 </head>
 <body>
 
-<!-- MODAL DE LOGIN -->
 <div id="auth-modal">
   <div class="auth-card">
     <img src="/Loga%20marca%20nova.png" alt="M&IC Corretores" class="auth-logo" onerror="this.src='/Loga marca nova.png'">
     <h2 style="font-size:1.2rem; color:var(--primary); margin-bottom:4px;">GESTÃO DE LOCAÇÃO</h2>
     <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:18px;">Acesso Restrito ao Sistema Imobiliário</p>
+
     <label style="text-align:left;">E-mail Corporativo</label>
     <input type="email" id="auth-email" placeholder="seuemail@gmail.com" value="chalfouncorretor@gmail.com" style="margin-bottom:12px;">
+
     <label style="text-align:left;">Senha de Acesso</label>
     <input type="password" id="auth-pass" placeholder="••••••••" style="margin-bottom:16px;">
+
     <button type="button" class="btn btn-gold" id="btn-login" style="width:100%; margin-bottom:8px;">Entrar no Sistema</button>
     <button type="button" class="btn btn-dark" id="btn-register" style="width:100%;">Cadastrar Novo Usuário</button>
+
     <div id="auth-status" class="auth-msg" style="display:none;"></div>
     <div style="font-size:0.72rem; color:#94a3b8; margin-top:14px;">Autenticado via Repositório Seguro Supabase</div>
   </div>
@@ -215,7 +219,7 @@
   
   <aside class="sidebar-contract-card">
     <div class="sidebar-contract-title">Contrato de Locação</div>
-    <div class="sidebar-contract-desc">Anexe o arquivo assinado da Clicksign para leitura com IA</div>
+    <div class="sidebar-contract-desc">Anexe o arquivo assinado da Clicksign para arquivamento no repositório.</div>
     
     <div class="thumbnail-wrapper" id="thumb-click-box" onclick="document.getElementById('contratoFile').click()">
       <canvas id="pdf-thumb-canvas"></canvas>
@@ -226,7 +230,7 @@
       </div>
     </div>
     <div class="file-name-pill" id="file-name-pill"></div>
-    <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="processarContratoComIA(event)">
+    <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="processarContratoPDF(event)">
     <button type="button" class="btn btn-gold" style="width:100%; font-size:0.85rem; padding:10px;" onclick="document.getElementById('contratoFile').click()">
       📎 Anexar / Trocar Contrato
     </button>
@@ -241,20 +245,38 @@
       <button class="tab-btn" onclick="setTab('agentes', this)">🤖 Agente de IA Gemini</button>
     </div>
 
-    <!-- ABA 1: RESUMO DO CONTRATO -->
+    <!-- ABA 1: RESUMO DO CONTRATO (MANUAL) -->
     <div id="tab-resumo" class="tab-content active">
       <div class="card">
         <div class="card-title">Resumo dos Dados Contratuais</div>
-        <div class="ai-loader" id="ai-extract-loader">⏳ Lendo o contrato e extraindo os dados com Inteligência Artificial...</div>
 
-        <div class="grid-2">
+        <div class="grid-3">
           <div>
             <label>Proprietário</label>
-            <input type="text" id="proprietario" placeholder="Ex: Rodrigo dos Santos de Oliveira" oninput="sincronizarCampos()">
+            <input type="text" id="proprietario" placeholder="Nome do locador" oninput="sincronizarCampos()">
           </div>
           <div>
+            <label>Telefone do Proprietário</label>
+            <input type="text" id="telProprietario" placeholder="(XX) XXXXX-XXXX">
+          </div>
+          <div>
+            <label>PIX Proprietário</label>
+            <input type="text" id="pixProprietario" placeholder="Chave PIX do locador">
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-top:14px;">
+          <div>
             <label>Inquilino</label>
-            <input type="text" id="inquilino" placeholder="Ex: Cristiano Nogueira da Costa" oninput="sincronizarCampos()">
+            <input type="text" id="inquilino" placeholder="Nome do locatário" oninput="sincronizarCampos()">
+          </div>
+          <div>
+            <label>Email Inquilino</label>
+            <input type="email" id="emailInquilino" placeholder="email@exemplo.com">
+          </div>
+          <div>
+            <label>Telefone Inquilino</label>
+            <input type="text" id="telInquilino" placeholder="(XX) XXXXX-XXXX">
           </div>
         </div>
 
@@ -273,7 +295,7 @@
             <input type="date" id="dataFim">
           </div>
           <div>
-            <label>Valor do aluguel</label>
+            <label>Valor do aluguel Base</label>
             <input type="number" id="aluguelBase" placeholder="R$ 0,00" oninput="sincronizarCampos()">
           </div>
         </div>
@@ -465,28 +487,6 @@
 
   let selectedPdfFile = null;
 
-  // CORREÇÃO E DECODIFICAÇÃO EM PORTUGUÊS DO BRASIL
-  function normalizarTextoBrasil(text) {
-    if (!text) return '';
-    let s = text;
-    s = s.replace(/PraÁa/g, 'Praça')
-         .replace(/praÁa/g, 'praça')
-         .replace(/HÈlder/g, 'Hélder')
-         .replace(/hÈlder/g, 'hélder')
-         .replace(/c‚mara/g, 'câmara')
-         .replace(/C‚mara/g, 'Câmara')
-         .replace(/n∫/g, 'nº')
-         .replace(/N∫/g, 'Nº')
-         .replace(/n\s*∫/g, 'nº')
-         .replace(/∫/g, 'º')
-         .replace(/™/g, 'ª')
-         .replace(/‚/g, 'â')
-         .replace(/È/g, 'é')
-         .replace(/Á(?=[a-z])/g, 'ç');
-    try { s = s.normalize('NFC'); } catch(e) {}
-    return s.replace(/\s+/g, ' ').trim();
-  }
-
   async function renderPdfThumbnail(pdfDoc) {
     try {
       const page = await pdfDoc.getPage(1);
@@ -507,10 +507,9 @@
     }
   }
 
-  // EXTRAÇÃO COM BASE EXACTA NO LAYOUT DO CONTRATO CLICKSIGN
-  async function processarContratoComIA(event) {
+  // APENAS CARREGA O FICHEIRO E GERA A CAPA (SEM IA)
+  async function processarContratoPDF(event) {
     const file = event.target.files[0];
-    const loader = document.getElementById('ai-extract-loader');
     const pill = document.getElementById('file-name-pill');
 
     if (!file || file.type !== 'application/pdf') {
@@ -521,277 +520,13 @@
     selectedPdfFile = file;
     pill.innerText = `📄 ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
     pill.style.display = 'inline-block';
-    loader.style.display = 'block';
 
     try {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       await renderPdfThumbnail(pdf);
-
-      // ============================================================
-      // LEITURA DO PDF INTEIRO
-      // ============================================================
-      // O contrato pode ter os dados espalhados em várias páginas.
-      // Por isso NÃO usamos somente a primeira página.
-      const paginas = [];
-
-      for (let p = 1; p <= pdf.numPages; p++) {
-        const pg = await pdf.getPage(p);
-        const tc = await pg.getTextContent();
-        const txt = tc.items.map(item => item.str).join(' ');
-        paginas.push(txt);
-      }
-
-      const textoCompletoRaw = paginas.join('\n');
-
-      // ============================================================
-      // NORMALIZAÇÃO PARA BUSCA
-      // ============================================================
-      // O pdf.js deste contrato retorna alguns caracteres quebrados:
-      // LOCAT£RIO / IM”VEL / etc.
-      // Não dependemos dos acentos para encontrar os rótulos.
-      const normalizarRotulos = (valor) => {
-        return String(valor || '')
-          .replace(/\u00A0/g, ' ')
-          .replace(/£/g, 'A')
-          .replace(/[”]/g, 'O')
-          .replace(/[™]/g, 'A')
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/\s+/g, ' ')
-          .toUpperCase()
-          .trim();
-      };
-
-      const textoBusca = normalizarRotulos(textoCompletoRaw);
-
-      // ============================================================
-      // IA: envia O CONTRATO INTEIRO
-      // ============================================================
-      let extracted = {};
-
-      try {
-        const res = await fetch('/api/extract-contract', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: normalizarTextoBrasil(textoCompletoRaw)
-          })
-        });
-
-        if (res.ok) {
-          extracted = await res.json();
-        } else {
-          console.warn('API Gemini retornou HTTP', res.status);
-        }
-      } catch (err) {
-        console.warn('A API da IA não respondeu. Usando extração local:', err);
-      }
-
-      // ============================================================
-      // EXTRAÇÃO LOCAL — CAMPOS PRINCIPAIS
-      // ============================================================
-      // Esta parte é intencionalmente determinística. Para os rótulos
-      // contratuais LOCADOR(A), LOCATÁRIO(A) e IMÓVEL, não faz sentido
-      // depender da interpretação probabilística da IA.
-
-      // ------------------------------------------------------------
-      // 1. LOCADOR(A) -> PROPRIETÁRIO
-      // ------------------------------------------------------------
-      if (!extracted.proprietario) {
-        const mLoc = textoBusca.match(
-          /LOCADOR\s*\(\s*A\s*\)\s*:\s*([^,\n]+)/i
-        ) || textoBusca.match(
-          /LOCADOR\s*:\s*([^,\n]+)/i
-        );
-
-        if (mLoc && mLoc[1]) {
-          extracted.proprietario = mLoc[1].trim();
-        }
-      }
-
-      // ------------------------------------------------------------
-      // 2. LOCATÁRIO(A) -> INQUILINO
-      // ------------------------------------------------------------
-      if (!extracted.inquilino) {
-        const mLocat = textoBusca.match(
-          /LOCATARIO\s*\(\s*A\s*\)\s*:\s*([^,\n]+)/i
-        ) || textoBusca.match(
-          /LOCATARIO\s*:\s*([^,\n]+)/i
-        );
-
-        if (mLocat && mLocat[1]) {
-          extracted.inquilino = mLocat[1].trim();
-        }
-      }
-
-      // ------------------------------------------------------------
-      // 3. IMÓVEL -> ENDEREÇO
-      // ------------------------------------------------------------
-      if (!extracted.endereco) {
-        const mEnd = textoBusca.match(
-          /IMOVEL\s*:\s*(.*?)(?=\s+AS\s+PARTES\b|\s+CLAUSULA\b)/i
-        );
-
-        if (mEnd && mEnd[1]) {
-          extracted.endereco = mEnd[1].trim();
-        }
-      }
-
-      // ============================================================
-      // EXTRAÇÃO DAS DATAS
-      // ============================================================
-      // Procuramos especificamente a frase contratual da vigência.
-      // Isso evita pegar datas de RG, assinatura, etc.
-      if (!extracted.data_inicio || !extracted.data_fim) {
-        const vigencia = textoBusca.match(
-          /INICIO\s+EM\s+(\d{2}\/\d{2}\/\d{4}).{0,250}?DATA\s+FINAL\s+DO\s+CONTRATO\s+EM\s+(\d{2}\/\d{2}\/\d{4})/i
-        );
-
-        if (vigencia) {
-          extracted.data_inicio =
-            vigencia[1].split('/').reverse().join('-');
-          extracted.data_fim =
-            vigencia[2].split('/').reverse().join('-');
-        }
-      }
-
-      // Fallback para datas, caso o contrato tenha redação diferente.
-      if (!extracted.data_inicio || !extracted.data_fim) {
-        const mDatas = textoBusca.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
-
-        if (mDatas && mDatas.length >= 2) {
-          if (!extracted.data_inicio) {
-            extracted.data_inicio =
-              mDatas[0].split('/').reverse().join('-');
-          }
-          if (!extracted.data_fim) {
-            extracted.data_fim =
-              mDatas[1].split('/').reverse().join('-');
-          }
-        }
-      }
-
-      // ============================================================
-      // VALOR DO ALUGUEL
-      // ============================================================
-      // NÃO pegar simplesmente o primeiro R$ do contrato.
-      // O primeiro R$ pode ser caução, corretagem, assinatura etc.
-      if (!extracted.valor_aluguel || Number(extracted.valor_aluguel) <= 0) {
-        const mAluguel = textoBusca.match(
-          /ALUGUEL\s+MENSAL.{0,180}?R\$\s*([\d.]+(?:,\d{1,2})?)/i
-        );
-
-        if (mAluguel && mAluguel[1]) {
-          extracted.valor_aluguel = parseFloat(
-            mAluguel[1].replace(/\./g, '').replace(',', '.')
-          );
-        }
-      }
-
-      // Segundo fallback: localizar "aluguel" e o R$ próximo.
-      if (!extracted.valor_aluguel || Number(extracted.valor_aluguel) <= 0) {
-        const mAluguel2 = textoBusca.match(
-          /ALUGUEL.{0,250}?R\$\s*([\d.]+(?:,\d{1,2})?)/i
-        );
-
-        if (mAluguel2 && mAluguel2[1]) {
-          extracted.valor_aluguel = parseFloat(
-            mAluguel2[1].replace(/\./g, '').replace(',', '.')
-          );
-        }
-      }
-
-      // ============================================================
-      // LIMPEZA DOS RESULTADOS
-      // ============================================================
-      const limparNome = (valor) => {
-        return String(valor || '')
-          .replace(/^(?:LOCADOR|LOCATARIO)\s*\(?.*?\)?\s*:\s*/i, '')
-          .replace(/\s+/g, ' ')
-          .trim();
-      };
-
-      const limparEndereco = (valor) => {
-        return String(valor || '')
-          .replace(/^IMOVEL\s*:\s*/i, '')
-          .replace(/^APARTAMENTO\s+DE\s+\d+\s+QUARTOS,?\s+SITUADO\s+/i, '')
-          .replace(/^(?:NA|NO|EM)\s+/i, '')
-          .replace(/\s+/g, ' ')
-          .trim();
-      };
-
-      if (extracted.proprietario) {
-        document.getElementById('proprietario').value =
-          normalizarTextoBrasil(limparNome(extracted.proprietario));
-      }
-
-      if (extracted.inquilino) {
-        document.getElementById('inquilino').value =
-          normalizarTextoBrasil(limparNome(extracted.inquilino));
-      }
-
-      if (extracted.endereco) {
-        document.getElementById('endereco').value =
-          normalizarTextoBrasil(limparEndereco(extracted.endereco));
-      }
-
-      if (extracted.data_inicio) {
-        document.getElementById('dataInicio').value =
-          extracted.data_inicio;
-      }
-
-      if (extracted.data_fim) {
-        document.getElementById('dataFim').value =
-          extracted.data_fim;
-      }
-
-      if (
-        extracted.valor_aluguel !== undefined &&
-        extracted.valor_aluguel !== null &&
-        Number(extracted.valor_aluguel) > 0
-      ) {
-        document.getElementById('aluguelBase').value =
-          Number(extracted.valor_aluguel).toFixed(2);
-      }
-
-      // Atualiza imediatamente os campos da aba de cálculo.
-      sincronizarCampos();
-
-      // ============================================================
-      // ALERTA DE CAMPOS NÃO ENCONTRADOS
-      // ============================================================
-      const faltantes = [];
-
-      if (!document.getElementById('proprietario').value.trim()) {
-        faltantes.push('Proprietário');
-      }
-      if (!document.getElementById('inquilino').value.trim()) {
-        faltantes.push('Inquilino');
-      }
-      if (!document.getElementById('endereco').value.trim()) {
-        faltantes.push('Endereço');
-      }
-      if (!document.getElementById('dataInicio').value) {
-        faltantes.push('Data de início');
-      }
-      if (!document.getElementById('dataFim').value) {
-        faltantes.push('Data de fim');
-      }
-      if (!(Number(document.getElementById('aluguelBase').value) > 0)) {
-        faltantes.push('Valor do aluguel');
-      }
-
-      if (faltantes.length) {
-        console.warn('Campos não identificados:', faltantes);
-        console.log('Texto extraído do contrato:', textoCompletoRaw);
-      }
-
     } catch (err) {
-      console.error('Erro na extração:', err);
-      alert('Erro ao processar o contrato: ' + err.message);
-    } finally {
-      loader.style.display = 'none';
+      console.error('Erro ao gerar miniatura:', err);
     }
   }
 
@@ -1056,7 +791,11 @@
     const payload = {
       user_email: userEmail,
       inquilino: document.getElementById('inquilino').value,
+      email_inquilino: document.getElementById('emailInquilino').value,
+      telefone_inquilino: document.getElementById('telInquilino').value,
       proprietario: document.getElementById('proprietario').value,
+      telefone_proprietario: document.getElementById('telProprietario').value,
+      pix_proprietario: document.getElementById('pixProprietario').value,
       mes_ano: document.getElementById('mesAno').value,
       data_inicio: document.getElementById('dataInicio').value || null,
       aluguel_base: parseFloat(document.getElementById('calc-aluguelBase').value) || parseFloat(document.getElementById('aluguelBase').value) || 0,
