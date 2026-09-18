@@ -48,12 +48,12 @@
   label { display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 4px; text-transform: uppercase; }
   input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; }
   input:focus, select:focus { border-color: var(--accent); }
+  .field-ok { background-color: #f0fdf4 !important; border-color: #22c55e !important; }
 
   .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; font-size: 0.92rem; }
   .btn-gold { background: linear-gradient(135deg, #c59b27, #dfba48); color: #121315; }
   .btn-dark { background: var(--secondary); color: #fff; }
 
-  /* DASHBOARD CARDS */
   .dashboard-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
   .dash-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-top: 3px solid var(--accent); }
   .dash-card .title { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
@@ -61,7 +61,6 @@
   .dash-card.green .val { color: #16a34a; }
   .dash-card.blue .val { color: #0284c7; }
 
-  /* TABELA IMOVEIS ADMINISTRADOS (EXCEL CLONE) */
   .table-wrapper { width: 100%; max-height: 70vh; overflow: auto; background: #fff; border: 1px solid #ccc; border-radius: 4px; }
   table.excel-table { border-collapse: collapse; font-family: Arial, sans-serif; font-size: 0.75rem; min-width: max-content; }
   table.excel-table thead th {
@@ -76,10 +75,14 @@
   table.excel-table input, table.excel-table select { width: 100%; border: none; background: transparent; text-align: center; font-size: 0.75rem; padding: 2px; }
   table.excel-table input:focus { background: #fff; outline: 1px solid var(--accent); }
 
+  .resumo-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
+  @media(max-width: 900px) { .resumo-layout { grid-template-columns: 1fr; } }
+
   .sidebar-contract-card { background: var(--card); border: 2px dashed var(--accent); border-radius: 12px; padding: 16px; text-align: center; }
   .thumbnail-wrapper { width: 100%; min-height: 300px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; cursor: pointer; }
   .thumbnail-wrapper canvas { width: 100%; display: none; }
   .file-name-pill { font-size: 0.74rem; font-weight: 700; background: #f1f5f9; padding: 4px 8px; border-radius: 6px; display: none; margin-bottom: 10px; }
+  .ai-loader { display: none; padding: 10px; background: #e0f2fe; color: #0369a1; border-radius: 8px; font-size: 0.8rem; font-weight: 700; text-align: center; margin-bottom: 12px; }
 
   #auth-modal, #pdf-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.94); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; }
   #pdf-modal { display: none; }
@@ -129,12 +132,13 @@
   <div class="tabs">
     <button class="tab-btn active" onclick="setTab('resumo', this)">📄 Resumo do contrato</button>
     <button class="tab-btn" onclick="setTab('imoveis', this)">🏘️ Imóveis Administrados</button>
+    <button class="tab-btn" onclick="setTab('calculo', this)">📊 Cálculo de Cobrança & Repasse</button>
+    <button class="tab-btn" onclick="setTab('whatsapp', this)">💬 Texto de Cobrança</button>
     <button class="tab-btn" onclick="setTab('agentes', this)">🤖 Agente de IA Gemini</button>
   </div>
 
-  <!-- ABA 1: RESUMO DO CONTRATO (INSERÇÃO) -->
   <div id="tab-resumo" class="tab-content active">
-    <div style="display:grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start;">
+    <div class="resumo-layout">
       <aside class="sidebar-contract-card">
         <div style="font-weight:800; margin-bottom:10px;">Contrato de Locação</div>
         <div class="thumbnail-wrapper" onclick="document.getElementById('contratoFile').click()">
@@ -144,33 +148,37 @@
           </div>
         </div>
         <div class="file-name-pill" id="file-name-pill"></div>
-        <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="processarContratoPDF(event)">
+        <div id="ai-extract-loader" class="ai-loader">Lendo contrato e extraindo dados...</div>
+        <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="processarContrato(event)">
+        <button type="button" class="btn btn-gold" style="width:100%; font-size:0.85rem; padding:10px;" onclick="document.getElementById('contratoFile').click()">
+          📎 Anexar / Trocar Contrato
+        </button>
       </aside>
 
       <div class="card" style="margin-bottom:0;">
         <div class="card-title">Dados do Novo Contrato</div>
         <div class="grid-3">
-          <div><label>Proprietário (Locador)</label><input type="text" id="proprietario"></div>
-          <div><label>Telefone do Proprietário</label><input type="text" id="telProprietario"></div>
+          <div><label>Proprietário</label><input type="text" id="proprietario"></div>
+          <div><label>Telefone do Proprietário</label><input type="text" id="telProprietario" placeholder="(XX) XXXXX-XXXX"></div>
           <div><label>PIX Proprietário</label><input type="text" id="pixProprietario"></div>
         </div>
         <div class="grid-3" style="margin-top:14px;">
-          <div><label>Inquilino (Locatário)</label><input type="text" id="inquilino"></div>
-          <div><label>Email Inquilino</label><input type="email" id="emailInquilino"></div>
-          <div><label>Telefone Inquilino</label><input type="text" id="telInquilino"></div>
+          <div><label>Inquilino</label><input type="text" id="inquilino"></div>
+          <div><label>Email Inquilino</label><input type="email" id="emailInquilino" placeholder="email@exemplo.com"></div>
+          <div><label>Telefone Inquilino</label><input type="text" id="telInquilino" placeholder="(XX) XXXXX-XXXX"></div>
         </div>
         <div style="margin-top:14px;">
-          <label>Endereço do Imóvel</label>
-          <input type="text" id="endereco">
+          <label>Endereço</label>
+          <input type="text" id="endereco" placeholder="Endereço completo do imóvel locado">
         </div>
         <div class="grid-3" style="margin-top:14px;">
           <div><label>Data de Início</label><input type="date" id="dataInicio"></div>
-          <div><label>Data de fim</label><input type="date" id="dataFim"></div>
-          <div><label>Valor do Aluguel Base</label><input type="number" id="aluguelBase" placeholder="R$ 0,00"></div>
+          <div><label>Data de Fim</label><input type="date" id="dataFim"></div>
+          <div><label>Valor do Aluguel Base</label><input type="number" id="aluguelBase" placeholder="Ex: 1500.00" step="0.01"></div>
         </div>
         <div class="grid-3" style="margin-top:14px;">
-          <div><label>Condomínio Base</label><input type="number" id="condominioBase" placeholder="R$ 0,00"></div>
-          <div><label>Taxa Adm (%) ou Fixo (R$)</label><input type="text" id="taxaAdm" placeholder="Ex: 10% ou 100"></div>
+          <div><label>Condomínio Base</label><input type="number" id="condominioBase" placeholder="Ex: 500.00" step="0.01"></div>
+          <div><label>Valor da Taxa de Administração (R$)</label><input type="number" id="valorTaxaAdm" placeholder="R$ 0,00" step="0.01"></div>
           <div><label>Repassa Condomínio?</label><select id="regraCond"><option value="S">SIM</option><option value="N">NÃO</option></select></div>
         </div>
         <button type="button" class="btn btn-gold" id="btn-gravar-novo" style="width:100%; margin-top:18px;" onclick="gravarNovoContrato()">
@@ -180,10 +188,7 @@
     </div>
   </div>
 
-  <!-- ABA 2: IMÓVEIS ADMINISTRADOS (SISTEMA EXCEL) -->
   <div id="tab-imoveis" class="tab-content">
-    
-    <!-- DASHBOARD -->
     <div class="dashboard-grid">
       <div class="dash-card"><div class="title">Contratos Ativos</div><div class="val" id="dash-ativos">0</div></div>
       <div class="dash-card"><div class="title">Total de Condomínios</div><div class="val" id="dash-cond">R$ 0,00</div></div>
@@ -191,7 +196,6 @@
       <div class="dash-card green"><div class="title">Total a Repassar</div><div class="val" id="dash-repasse">R$ 0,00</div></div>
       <div class="dash-card"><div class="title">Total a Cobrar</div><div class="val" id="dash-cobrar">R$ 0,00</div></div>
     </div>
-
     <div class="card" style="padding: 10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 8px;">
         <div style="font-weight:800;">Controle Geral de Imóveis Administrados</div>
@@ -200,7 +204,6 @@
           <button class="btn btn-dark" style="padding:6px 12px;" onclick="carregarImoveis()">🔄 Atualizar</button>
         </div>
       </div>
-      
       <div class="table-wrapper">
         <table class="excel-table">
           <thead>
@@ -214,26 +217,23 @@
               <th>COBRANÇA</th><th class="bg-green">DESCONTO</th><th>TEXTO</th>
             </tr>
           </thead>
-          <tbody id="tabela-imoveis-body">
-            <!-- Linhas geradas dinamicamente -->
-          </tbody>
+          <tbody id="tabela-imoveis-body"></tbody>
         </table>
       </div>
     </div>
   </div>
 
-  <!-- ABA 3: AGENTE IA GEMINI -->
+  <div id="tab-calculo" class="tab-content">
+    <div class="card"><div class="card-title">Cálculo de Cobrança Temporário</div><p style="font-size:0.85rem;color:#64748b;">Utilize a aba "Imóveis Administrados" para atualizar os valores de cada contrato de forma persistente.</p></div>
+  </div>
+  <div id="tab-whatsapp" class="tab-content">
+    <div class="card"><div class="card-title">Texto de Cobrança</div><p style="font-size:0.85rem;color:#64748b;">Na aba "Imóveis Administrados", clique no botão "Enviar" da coluna TEXTO para disparar cobranças via WhatsApp.</p></div>
+  </div>
+  <div id="tab-historico" class="tab-content">
+    <div class="card"><div class="card-title">Histórico de Locações</div><p style="font-size:0.85rem;color:#64748b;">O histórico foi integrado na visão consolidada da aba "Imóveis Administrados".</p></div>
+  </div>
   <div id="tab-agentes" class="tab-content">
-    <div class="card">
-      <div class="card-title">Assistente Especialista M&IC</div>
-      <div class="chat-box" id="chatArea" style="border: 1px solid #ccc; height:300px; padding:10px; overflow-y:auto; margin-bottom:10px;">
-        <div style="background:#fff; border:1px solid #ddd; padding:8px; border-radius:8px; margin-bottom:8px; max-width:80%;">Olá! Como posso ajudar na gestão das locações hoje?</div>
-      </div>
-      <div style="display:flex; gap:8px;">
-        <input type="text" id="chatInput" placeholder="Digite sua dúvida..." onkeypress="if(event.key==='Enter') sendChat()">
-        <button class="btn btn-gold" onclick="sendChat()">Enviar</button>
-      </div>
-    </div>
+    <div class="card"><div class="card-title">Agente de IA Gemini</div><div class="chat-box" id="chatArea" style="border: 1px solid #ccc; height:300px; padding:10px; overflow-y:auto; margin-bottom:10px;"><div style="background:#fff; border:1px solid #ddd; padding:8px; border-radius:8px; margin-bottom:8px; max-width:80%;">Olá! Como posso ajudar na gestão das locações?</div></div><div style="display:flex; gap:8px;"><input type="text" id="chatInput" placeholder="Digite sua dúvida..." onkeypress="if(event.key==='Enter') sendChat()"><button class="btn btn-gold" onclick="sendChat()">Enviar</button></div></div>
   </div>
 </div>
 
@@ -243,345 +243,109 @@
   let contratosDB = [];
   let selectedPdfFile = null;
 
-  // FORMATADORES
   const fmtMoeda = val => parseFloat(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  const parseMoeda = str => parseFloat(String(str).replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
-  
-  // NAVEGAÇÃO DE ABAS
-  function setTab(name, btn) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById('tab-' + name).classList.add('active');
-    btn.classList.add('active');
-    if (name === 'imoveis') carregarImoveis();
+
+  // FUNÇÕES DO MOTOR DE VISTORIA PARA EXTRAÇÃO SEGURA
+  function decodeAddressOnly(text) {
+    if (!text) return "";
+    let s = text.replace(/PraÁa/gi, "Praça").replace(/HÈlder/gi, "Hélder")
+                .replace(/c‚mara/gi, "câmara").replace(/C‚mara/gi, "Câmara")
+                .replace(/n∫/gi, "nº").replace(/N∫/gi, "Nº").replace(/n\s*∫/gi, "nº")
+                .replace(/∫/g, "º").replace(/™/g, "ª").replace(/‚/g, "â")
+                .replace(/È/g, "é").replace(/Á(?=[a-z])/g, "ç");
+    try { s = s.normalize('NFC'); } catch(e) {}
+    return s.replace(/\s+/g, ' ').trim();
   }
 
-  // AUTENTICAÇÃO E SESSÃO
-  function getSession() {
-    try { return JSON.parse(localStorage.getItem('mic_auth')) || null; } catch(e) { return null; }
+  function cleanName(raw) {
+    if (!raw) return "";
+    let s = raw.trim();
+    s = s.replace(/^(?:Nome|Signat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '').replace(/\s+CPF.*$/i, '').replace(/\s+assinou.*$/i, '');
+    return s.split(',')[0].trim();
   }
-  function checkAuth() {
-    const s = getSession();
-    if (s && s.user) {
-      document.getElementById('auth-modal').style.display = 'none';
-      document.getElementById('user-pill').style.display = 'flex';
-      document.getElementById('logged-user-email').innerText = s.user.email;
-      if (document.getElementById('tab-imoveis').classList.contains('active')) carregarImoveis();
-    } else {
-      document.getElementById('auth-modal').style.display = 'flex';
+
+  function isValidPersonName(str) {
+    if (!str) return false;
+    let s = str.trim();
+    let sNorm = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (s.indexOf('@') !== -1 || sNorm.includes("cpf") || sNorm.includes("assinou") || sNorm.includes("clicksign")) return false;
+    return /[A-Za-zÀ-Úà-ú]{3,}/.test(s);
+  }
+
+  function findTrueSignerAbove(lines, index) {
+    for (let j = index - 1; j >= Math.max(0, index - 8); j--) {
+      let candidate = lines[j].trim();
+      if (isValidPersonName(candidate)) return cleanName(candidate);
     }
+    return "";
   }
 
-  document.getElementById('btn-login').onclick = async () => {
-    const email = document.getElementById('auth-email').value;
-    const password = document.getElementById('auth-pass').value;
-    const msg = document.getElementById('auth-status');
-    msg.style.display = 'block'; msg.innerText = 'Autenticando...';
-    
-    try {
-      const r = await fetch(`${SUPABASE_BASE_URL}/auth/v1/token?grant_type=password`, {
-        method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await r.json();
-      if (r.ok) { localStorage.setItem('mic_auth', JSON.stringify(data)); checkAuth(); }
-      else msg.innerText = 'Erro: ' + data.error_description;
-    } catch(e) { msg.innerText = 'Erro rede.'; }
-  };
+  function extractAddressAfterSituado(text) {
+    if (!text) return "";
+    let indexSituado = text.toLowerCase().indexOf("situado");
+    if (indexSituado !== -1) {
+      let afterSituado = text.substring(indexSituado + 7).trim().replace(/^(?:na|no|à|a|em|:)\s+/i, '').split(/[;\.\r\n]/)[0].trim();
+      return afterSituado.replace(/(?:,?\s*destinado\s+exclusivamente|para\s+fins\s+residenciais|conforme).*/i, '').trim();
+    }
+    let indexImovel = text.toLowerCase().indexOf("imovel:");
+    if (indexImovel !== -1) {
+      let afterImov = text.substring(indexImovel + 7).trim().split(/[;\.\r\n]/)[0].trim();
+      return afterImov.replace(/(?:destinado|para\s+fins).*/i, '').trim();
+    }
+    return "";
+  }
 
-  document.getElementById('btn-logout-action').onclick = () => { localStorage.removeItem('mic_auth'); checkAuth(); };
-
-  // UPLOAD E THUMBNAIL
-  async function processarContratoPDF(event) {
+  // PROCESSAMENTO DO CONTRATO E EXTRAÇÃO (MOTOR VISTORIA FÁCIL + GEMINI)
+  async function processarContrato(event) {
     const file = event.target.files[0];
     if (!file || file.type !== 'application/pdf') return;
+    
     selectedPdfFile = file;
     document.getElementById('file-name-pill').innerText = `📄 ${file.name}`;
     document.getElementById('file-name-pill').style.display = 'inline-block';
     
+    const loader = document.getElementById('ai-extract-loader');
+    loader.style.display = 'block';
+
     try {
-      const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-      const page = await pdf.getPage(1);
-      const viewport = page.getViewport({ scale: 0.6 });
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      // Thumbnail
+      const page1 = await pdf.getPage(1);
+      const viewport = page1.getViewport({ scale: 0.6 });
       const canvas = document.getElementById('pdf-thumb-canvas');
       canvas.width = viewport.width; canvas.height = viewport.height;
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      await page1.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
       document.getElementById('thumb-placeholder').style.display = 'none';
       canvas.style.display = 'block';
-    } catch (e) { console.error('Erro thumb', e); }
-  }
 
-  // LÓGICA FINANCEIRA - CÁLCULOS DA ABA ADMINISTRAÇÃO (EXCEL)
-  function calcularQuintoDiaUtil(ano, mes) {
-    let dia = 1; let contUteis = 0;
-    const data = new Date(ano, mes - 1, dia);
-    while (contUteis < 5) {
-      const diaSemana = data.getDay();
-      if (diaSemana !== 0 && diaSemana !== 6) contUteis++;
-      if (contUteis < 5) data.setDate(data.getDate() + 1);
-    }
-    return data.toLocaleDateString('pt-BR');
-  }
-
-  function diferencaMeses(d1, d2) {
-    if (!d1 || !d2) return '';
-    const date1 = new Date(d1); const date2 = new Date(d2);
-    return (date2.getFullYear() * 12 + date2.getMonth()) - (date1.getFullYear() * 12 + date1.getMonth());
-  }
-
-  function recalcularLinha(row) {
-    const [anoComp, mesComp] = document.getElementById('filtro-mes').value.split('-') || [new Date().getFullYear(), new Date().getMonth()+1];
-    
-    // I e F
-    const dataIn = row.data_inicio;
-    const dataFim = row.data_fim;
-    const refDate = new Date(anoComp, mesComp - 1, 1);
-    row.calc_I = dataIn ? diferencaMeses(dataIn, refDate) : '';
-    row.calc_F = dataFim ? diferencaMeses(refDate, dataFim) : '';
-    
-    // Proporcionalidade
-    const diaInicio = dataIn ? parseInt(dataIn.split('-')[2]) : 1;
-    const mesInicio = dataIn ? parseInt(dataIn.split('-')[1]) : 0;
-    const anoInicio = dataIn ? parseInt(dataIn.split('-')[0]) : 0;
-    
-    let propSN = 'N';
-    if (diaInicio > 1 && mesInicio == mesComp && anoInicio == anoComp) propSN = 'S';
-    row.calc_proporcional = propSN;
-
-    // Valores Base
-    const valAluguelBase = parseFloat(row.aluguel_base) || 0;
-    const valCondBase = parseFloat(row.condominio_base) || 0;
-    
-    // Dias do mês
-    const diasNoMes = new Date(anoComp, mesComp, 0).getDate();
-    const diasUsados = diasNoMes - diaInicio + 1;
-
-    // Aluguel e Condominio Calculados
-    row.vlr_aluguel_calc = propSN === 'S' ? (valAluguelBase / diasNoMes) * diasUsados : valAluguelBase;
-    row.vlr_cond_calc = propSN === 'S' ? (valCondBase / diasNoMes) * diasUsados : valCondBase;
-    row.aluguel_mais_cond = row.vlr_aluguel_calc + row.vlr_cond_calc;
-
-    // Vencimento
-    row.vencimento_calc = calcularQuintoDiaUtil(anoComp, mesComp);
-
-    // Taxa Adm
-    const stringAdm = String(row.taxa_adm_pct || '0').replace(',','.');
-    let valAdm = 0;
-    if (stringAdm.includes('%')) {
-      valAdm = row.vlr_aluguel_calc * (parseFloat(stringAdm) / 100);
-    } else {
-      valAdm = parseFloat(stringAdm);
-    }
-    row.calc_adm = valAdm;
-
-    // Total Cobrar Inquilino = Aluguel + Cond + IPTU + Bombeiro + Outras + Cobranca - Desconto
-    const iptu = parseFloat(row.iptu) || 0;
-    const bombeiro = parseFloat(row.bombeiro) || 0;
-    const outras = parseFloat(row.outras_taxas) || 0;
-    const cobranca = parseFloat(row.cobranca) || 0;
-    const desconto = parseFloat(row.desconto) || 0;
-
-    row.cobrar_inquilino = row.aluguel_mais_cond + iptu + bombeiro + outras + cobranca - desconto;
-
-    // Repassar Proprietário
-    if (row.regra_condominio === 'N') {
-      // Retém condomínio
-      row.valor_repassar = row.cobrar_inquilino - row.vlr_cond_calc - valAdm;
-    } else {
-      // Repassa condomínio
-      row.valor_repassar = row.cobrar_inquilino - valAdm;
-    }
-
-    // Gerar Texto Cobrança
-    row.texto_cobranca = 
-`Aluguel: ${fmtMoeda(row.vlr_aluguel_calc)}
-Condomínio: ${fmtMoeda(row.vlr_cond_calc)}
-Encargos: ${fmtMoeda(iptu + bombeiro + outras + cobranca)}
-Descontos: -${fmtMoeda(desconto)}
-TOTAL: *${fmtMoeda(row.cobrar_inquilino)}*
-Vencimento: ${row.vencimento_calc}
-PIX: ${row.pix_proprietario || 'N/A'}`;
-  }
-
-  // INTERFACE TABELA E DASHBOARD
-  function atualizarDashboard() {
-    let tAtivos = 0, tCond = 0, tAdm = 0, tRepasse = 0, tCobrar = 0;
-    contratosDB.forEach(c => {
-      if (c.ativo === 'SIM') {
-        tAtivos++;
-        tCond += c.vlr_cond_calc;
-        tAdm += c.calc_adm;
-        tRepasse += c.valor_repassar;
-        tCobrar += c.cobrar_inquilino;
+      // Leitura Textual (Lógica Vistoria Fácil)
+      let allRawLines = [];
+      let page1RawLines = [];
+      let fullText = '';
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const textContent = await page.getTextContent();
+        for (let i = 0; i < textContent.items.length; i++) {
+          let str = textContent.items[i].str;
+          if (str && str.trim().length > 0) {
+            allRawLines.push(str.trim());
+            fullText += ' ' + str.trim();
+            if (p === 1) page1RawLines.push(str.trim());
+          }
+        }
       }
-    });
-    document.getElementById('dash-ativos').innerText = tAtivos;
-    document.getElementById('dash-cond').innerText = fmtMoeda(tCond);
-    document.getElementById('dash-adm').innerText = fmtMoeda(tAdm);
-    document.getElementById('dash-repasse').innerText = fmtMoeda(tRepasse);
-    document.getElementById('dash-cobrar').innerText = fmtMoeda(tCobrar);
-  }
 
-  function renderizarTabela() {
-    const tbody = document.getElementById('tabela-imoveis-body');
-    tbody.innerHTML = '';
-    
-    if (contratosDB.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="33" style="text-align:center;">Nenhum registo encontrado.</td></tr>';
-      return;
-    }
+      const page1Text = page1RawLines.join(" ");
+      let ext = { locador: '', locatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0 };
 
-    const filtroMes = document.getElementById('filtro-mes').value;
-    const [aFiltro, mFiltro] = filtroMes.split('-');
-
-    contratosDB.forEach((c, index) => {
-      recalcularLinha(c);
-      
-      const btnPdf = c.contrato_url 
-        ? `<button onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')" style="background:#1e293b; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">VER</button>` 
-        : '-';
-
-      const btnZap = `<a href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(c.texto_cobranca)}" target="_blank" style="background:#25D366; color:#fff; padding:4px; text-decoration:none; border-radius:4px;">💬 Enviar</a>`;
-
-      tbody.innerHTML += `
-        <tr>
-          <td>${aFiltro}</td>
-          <td>${mFiltro}</td>
-          <td><input type="text" value="${c.proprietario || ''}" onchange="updateDb(${index}, 'proprietario', this.value)"></td>
-          <td><select onchange="updateDb(${index}, 'ativo', this.value)"><option value="SIM" ${c.ativo==='SIM'?'selected':''}>SIM</option><option value="NÃO" ${c.ativo!=='SIM'?'selected':''}>NÃO</option></select></td>
-          <td><input type="text" value="${c.endereco || ''}" onchange="updateDb(${index}, 'endereco', this.value)"></td>
-          <td><input type="text" value="${c.inquilino || ''}" onchange="updateDb(${index}, 'inquilino', this.value)"></td>
-          <td><input type="text" value="${c.telefone_inquilino || ''}" onchange="updateDb(${index}, 'telefone_inquilino', this.value)"></td>
-          <td><input type="number" value="${c.aluguel_base}" onchange="updateDb(${index}, 'aluguel_base', this.value)"></td>
-          <td><input type="date" value="${c.data_inicio || ''}" onchange="updateDb(${index}, 'data_inicio', this.value)"></td>
-          <td>${c.calc_I}</td>
-          <td><input type="date" value="${c.data_fim || ''}" onchange="updateDb(${index}, 'data_fim', this.value)"></td>
-          <td>${c.calc_F}</td>
-          <td>${btnPdf}</td>
-          <td><input type="text" value="${c.pix_proprietario || ''}" onchange="updateDb(${index}, 'pix_proprietario', this.value)"></td>
-          <td><input type="text" value="${c.pix_condominio || ''}" onchange="updateDb(${index}, 'pix_condominio', this.value)"></td>
-          <td>${c.calc_proporcional}</td>
-          <td><select onchange="updateDb(${index}, 'regra_condominio', this.value)"><option value="S" ${c.regra_condominio==='S'?'selected':''}>S</option><option value="N" ${c.regra_condominio==='N'?'selected':''}>N</option></select></td>
-          <td>${fmtMoeda(c.vlr_aluguel_calc)}</td>
-          <td>${fmtMoeda(c.vlr_cond_calc)}</td>
-          <td>${fmtMoeda(c.aluguel_mais_cond)}</td>
-          <td style="font-weight:bold; color:#b91c1c;">${fmtMoeda(c.cobrar_inquilino)}</td>
-          <td>${c.vencimento_calc}</td>
-          <td><input type="text" value="${c.taxa_adm_pct}" onchange="updateDb(${index}, 'taxa_adm_pct', this.value)"></td>
-          <td style="font-weight:bold; color:#16a34a;">${fmtMoeda(c.valor_repassar)}</td>
-          <td><input type="text" value="${c.observacao || ''}" onchange="updateDb(${index}, 'observacao', this.value)"></td>
-          <td>${fmtMoeda(c.vlr_cond_calc)}</td>
-          <td><input type="number" value="${c.condominio_base}" onchange="updateDb(${index}, 'condominio_base', this.value)"></td>
-          <td><input type="number" value="${c.iptu}" onchange="updateDb(${index}, 'iptu', this.value)"></td>
-          <td><input type="number" value="${c.bombeiro}" onchange="updateDb(${index}, 'bombeiro', this.value)"></td>
-          <td><input type="number" value="${c.outras_taxas}" onchange="updateDb(${index}, 'outras_taxas', this.value)"></td>
-          <td><input type="number" value="${c.cobranca}" onchange="updateDb(${index}, 'cobranca', this.value)"></td>
-          <td style="background:#f1f8e9;"><input type="number" value="${c.desconto}" onchange="updateDb(${index}, 'desconto', this.value)"></td>
-          <td>${btnZap}</td>
-        </tr>
-      `;
-    });
-    atualizarDashboard();
-  }
-
-  // CARREGAR E SALVAR (API SUPABASE)
-  async function carregarImoveis() {
-    const s = getSession(); if (!s) return;
-    try {
-      const resp = await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?select=*&order=created_at.desc`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}` }
-      });
-      if (resp.ok) {
-        contratosDB = await resp.json();
-        const hoje = new Date();
-        const mes = (hoje.getMonth()+1).toString().padStart(2, '0');
-        document.getElementById('filtro-mes').value = `${hoje.getFullYear()}-${mes}`;
-        renderizarTabela();
-      }
-    } catch(e) { console.error(e); }
-  }
-
-  async function updateDb(index, field, value) {
-    contratosDB[index][field] = value;
-    renderizarTabela(); // Atualiza UI instantaneamente
-
-    const s = getSession();
-    const id = contratosDB[index].id;
-    if(!id) return;
-
-    try {
-      await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?id=eq.${id}`, {
-        method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value })
-      });
-    } catch(e) { console.error('Erro auto-save', e); }
-  }
-
-  async function gravarNovoContrato() {
-    const btn = document.getElementById('btn-gravar-novo');
-    btn.disabled = true; btn.innerText = 'Salvando...';
-
-    const s = getSession();
-    let urlPdf = null;
-    
-    if (selectedPdfFile) {
-      const filePath = `contratos/${Date.now()}_contrato.pdf`;
+      // IA Call Primária
       try {
-        const uRes = await fetch(`${SUPABASE_BASE_URL}/storage/v1/object/contratos/${filePath}`, {
-          method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}`, 'Content-Type': 'application/pdf' },
-          body: selectedPdfFile
+        const resIA = await fetch('/api/chat', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: `Extraia JSON estrito {proprietario, inquilino, endereco, data_inicio, data_fim, valor_aluguel} do contrato: ${fullText.substring(0, 15000)}` })
         });
-        if (uRes.ok) urlPdf = `${SUPABASE_BASE_URL}/storage/v1/object/public/contratos/${filePath}`;
-      } catch(e) {}
-    }
-
-    const payload = {
-      user_email: s.user.email,
-      proprietario: document.getElementById('proprietario').value,
-      telefone_proprietario: document.getElementById('telProprietario').value,
-      pix_proprietario: document.getElementById('pixProprietario').value,
-      inquilino: document.getElementById('inquilino').value,
-      email_inquilino: document.getElementById('emailInquilino').value,
-      telefone_inquilino: document.getElementById('telInquilino').value,
-      endereco: document.getElementById('endereco').value,
-      data_inicio: document.getElementById('dataInicio').value || null,
-      data_fim: document.getElementById('dataFim').value || null,
-      aluguel_base: parseFloat(document.getElementById('aluguelBase').value) || 0,
-      condominio_base: parseFloat(document.getElementById('condominioBase').value) || 0,
-      taxa_adm_pct: document.getElementById('taxaAdm').value || '10%',
-      regra_condominio: document.getElementById('regraCond').value || 'N',
-      contrato_url: urlPdf,
-      ativo: 'SIM'
-    };
-
-    try {
-      const r = await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes`, {
-        method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (r.ok) {
-        alert('Contrato gravado! Acesso a tabela Imóveis Administrados.');
-        document.querySelectorAll('#tab-resumo input').forEach(i => i.value='');
-        selectedPdfFile = null;
-        document.getElementById('file-name-pill').style.display = 'none';
-        setTab('imoveis', document.querySelectorAll('.tab-btn')[1]);
-      }
-    } catch(e) { alert(e.message); }
-    
-    btn.disabled = false; btn.innerText = '💾 Gravar dados do novo contrato';
-  }
-
-  // VISUALIZADOR PDF
-  function abrirVisualizadorPdf(url, inq) {
-    document.getElementById('pdf-modal-title').innerText = 'Contrato - ' + inq;
-    document.getElementById('pdf-iframe').src = url + '#toolbar=0';
-    document.getElementById('pdf-modal').style.display = 'flex';
-  }
-
-  // INIT
-  document.addEventListener('DOMContentLoaded', () => { checkAuth(); });
-
-</script>
-</body>
-</html>
+        if (resIA.ok) {
+          const iaData = await resIA.json();
+          const j = JSON.parse(iaData.reply.replace(/```json/gi, '').replace(/
