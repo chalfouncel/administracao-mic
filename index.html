@@ -169,6 +169,7 @@
 </head>
 <body>
 
+<!-- MODAL DE LOGIN -->
 <div id="auth-modal">
   <div class="auth-card">
     <img src="/Loga%20marca%20nova.png" alt="M&IC Corretores" class="auth-logo" onerror="this.src='/Loga marca nova.png'">
@@ -189,6 +190,7 @@
   </div>
 </div>
 
+<!-- MODAL VISUALIZADOR DE PDF -->
 <div id="pdf-modal">
   <div class="pdf-viewer-card">
     <div class="pdf-viewer-header">
@@ -201,6 +203,7 @@
   </div>
 </div>
 
+<!-- CABEÇALHO -->
 <header>
   <div class="brand-area">
     <img src="/Loga%20marca%20nova.png" alt="M&IC Corretores" class="app-header-logo" onerror="this.src='/Loga marca nova.png'">
@@ -297,6 +300,13 @@
           <div>
             <label>Valor do aluguel Base</label>
             <input type="number" id="aluguelBase" placeholder="R$ 0,00" oninput="sincronizarCampos()">
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-top:14px;">
+          <div>
+            <label>Valor da Taxa de Administração (R$)</label>
+            <input type="number" id="valorTaxaAdm" placeholder="R$ 0,00" oninput="sincronizarCampos()">
           </div>
         </div>
 
@@ -722,8 +732,11 @@
 
     const totalInquilino = aluguelEfetivo + condEfetivo + totalEncargos;
 
+    const taxaAdmFixa = parseFloat(document.getElementById('valorTaxaAdm').value) || 0;
     const taxaAdmPct = parseFloat(document.getElementById('taxaAdm').value) || 0;
-    const valorTaxaAdm = aluguelEfetivo * (taxaAdmPct / 100);
+    
+    // Se preencheu valor fixo na aba 1, usa ele. Se não, usa a % da aba 2.
+    const valorTaxaAdm = taxaAdmFixa > 0 ? taxaAdmFixa : (aluguelEfetivo * (taxaAdmPct / 100));
 
     const regraCond = document.getElementById('regraCondominio').value;
     let valorRepassar = (regraCond === 'repassa')
@@ -806,6 +819,7 @@
       bombeiro: parseFloat(document.getElementById('bombeiro').value) || 0,
       outras_taxas: parseFloat(document.getElementById('outrasTaxas').value) || 0,
       taxa_adm_pct: parseFloat(document.getElementById('taxaAdm').value) || 0,
+      taxa_adm_fixa: parseFloat(document.getElementById('valorTaxaAdm').value) || 0,
       regra_condominio: document.getElementById('regraCondominio').value,
       total_inquilino: calcCache.totalInquilino || 0,
       valor_repassar: calcCache.repassar || 0,
