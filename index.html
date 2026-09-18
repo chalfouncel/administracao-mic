@@ -25,7 +25,7 @@
     --danger: #dc2626;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  body { background: var(--bg); color: var(--text); padding-bottom: 40px; }
+  body { background: var(--bg); color: var(--text); padding-bottom: 40px; overflow-x: hidden; }
 
   header {
     background: linear-gradient(135deg, #0d0e10 0%, #1a1c20 70%, #2b261b 100%);
@@ -65,7 +65,7 @@
   .btn-logout { background: transparent; border: none; color: #ff6b6b; cursor: pointer; font-weight: 600; text-decoration: underline; font-size: 0.78rem; }
 
   .main-wrapper {
-    max-width: 1260px;
+    max-width: 98%;
     margin: 20px auto;
     padding: 0 16px;
     display: grid;
@@ -134,11 +134,40 @@
   .btn-dark { background: var(--secondary); color: #fff; }
   .btn-whatsapp { background: #25D366; color: #fff; }
 
+  /* TABELA HISTÓRICO ORIGINAL */
   .table-responsive { width: 100%; overflow-x: auto; margin-top: 10px; }
   table.data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
   table.data-table th { background: #f1f5f9; padding: 10px 8px; text-align: left; font-weight: 700; color: #334155; border-bottom: 2px solid #cbd5e1; }
   table.data-table td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
   table.data-table tr:hover { background: #f8fafc; }
+
+  /* TABELA IMOVEIS ADMINISTRADOS (EXCEL CLONE) */
+  .table-imoveis-container { width: 100%; max-height: 75vh; overflow: auto; background: #fff; border: 1px solid #ccc; border-radius: 8px; }
+  table.table-imoveis { width: max-content; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 0.75rem; }
+  table.table-imoveis thead th {
+    background: #000;
+    color: #fff;
+    font-weight: bold;
+    border: 1px solid #555;
+    padding: 10px 4px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    text-align: left;
+    height: 180px;
+    vertical-align: middle;
+  }
+  table.table-imoveis thead th.bg-green { background: #8bc34a; color: #fff; }
+  table.table-imoveis tbody td {
+    border: 1px solid #cbd5e1;
+    padding: 8px 10px;
+    white-space: nowrap;
+    text-align: center;
+    color: #333;
+  }
+  table.table-imoveis tbody tr:hover { background: #f1f5f9; }
 
   /* MODAIS */
   #auth-modal, #pdf-modal {
@@ -242,6 +271,7 @@
   <main>
     <div class="tabs">
       <button class="tab-btn active" onclick="setTab('resumo', this)">📄 Resumo do contrato</button>
+      <button class="tab-btn" onclick="setTab('imoveis', this)">🏘️ Imóveis Administrados</button>
       <button class="tab-btn" onclick="setTab('calculo', this)">📊 Cálculo de Cobrança & Repasse</button>
       <button class="tab-btn" onclick="setTab('whatsapp', this)">💬 Texto de Cobrança</button>
       <button class="tab-btn" onclick="setTab('historico', this)">📁 Histórico de Locações Salvas</button>
@@ -310,9 +340,68 @@
           </div>
         </div>
 
-        <button type="button" class="btn btn-gold" style="width:100%; margin-top:18px;" onclick="setTab('calculo', document.querySelectorAll('.tab-btn')[1])">
+        <button type="button" class="btn btn-gold" style="width:100%; margin-top:18px;" onclick="setTab('calculo', document.querySelectorAll('.tab-btn')[2])">
           Avançar para Cálculo de Cobrança & Repasse ➔
         </button>
+      </div>
+    </div>
+
+    <!-- ABA 1.5: IMÓVEIS ADMINISTRADOS (NOVA TABELA COMPLETA) -->
+    <div id="tab-imoveis" class="tab-content">
+      <div class="card" style="padding: 10px;">
+        <div class="card-title" style="padding: 10px;">
+          Controle Geral de Imóveis Administrados
+          <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="carregarImoveisAdministrados()">🔄 Atualizar Tabela</button>
+        </div>
+        
+        <div class="table-imoveis-container">
+          <table class="table-imoveis">
+            <thead>
+              <tr>
+                <th>ANO</th>
+                <th>MÊS</th>
+                <th>PROPRIETÁRIO</th>
+                <th>ATIVO ?</th>
+                <th>IMÓVEL</th>
+                <th>INQUILINO</th>
+                <th>ZAP INQUILINO</th>
+                <th>VALOR</th>
+                <th>INICIO</th>
+                <th>I</th>
+                <th>FIM</th>
+                <th>F</th>
+                <th>CONTRATO</th>
+                <th>PIX PROPRIETÁRIO</th>
+                <th>PIX CONDOMÍNIO</th>
+                <th>Proporcional</th>
+                <th>Repassa o condomínio</th>
+                <th>VLR DO ALUGUEL</th>
+                <th>VLR DO COND.</th>
+                <th>ALUGUEL + CONDOMINIO</th>
+                <th>COBRAR INQUILINO</th>
+                <th>VENCIMENTO</th>
+                <th>ADMINISTRAÇÃO</th>
+                <th>VALOR PRA REPASSAR</th>
+                <th>OBSERVAÇÃO</th>
+                <th>COND. PROPORCIONAL</th>
+                <th>CONDOMÍNIO</th>
+                <th>IPTU</th>
+                <th>BOMBEIRO</th>
+                <th>OUTRAS COBRANÇAS</th>
+                <th>COBRANÇA</th>
+                <th class="bg-green">DESCONTO</th>
+                <th>TEXTO</th>
+              </tr>
+            </thead>
+            <tbody id="imoveis-tabela-body">
+              <tr>
+                <td colspan="33" style="text-align: center; padding: 20px; color: #64748b;">
+                  Clique em "Atualizar Tabela" para carregar os dados salvos no banco.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -694,9 +783,6 @@
     const today = new Date();
     document.getElementById('mesAno').value = today.toISOString().substring(0, 7);
     
-    // Deixando o campo Data de Início VAZIO para preenchimento manual
-    // document.getElementById('dataInicio').valueAsDate = today; 
-    
     const venc = new Date();
     venc.setDate(venc.getDate() + 5);
     document.getElementById('dataVencimento').valueAsDate = venc;
@@ -712,6 +798,7 @@
     btn.classList.add('active');
     if (name === 'whatsapp') gerarTextoCobranca();
     if (name === 'historico') carregarHistoricoLocacoes();
+    if (name === 'imoveis') carregarImoveisAdministrados();
   }
 
   let calcCache = {};
@@ -737,7 +824,6 @@
     const taxaAdmFixa = parseFloat(document.getElementById('valorTaxaAdm').value) || 0;
     const taxaAdmPct = parseFloat(document.getElementById('taxaAdm').value) || 0;
     
-    // Se preencheu valor fixo na aba 1, usa ele. Se não, usa a % da aba 2.
     const valorTaxaAdm = taxaAdmFixa > 0 ? taxaAdmFixa : (aluguelEfetivo * (taxaAdmPct / 100));
 
     const regraCond = document.getElementById('regraCondominio').value;
@@ -900,6 +986,96 @@
       });
     } catch(e) {
       tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red; padding:16px;">Erro ao carregar: ${e.message}</td></tr>`;
+    }
+  }
+
+  async function carregarImoveisAdministrados() {
+    const tbody = document.getElementById('imoveis-tabela-body');
+    tbody.innerHTML = '<tr><td colspan="33" style="text-align: center; padding: 20px; color: #64748b;">A carregar dados do Supabase...</td></tr>';
+    
+    const fmt = val => (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    try {
+      const resp = await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?select=*&order=created_at.desc`, {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      });
+
+      if (!resp.ok) {
+        tbody.innerHTML = '<tr><td colspan="33" style="text-align: center; color: red;">Erro ao aceder à base de dados.</td></tr>';
+        return;
+      }
+
+      const list = await resp.json();
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="33" style="text-align: center; color: #64748b;">Nenhum imóvel registado.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      list.forEach(item => {
+        // Formatar datas
+        let mesStr = '-';
+        let anoStr = '-';
+        if (item.mes_ano) {
+          const partes = item.mes_ano.split('-');
+          anoStr = partes[0];
+          mesStr = partes[1];
+        }
+        const inicioStr = item.data_inicio ? new Date(item.data_inicio).toLocaleDateString('pt-BR') : '-';
+        
+        // Tratar link do contrato
+        const btnContrato = item.contrato_url 
+          ? `<button class="btn btn-dark" style="font-size:0.7rem; padding:4px 8px;" onclick="abrirVisualizadorPdf('${item.contrato_url}', '${item.inquilino}')">VER PDF</button>`
+          : 'Sem anexo';
+
+        const repassaCond = item.regra_condominio === 'repassa' ? 'SIM' : 'NÃO';
+        const taxaAdmFormatada = item.taxa_adm_fixa > 0 ? fmt(item.taxa_adm_fixa) : (item.taxa_adm_pct + '%');
+        const vlrAluguelMaisCond = (item.aluguel_base || 0) + (item.condominio_base || 0);
+
+        tbody.innerHTML += `
+          <tr>
+            <td>${anoStr}</td>
+            <td>${mesStr}</td>
+            <td><strong>${item.proprietario || '-'}</strong></td>
+            <td>SIM</td>
+            <td>${item.endereco || '-'}</td>
+            <td><strong>${item.inquilino || '-'}</strong></td>
+            <td>${item.telefone_inquilino || '-'}</td>
+            <td>${fmt(item.aluguel_base)}</td>
+            <td>${inicioStr}</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>${btnContrato}</td>
+            <td>${item.pix_proprietario || '-'}</td>
+            <td>-</td>
+            <td>${item.is_proporcional === 'sim' ? 'SIM' : 'NÃO'}</td>
+            <td>${repassaCond}</td>
+            <td>${fmt(item.aluguel_base)}</td>
+            <td>${fmt(item.condominio_base)}</td>
+            <td>${fmt(vlrAluguelMaisCond)}</td>
+            <td><strong>${fmt(item.total_inquilino)}</strong></td>
+            <td>-</td>
+            <td>${taxaAdmFormatada}</td>
+            <td style="color:#16a34a; font-weight:700;">${fmt(item.valor_repassar)}</td>
+            <td>-</td>
+            <td>-</td>
+            <td>${fmt(item.condominio_base)}</td>
+            <td>${fmt(item.iptu)}</td>
+            <td>${fmt(item.bombeiro)}</td>
+            <td>${fmt(item.outras_taxas)}</td>
+            <td>${fmt(item.total_inquilino)}</td>
+            <td style="background:#f1f8e9; font-weight:bold;">R$ 0,00</td>
+            <td>-</td>
+          </tr>
+        `;
+      });
+    } catch(e) {
+      tbody.innerHTML = `<tr><td colspan="33" style="text-align: center; color: red;">Erro de comunicação: ${e.message}</td></tr>`;
     }
   }
 
