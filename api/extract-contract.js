@@ -14,26 +14,28 @@ export default async function handler(req, res) {
   }
 
   try {
-    const prompt = `Você é um extrator especialista em contratos imobiliários de locação da M&IC.
-Extraia com precisão as seguintes informações do contrato abaixo e responda EXCLUSIVAMENTE em formato JSON estrito, sem formatação markdown, sem crases:
+    const prompt = `Você é um perito em análise de contratos de locação imobiliária brasileira da M&IC.
+Analise o texto contratual e retorne EXCLUSIVAMENTE um objeto JSON estrito (sem crases, sem markdown) com a seguinte estrutura:
 {
-  "proprietario": "Nome completo da pessoa ou empresa que aluga o imóvel (Locador)",
-  "inquilino": "Nome completo de quem está alugando o imóvel (Locatário)",
-  "endereco": "Endereço completo do imóvel locado",
+  "proprietario": "Nome completo do Locador",
+  "inquilino": "Nome completo do Locatário",
+  "endereco": "Endereço completo do imóvel locado com pontuação e acentuação corrigidas em Português do Brasil",
   "data_inicio": "AAAA-MM-DD",
   "data_fim": "AAAA-MM-DD",
   "valor_aluguel": 0.00
 }
 
-Regras:
-1. Se as datas estiverem no formato DD/MM/AAAA, converta para AAAA-MM-DD.
-2. Em "valor_aluguel", informe apenas o número decimal (exemplo: 2500 ou 2500.00), sem 'R$'.
-3. Não inclua CPF nem termos como "assinou como" nos nomes.
+Regras Mandatórias:
+1. "proprietario": pessoa física ou jurídica identificada como LOCADOR(A). Remova CPF, estado civil e profissão.
+2. "inquilino": pessoa física ou jurídica identificada como LOCATÁRIO(A). Procure por "LOCATÁRIO", "LOCATÁRIA", "INQUILINO" ou quem assinou como tal na lista de signatários Clicksign. Remova CPF e termos como "assinou como".
+3. "endereco": corrija erros de codificação de caracteres comuns de PDF (exemplo: converta "PraÁa" para "Praça", "n∫" para "nº", "C‚mara" para "Câmara").
+4. "data_inicio" e "data_fim": formato AAAA-MM-DD.
+5. "valor_aluguel": valor numérico decimal puro (exemplo: 1000.00).
 
 Texto do Contrato:
-${text.substring(0, 20000)}`;
+${text.substring(0, 25000)}`;
 
-    const url = `[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$){apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -48,8 +50,6 @@ ${text.substring(0, 20000)}`;
 
     const data = await response.json();
     let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    
-    // Limpeza de possíveis blocos de código
     rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(rawText);
 
