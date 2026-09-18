@@ -14,27 +14,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    const prompt = `Você é um auditor pericial de contratos de locação da M&IC.
-Extraia os dados contratuais com absoluta precisão e responda EXCLUSIVAMENTE em formato JSON estrito (sem markdown, sem crases):
-{
-  "proprietario": "Nome completo do Locador",
-  "inquilino": "Nome completo do Locatário",
-  "endereco": "Endereço completo do imóvel locado",
-  "data_inicio": "AAAA-MM-DD",
-  "data_fim": "AAAA-MM-DD",
-  "valor_aluguel": 0.00
-}
+    const prompt = `Você é um sistema extrator de dados de contratos de locação.
+Leia o texto fornecido e extraia as seguintes informações:
+1. LOCADOR: Nome da pessoa (excluir CPF, estado civil, etc).
+2. LOCATÁRIO: Nome da pessoa (excluir CPF, estado civil, etc).
+3. IMÓVEL: Endereço completo.
+4. DATA DE INÍCIO: Converter para AAAA-MM-DD.
+5. DATA DE FIM: Converter para AAAA-MM-DD.
+6. VALOR DO ALUGUEL: Apenas o número (ex: 1000.00).
 
-REGRAS OBRIGATÓRIAS:
-1. "proprietario": Localize no preâmbulo quem é o "LOCADOR(A)". Exemplo: Rodrigo dos Santos de Oliveira.
-2. "inquilino": Localize no preâmbulo quem é o "LOCATÁRIO(A)". Exemplo: Cristiano Nogueira da Costa.
-   ATENÇÃO: NUNCA coloque os corretores "Mario Chalfoun Junior" ou "Ivy Carla" como inquilino.
-3. "endereco": Endereço completo sem prefixo "na" ou "no". Corrija erros de encoding como "PraÁa" para "Praça", "n∫" para "nº".
-4. "data_inicio" e "data_fim": Converta as datas da CLÁUSULA PRIMEIRA para o padrão AAAA-MM-DD.
-5. "valor_aluguel": Valor numérico puro da CLÁUSULA SEGUNDA (exemplo: 1000.00).
+Retorne APENAS um objeto JSON válido, sem formatação markdown ou textos adicionais, com as chaves exatas:
+{"proprietario": "", "inquilino": "", "endereco": "", "data_inicio": "", "data_fim": "", "valor_aluguel": 0}
 
-Texto do Contrato:
-${text.substring(0, 25000)}`;
+TEXTO DO CONTRATO:
+${text.substring(0, 15000)}`;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     const response = await fetch(url, {
@@ -42,16 +35,14 @@ ${text.substring(0, 25000)}`;
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.0,
-          responseMimeType: "application/json"
-        }
+        generationConfig: { temperature: 0.1, responseMimeType: "application/json" }
       })
     });
 
     const data = await response.json();
     let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+    
     return res.status(200).json(JSON.parse(rawText));
   } catch (error) {
     return res.status(500).json({ error: error.message });
