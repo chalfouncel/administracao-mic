@@ -204,11 +204,13 @@
     font-size: 0.82rem;
     font-weight: 600;
     min-height: 20px;
-    padding: 6px;
+    padding: 8px 10px;
     border-radius: 6px;
+    word-break: break-word;
   }
-  .auth-msg.err { background: #fee2e2; color: var(--danger); }
-  .auth-msg.ok { background: #dcfce7; color: var(--success); }
+  .auth-msg.err { background: #fee2e2; color: var(--danger); border: 1px solid #fca5a5; }
+  .auth-msg.ok { background: #dcfce7; color: var(--success); border: 1px solid #86efac; }
+  .auth-msg.loading { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; }
 
   /* CHAT AI */
   .chat-box {
@@ -244,13 +246,13 @@
     <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:18px;">Acesso Restrito ao Sistema Imobiliário</p>
 
     <label style="text-align:left;">E-mail Corporativo</label>
-    <input type="email" id="auth-email" placeholder="seuemail@gmail.com" style="margin-bottom:12px;">
+    <input type="email" id="auth-email" placeholder="seuemail@gmail.com" value="chalfouncorretor@gmail.com" style="margin-bottom:12px;">
 
     <label style="text-align:left;">Senha de Acesso</label>
     <input type="password" id="auth-pass" placeholder="••••••••" style="margin-bottom:16px;">
 
-    <button class="btn btn-gold" style="width:100%; margin-bottom:8px;" onclick="doLogin()">Entrar no Sistema</button>
-    <button class="btn btn-dark" style="width:100%;" onclick="doRegister()">Cadastrar Novo Usuário</button>
+    <button class="btn btn-gold" id="btn-login" style="width:100%; margin-bottom:8px;" onclick="doLogin()">Entrar no Sistema</button>
+    <button class="btn btn-dark" id="btn-register" style="width:100%;" onclick="doRegister()">Cadastrar Novo Usuário</button>
 
     <div id="auth-status" class="auth-msg" style="display:none;"></div>
     <div style="font-size:0.72rem; color:#94a3b8; margin-top:14px;">Autenticado via Repositório Seguro Supabase</div>
@@ -280,7 +282,7 @@
     <button class="tab-btn" onclick="setTab('agentes', this)">🤖 Agentes de IA (Gemini & Groq)</button>
   </div>
 
-  <!-- ABA 1: CÁLCULOS (BASEADO NA PLANILHA EXCEL) -->
+  <!-- ABA 1: CÁLCULOS -->
   <div id="tab-calculo" class="tab-content active">
     <div class="card">
       <div class="card-title">1. Dados do Contrato & Competência</div>
@@ -362,7 +364,7 @@
         </div>
       </div>
 
-      <!-- PAINEL DE RESULTADOS (RESUMO) -->
+      <!-- PAINEL DE RESULTADOS -->
       <div class="summary-box">
         <div class="summary-item">
           <div class="label">Total a Cobrar do Inquilino</div>
@@ -379,7 +381,7 @@
     </div>
   </div>
 
-  <!-- ABA 2: MENSAGEM WHATSAPP -->
+  <!-- ABA 2: WHATSAPP -->
   <div id="tab-whatsapp" class="tab-content">
     <div class="card">
       <div class="card-title">Texto Automático da Cobrança (AH)</div>
@@ -399,7 +401,7 @@
     </div>
   </div>
 
-  <!-- ABA 3: AGENTES DE IA (GEMINI & GROQ) -->
+  <!-- ABA 3: AGENTES IA -->
   <div id="tab-agentes" class="tab-content">
     <div class="card">
       <div class="card-title">Configuração de Agentes Gratuitos</div>
@@ -417,37 +419,42 @@
         </div>
       </div>
       <div style="font-size:0.75rem; color:#64748b; margin-top:8px;">
-        As chaves são salvas localmente no seu navegador com segurança e nunca são expostas.
+        As chaves são salvas apenas no seu navegador com total privacidade.
       </div>
     </div>
 
     <div class="card">
       <div class="card-title">Assistente Especialista em Locações</div>
       <div class="chat-box" id="chatArea">
-        <div class="chat-msg bot">Olá! Sou seu Agente de IA para Gestão Imobiliária. Posso redigir mensagens de cobrança amigáveis, analisar notificações de reajuste ou conferir cláusulas contratuais. Como posso ajudar?</div>
+        <div class="chat-msg bot">Olá! Sou o assistente de IA da M&IC. Posso redigir cobranças amigáveis, analisar notificações contratuais ou calcular demonstrativos. Em que posso ajudar?</div>
       </div>
 
       <div style="display:flex; gap:8px;">
-        <input type="text" id="chatInput" placeholder="Ex: Crie uma mensagem educada de cobrança com os valores calculados..." onkeypress="if(event.key==='Enter') sendChat()">
+        <input type="text" id="chatInput" placeholder="Ex: Redija uma cobrança educada com base nos cálculos..." onkeypress="if(event.key==='Enter') sendChat()">
         <button class="btn btn-gold" onclick="sendChat()">Enviar</button>
       </div>
 
       <div style="display:flex; gap:8px; margin-top:10px;">
-        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('cobrar')">💬 Pedir Notificação Amigável</button>
-        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('reajuste')">📈 Consultar Reajuste (IGPM/IPCA)</button>
-        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('extrato')">📑 Resumo do Repasse ao Locador</button>
+        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('cobrar')">💬 Notificação Amigável</button>
+        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('reajuste')">📈 Reajuste Anual</button>
+        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('extrato')">📑 Demonstrativo de Repasse</button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  // 1. CONFIGURAÇÃO SUPABASE
+  // CONFIGURAÇÃO SUPABASE
   const SUPABASE_URL = 'https://dgadztmmarvbjcouvrnp.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_JwOjDkAj';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true
+    }
+  });
 
-  // Inicialização de Datas
   window.addEventListener('DOMContentLoaded', () => {
     const today = new Date();
     document.getElementById('mesAno').value = today.toISOString().substring(0, 7);
@@ -461,20 +468,23 @@
     checkSession();
   });
 
-  // Autenticação
   async function checkSession() {
-    const { data: { session } } = await supabase.auth.getSession();
-    const modal = document.getElementById('auth-modal');
-    const pill = document.getElementById('user-pill');
-    const emailEl = document.getElementById('logged-user-email');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const modal = document.getElementById('auth-modal');
+      const pill = document.getElementById('user-pill');
+      const emailEl = document.getElementById('logged-user-email');
 
-    if (session && session.user) {
-      modal.style.display = 'none';
-      pill.style.display = 'flex';
-      emailEl.innerText = session.user.email;
-    } else {
-      modal.style.display = 'flex';
-      pill.style.display = 'none';
+      if (session && session.user) {
+        modal.style.display = 'none';
+        pill.style.display = 'flex';
+        emailEl.innerText = session.user.email;
+      } else {
+        modal.style.display = 'flex';
+        pill.style.display = 'none';
+      }
+    } catch (err) {
+      console.error('Erro ao verificar sessão:', err);
     }
   }
 
@@ -482,18 +492,42 @@
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-pass').value;
     const status = document.getElementById('auth-status');
-    status.style.display = 'block';
-    status.className = 'auth-msg';
-    status.innerText = 'Autenticando...';
+    const btn = document.getElementById('btn-login');
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
+    status.style.display = 'block';
+    status.className = 'auth-msg loading';
+    status.innerText = 'A autenticar...';
+    btn.disabled = true;
+
+    if (!email || !password) {
       status.className = 'auth-msg err';
-      status.innerText = 'Falha no login: ' + error.message;
-    } else {
-      status.className = 'auth-msg ok';
-      status.innerText = '✓ Sucesso! Carregando...';
-      checkSession();
+      status.innerText = 'Preencha o e-mail e a palavra-passe.';
+      btn.disabled = false;
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        status.className = 'auth-msg err';
+        status.innerText = 'Erro: ' + error.message;
+        console.error('Erro Supabase Login:', error);
+      } else {
+        status.className = 'auth-msg ok';
+        status.innerText = '✓ Sessão iniciada com sucesso!';
+        setTimeout(() => {
+          document.getElementById('auth-modal').style.display = 'none';
+          document.getElementById('user-pill').style.display = 'flex';
+          document.getElementById('logged-user-email').innerText = data.user.email;
+        }, 400);
+      }
+    } catch (err) {
+      status.className = 'auth-msg err';
+      status.innerText = 'Falha de comunicação: ' + (err.message || err);
+      console.error('Exceção capturada:', err);
+    } finally {
+      btn.disabled = false;
     }
   }
 
@@ -501,18 +535,36 @@
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-pass').value;
     const status = document.getElementById('auth-status');
-    status.style.display = 'block';
-    status.className = 'auth-msg';
-    status.innerText = 'Criando registro...';
+    const btn = document.getElementById('btn-register');
 
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) {
+    status.style.display = 'block';
+    status.className = 'auth-msg loading';
+    status.innerText = 'A criar conta...';
+    btn.disabled = true;
+
+    if (!email || !password) {
       status.className = 'auth-msg err';
-      status.innerText = 'Erro no cadastro: ' + error.message;
-    } else {
-      status.className = 'auth-msg ok';
-      status.innerText = '✓ Cadastro efetuado com sucesso!';
-      checkSession();
+      status.innerText = 'Preencha o e-mail e a palavra-passe.';
+      btn.disabled = false;
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      
+      if (error) {
+        status.className = 'auth-msg err';
+        status.innerText = 'Erro no registo: ' + error.message;
+      } else {
+        status.className = 'auth-msg ok';
+        status.innerText = '✓ Registo concluído! A aceder...';
+        checkSession();
+      }
+    } catch (err) {
+      status.className = 'auth-msg err';
+      status.innerText = 'Falha de comunicação: ' + (err.message || err);
+    } finally {
+      btn.disabled = false;
     }
   }
 
@@ -521,7 +573,6 @@
     checkSession();
   }
 
-  // Troca de Abas
   function setTab(name, btn) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -530,7 +581,7 @@
     if (name === 'whatsapp') gerarTextoCobranca();
   }
 
-  // 2. MOTOR DE CÁLCULO DA PLANILHA DE ADMINISTRAÇÃO
+  // MOTOR DE CÁLCULO
   let calcCache = {};
 
   function calcularTudo() {
@@ -541,34 +592,24 @@
 
     document.getElementById('box-dias-prop').style.display = isProp ? 'block' : 'none';
 
-    // Aluguel e Condomínio Proporcionais
     let aluguelEfetivo = isProp ? (aluguelBase / 30) * dias : aluguelBase;
     let condEfetivo = isProp ? (condBase / 30) * dias : condBase;
 
-    // Encargos V
     const iptu = parseFloat(document.getElementById('iptu').value) || 0;
     const bombeiro = parseFloat(document.getElementById('bombeiro').value) || 0;
     const outras = parseFloat(document.getElementById('outrasTaxas').value) || 0;
     const totalEncargos = iptu + bombeiro + outras;
 
-    // Total a Cobrar do Inquilino (U + V)
     const totalInquilino = aluguelEfetivo + condEfetivo + totalEncargos;
 
-    // Taxa de Administração X
     const taxaAdmPct = parseFloat(document.getElementById('taxaAdm').value) || 0;
     const valorTaxaAdm = aluguelEfetivo * (taxaAdmPct / 100);
 
-    // Regra do Condomínio R
     const regraCond = document.getElementById('regraCondominio').value;
-    let valorRepassar = 0;
+    let valorRepassar = (regraCond === 'repassa')
+      ? (aluguelEfetivo - valorTaxaAdm) + condEfetivo + totalEncargos
+      : (aluguelEfetivo - valorTaxaAdm) + totalEncargos;
 
-    if (regraCond === 'repassa') {
-      valorRepassar = (aluguelEfetivo - valorTaxaAdm) + condEfetivo + totalEncargos;
-    } else {
-      valorRepassar = (aluguelEfetivo - valorTaxaAdm) + totalEncargos;
-    }
-
-    // Formatação BRL
     const fmt = val => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
     document.getElementById('res-total-inquilino').innerText = fmt(totalInquilino);
@@ -591,7 +632,6 @@
     };
   }
 
-  // 3. TEXTO AUTOMÁTICO WHATSAPP
   function gerarTextoCobranca() {
     calcularTudo();
     const pix = document.getElementById('chavePix').value;
@@ -602,7 +642,7 @@
     const txt = 
 `Prezado(a) ${calcCache.inquilino}, tudo bem?
 
-Segue o demonstrativo de aluguel e encargos da locação com vencimento em *${vencFmt}*:
+Segue o demonstrativo de aluguel e encargos com vencimento em *${vencFmt}*:
 
 🔹 *Aluguel:* ${fmt(calcCache.aluguel)}
 🔹 *Condomínio:* ${fmt(calcCache.cond)}
@@ -613,7 +653,7 @@ ${calcCache.outras > 0 ? `🔹 *Outras Taxas:* ${fmt(calcCache.outras)}\n` : ''}
 
 🔑 *Chave PIX:* ${pix}
 
-Favor enviar o comprovante assim que efetuar o pagamento.
+Favor enviar o comprovativo assim que efetuar o pagamento.
 Qualquer dúvida, estamos à disposição!
 
 *M&IC Corretores de Imóveis*`;
@@ -633,7 +673,7 @@ Qualquer dúvida, estamos à disposição!
     window.open(`https://api.whatsapp.com/send?text=${txt}`, '_blank');
   }
 
-  // 4. AGENTES DE IA (GEMINI & GROQ)
+  // AGENTES IA
   function preencherPrompt(tipo) {
     const input = document.getElementById('chatInput');
     if (tipo === 'cobrar') input.value = `Elabore uma mensagem de cobrança amigável para o inquilino ${calcCache.inquilino}, informando o total de R$ ${calcCache.totalInquilino.toFixed(2)}.`;
@@ -655,14 +695,14 @@ Qualquer dúvida, estamos à disposição!
     const engine = document.getElementById('aiEngine').value;
 
     if (!key) {
-      chatArea.innerHTML += `<div class="chat-msg bot">⚠️ Por favor, insira sua chave gratuita de API (Gemini ou Groq) no campo acima para conversar com o Agente de IA.</div>`;
+      chatArea.innerHTML += `<div class="chat-msg bot">⚠️ Por favor, insira a sua chave gratuita de API (Gemini ou Groq) no campo acima para conversar com o Agente de IA.</div>`;
       chatArea.scrollTop = chatArea.scrollHeight;
       return;
     }
 
     const botMsgEl = document.createElement('div');
     botMsgEl.className = 'chat-msg bot';
-    botMsgEl.innerText = 'Pensando...';
+    botMsgEl.innerText = 'A pensar...';
     chatArea.appendChild(botMsgEl);
     chatArea.scrollTop = chatArea.scrollHeight;
 
@@ -672,20 +712,19 @@ Qualquer dúvida, estamos à disposição!
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: `Você é o assistente virtual de locação da imobiliária M&IC. Responda de forma profissional e objetiva à seguinte solicitação: ${msg}` }] }]
+            contents: [{ parts: [{ text: `Você é o assistente virtual de locação da M&IC Corretores de Imóveis. Responda de forma profissional: ${msg}` }] }]
           })
         });
         const json = await res.json();
         const reply = json.candidates?.[0]?.content?.parts?.[0]?.text || 'Sem resposta da IA.';
         botMsgEl.innerText = reply;
       } else {
-        // Groq API
         const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
           body: JSON.stringify({
             model: 'llama-3.3-70b-versatile',
-            messages: [{ role: 'system', content: 'Você é o assistente especialista em gestão de locações da M&IC Corretores de Imóveis.' }, { role: 'user', content: msg }]
+            messages: [{ role: 'system', content: 'Você é o assistente de locações da M&IC Corretores de Imóveis.' }, { role: 'user', content: msg }]
           })
         });
         const json = await res.json();
