@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gestão de Locação Imobiliária — M&IC</title>
-<!-- Supabase JS CDN -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --primary: #121315;
@@ -238,7 +236,7 @@
 </head>
 <body>
 
-<!-- MODAL DE AUTENTICAÇÃO SUPABASE -->
+<!-- MODAL DE AUTENTICAÇÃO -->
 <div id="auth-modal">
   <div class="auth-card">
     <div class="logo">M&IC</div>
@@ -251,8 +249,8 @@
     <label style="text-align:left;">Senha de Acesso</label>
     <input type="password" id="auth-pass" placeholder="••••••••" style="margin-bottom:16px;">
 
-    <button class="btn btn-gold" id="btn-login" style="width:100%; margin-bottom:8px;" onclick="doLogin()">Entrar no Sistema</button>
-    <button class="btn btn-dark" id="btn-register" style="width:100%;" onclick="doRegister()">Cadastrar Novo Usuário</button>
+    <button type="button" class="btn btn-gold" id="btn-login" style="width:100%; margin-bottom:8px;">Entrar no Sistema</button>
+    <button type="button" class="btn btn-dark" id="btn-register" style="width:100%;">Cadastrar Novo Usuário</button>
 
     <div id="auth-status" class="auth-msg" style="display:none;"></div>
     <div style="font-size:0.72rem; color:#94a3b8; margin-top:14px;">Autenticado via Repositório Seguro Supabase</div>
@@ -270,7 +268,7 @@
   </div>
   <div class="user-badge" id="user-pill" style="display:none;">
     <span>Conectado: <strong id="logged-user-email"></strong></span>
-    <button class="btn-logout" onclick="doLogout()">Sair</button>
+    <button class="btn-logout" id="btn-logout-action">Sair</button>
   </div>
 </header>
 
@@ -444,47 +442,40 @@
 </div>
 
 <script>
-  // CONFIGURAÇÃO SUPABASE
-  const SUPABASE_URL = 'https://dgadztmmarvbjcouvrnp.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_JwOjDkAj';
-  
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true
-    }
-  });
+  // COMUNICAÇÃO NATIVA DIRETA COM A REST API DO SUPABASE
+  const SUPABASE_BASE_URL = 'https://dgadztmmarvbjcouvrnp.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_JwOjDkAj';
 
-  window.addEventListener('DOMContentLoaded', () => {
-    const today = new Date();
-    document.getElementById('mesAno').value = today.toISOString().substring(0, 7);
-    document.getElementById('dataInicio').valueAsDate = today;
-    
-    const venc = new Date();
-    venc.setDate(venc.getDate() + 5);
-    document.getElementById('dataVencimento').valueAsDate = venc;
+  const STORAGE_KEY = 'mic_auth_session';
 
-    calcularTudo();
-    checkSession();
-  });
-
-  async function checkSession() {
+  function getLocalSession() {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const modal = document.getElementById('auth-modal');
-      const pill = document.getElementById('user-pill');
-      const emailEl = document.getElementById('logged-user-email');
+      const data = localStorage.getItem(STORAGE_KEY);
+      return data ? JSON.parse(data) : null;
+    } catch(e) { return null; }
+  }
 
-      if (session && session.user) {
-        modal.style.display = 'none';
-        pill.style.display = 'flex';
-        emailEl.innerText = session.user.email;
-      } else {
-        modal.style.display = 'flex';
-        pill.style.display = 'none';
-      }
-    } catch (err) {
-      console.error('Erro ao verificar sessão:', err);
+  function setLocalSession(session) {
+    if (session) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }
+
+  function checkSession() {
+    const session = getLocalSession();
+    const modal = document.getElementById('auth-modal');
+    const pill = document.getElementById('user-pill');
+    const emailEl = document.getElementById('logged-user-email');
+
+    if (session && session.user && session.user.email) {
+      modal.style.display = 'none';
+      pill.style.display = 'flex';
+      emailEl.innerText = session.user.email;
+    } else {
+      modal.style.display = 'flex';
+      pill.style.display = 'none';
     }
   }
 
@@ -507,25 +498,31 @@
     }
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      
-      if (error) {
+      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: email, password: password })
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
         status.className = 'auth-msg err';
-        status.innerText = 'Erro: ' + error.message;
-        console.error('Erro Supabase Login:', error);
+        status.innerText = 'Erro: ' + (data.error_description || data.msg || data.message || 'Falha ao autenticar.');
       } else {
         status.className = 'auth-msg ok';
         status.innerText = '✓ Sessão iniciada com sucesso!';
+        setLocalSession(data);
         setTimeout(() => {
-          document.getElementById('auth-modal').style.display = 'none';
-          document.getElementById('user-pill').style.display = 'flex';
-          document.getElementById('logged-user-email').innerText = data.user.email;
-        }, 400);
+          checkSession();
+        }, 300);
       }
     } catch (err) {
       status.className = 'auth-msg err';
-      status.innerText = 'Falha de comunicação: ' + (err.message || err);
-      console.error('Exceção capturada:', err);
+      status.innerText = 'Falha de comunicação de rede: ' + err.message;
     } finally {
       btn.disabled = false;
     }
@@ -539,7 +536,7 @@
 
     status.style.display = 'block';
     status.className = 'auth-msg loading';
-    status.innerText = 'A criar conta...';
+    status.innerText = 'A registar conta...';
     btn.disabled = true;
 
     if (!email || !password) {
@@ -550,29 +547,62 @@
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      
-      if (error) {
+      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/signup`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: email, password: password })
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
         status.className = 'auth-msg err';
-        status.innerText = 'Erro no registo: ' + error.message;
+        status.innerText = 'Erro no registo: ' + (data.msg || data.message || 'Erro inesperado.');
       } else {
         status.className = 'auth-msg ok';
-        status.innerText = '✓ Registo concluído! A aceder...';
-        checkSession();
+        status.innerText = '✓ Registo concluído! A aceder ao sistema...';
+        if (data.access_token) {
+          setLocalSession(data);
+          setTimeout(() => checkSession(), 400);
+        } else {
+          doLogin();
+        }
       }
     } catch (err) {
       status.className = 'auth-msg err';
-      status.innerText = 'Falha de comunicação: ' + (err.message || err);
+      status.innerText = 'Falha de comunicação: ' + err.message;
     } finally {
       btn.disabled = false;
     }
   }
 
-  async function doLogout() {
-    await supabase.auth.signOut();
+  function doLogout() {
+    setLocalSession(null);
     checkSession();
   }
 
+  // LIGAÇÃO DIRETA DOS EVENTOS DOS BOTÕES
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btn-login').addEventListener('click', doLogin);
+    document.getElementById('btn-register').addEventListener('click', doRegister);
+    document.getElementById('btn-logout-action').addEventListener('click', doLogout);
+
+    const today = new Date();
+    document.getElementById('mesAno').value = today.toISOString().substring(0, 7);
+    document.getElementById('dataInicio').valueAsDate = today;
+    
+    const venc = new Date();
+    venc.setDate(venc.getDate() + 5);
+    document.getElementById('dataVencimento').valueAsDate = venc;
+
+    calcularTudo();
+    checkSession();
+  });
+
+  // GESTÃO DE ABAS
   function setTab(name, btn) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
