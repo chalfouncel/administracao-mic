@@ -26,7 +26,7 @@
     background: linear-gradient(135deg, #0d0e10 0%, #1a1c20 70%, #2b261b 100%);
     border-bottom: 3px solid var(--accent);
     color: #fff;
-    padding: 16px 20px;
+    padding: 14px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -34,15 +34,14 @@
     gap: 12px;
   }
   .brand-area { display: flex; align-items: center; gap: 12px; }
-  .logo-box {
-    background: #000;
-    border: 1px solid var(--accent);
-    color: var(--gold);
-    font-weight: 800;
-    padding: 6px 12px;
+  .app-header-logo {
+    max-height: 48px;
+    width: auto;
+    object-fit: contain;
     border-radius: 6px;
-    font-size: 1.1rem;
-    letter-spacing: 1px;
+    border: 1px solid var(--accent);
+    padding: 2px;
+    background: #000;
   }
   header h1 { font-size: 1.15rem; color: var(--gold); font-weight: 700; }
   header p { font-size: 0.76rem; color: #cfd4dc; }
@@ -166,7 +165,7 @@
   .btn-dark { background: var(--secondary); color: #fff; }
   .btn-whatsapp { background: #25D366; color: #fff; }
 
-  /* OVERLAY DE LOGIN */
+  /* MODAL DE AUTENTICAÇÃO */
   #auth-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(15, 23, 42, 0.94);
@@ -187,15 +186,12 @@
     box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     border-top: 4px solid var(--accent);
   }
-  .auth-card .logo {
-    display: inline-block;
-    background: #000;
-    border: 1px solid var(--accent);
-    color: var(--gold);
-    font-weight: 800;
-    padding: 6px 14px;
-    border-radius: 6px;
+  .auth-logo {
+    max-height: 56px;
+    width: auto;
+    object-fit: contain;
     margin-bottom: 12px;
+    border-radius: 6px;
   }
   .auth-msg {
     margin-top: 12px;
@@ -236,10 +232,10 @@
 </head>
 <body>
 
-<!-- MODAL DE AUTENTICAÇÃO -->
+<!-- MODAL DE LOGIN -->
 <div id="auth-modal">
   <div class="auth-card">
-    <div class="logo">M&IC</div>
+    <img src="/Loga%20marca%20nova.png" alt="M&IC Corretores" class="auth-logo" onerror="this.src='/Loga marca nova.png'">
     <h2 style="font-size:1.2rem; color:var(--primary); margin-bottom:4px;">GESTÃO DE LOCAÇÃO</h2>
     <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:18px;">Acesso Restrito ao Sistema Imobiliário</p>
 
@@ -260,7 +256,7 @@
 <!-- CABEÇALHO -->
 <header>
   <div class="brand-area">
-    <div class="logo-box">M&IC</div>
+    <img src="/Loga%20marca%20nova.png" alt="M&IC Corretores" class="app-header-logo" onerror="this.src='/Loga marca nova.png'">
     <div>
       <h1>GESTÃO DE LOCAÇÃO IMOBILIÁRIA</h1>
       <p>Controle Operacional, Repasses, Cobrança & Agentes de IA</p>
@@ -273,14 +269,14 @@
 </header>
 
 <div class="container">
-  <!-- ABAS -->
+  <!-- NAVEGAÇÃO DE ABAS -->
   <div class="tabs">
     <button class="tab-btn active" onclick="setTab('calculo', this)">📊 Cálculo de Cobrança & Repasse</button>
     <button class="tab-btn" onclick="setTab('whatsapp', this)">💬 Texto de Cobrança (WhatsApp)</button>
     <button class="tab-btn" onclick="setTab('agentes', this)">🤖 Agentes de IA (Gemini & Groq)</button>
   </div>
 
-  <!-- ABA 1: CÁLCULOS -->
+  <!-- ABA 1: CÁLCULO E REPASSE -->
   <div id="tab-calculo" class="tab-content active">
     <div class="card">
       <div class="card-title">1. Dados do Contrato & Competência</div>
@@ -362,7 +358,6 @@
         </div>
       </div>
 
-      <!-- PAINEL DE RESULTADOS -->
       <div class="summary-box">
         <div class="summary-item">
           <div class="label">Total a Cobrar do Inquilino</div>
@@ -379,7 +374,7 @@
     </div>
   </div>
 
-  <!-- ABA 2: WHATSAPP -->
+  <!-- ABA 2: MENSAGEM WHATSAPP -->
   <div id="tab-whatsapp" class="tab-content">
     <div class="card">
       <div class="card-title">Texto Automático da Cobrança (AH)</div>
@@ -442,10 +437,8 @@
 </div>
 
 <script>
-  // COMUNICAÇÃO NATIVA DIRETA COM A REST API DO SUPABASE
   const SUPABASE_BASE_URL = 'https://dgadztmmarvbjcouvrnp.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_JwOjDkAj';
-
   const STORAGE_KEY = 'mic_auth_session';
 
   function getLocalSession() {
@@ -584,7 +577,6 @@
     checkSession();
   }
 
-  // LIGAÇÃO DIRETA DOS EVENTOS DOS BOTÕES
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-login').addEventListener('click', doLogin);
     document.getElementById('btn-register').addEventListener('click', doRegister);
@@ -602,7 +594,6 @@
     checkSession();
   });
 
-  // GESTÃO DE ABAS
   function setTab(name, btn) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -611,7 +602,6 @@
     if (name === 'whatsapp') gerarTextoCobranca();
   }
 
-  // MOTOR DE CÁLCULO
   let calcCache = {};
 
   function calcularTudo() {
@@ -703,7 +693,6 @@ Qualquer dúvida, estamos à disposição!
     window.open(`https://api.whatsapp.com/send?text=${txt}`, '_blank');
   }
 
-  // AGENTES IA
   function preencherPrompt(tipo) {
     const input = document.getElementById('chatInput');
     if (tipo === 'cobrar') input.value = `Elabore uma mensagem de cobrança amigável para o inquilino ${calcCache.inquilino}, informando o total de R$ ${calcCache.totalInquilino.toFixed(2)}.`;
