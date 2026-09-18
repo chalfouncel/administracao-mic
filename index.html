@@ -68,6 +68,46 @@
   }
 
   .container { max-width: 960px; margin: 20px auto; padding: 0 16px; }
+  
+  /* BANNER PRINCIPAL DE ANEXO DO CONTRATO */
+  .upload-top-banner {
+    background: #ffffff;
+    border: 2px dashed var(--accent);
+    border-radius: 12px;
+    padding: 20px 16px;
+    margin-bottom: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    box-shadow: 0 4px 12px rgba(197,155,39,0.08);
+  }
+  .upload-top-banner:hover {
+    background: #faf6eb;
+    border-color: var(--gold-light);
+  }
+  .upload-top-banner svg {
+    width: 38px;
+    height: 38px;
+    fill: var(--accent);
+    margin-bottom: 6px;
+  }
+  .upload-top-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--primary);
+  }
+  .upload-top-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .upload-file-status {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--success);
+    margin-top: 6px;
+  }
+
   .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; overflow-x: auto; }
   .tab-btn {
     background: #fff;
@@ -130,18 +170,6 @@
     transition: 0.15s;
   }
   input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(197,155,39,0.2); }
-
-  .file-input-box {
-    border: 2px dashed #cbd5e1;
-    background: #f8fafc;
-    border-radius: 8px;
-    padding: 16px;
-    text-align: center;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-  .file-input-box:hover { border-color: var(--accent); background: #fffcf0; }
-  .file-name-info { font-size: 0.8rem; color: var(--accent); font-weight: 700; margin-top: 6px; }
 
   .summary-box {
     background: #0f172a;
@@ -351,6 +379,17 @@
 </header>
 
 <div class="container">
+  <!-- CAMPO PARA ADICIONAR O CONTRATO NO TOPO -->
+  <div class="upload-top-banner" onclick="document.getElementById('contratoFile').click()">
+    <svg viewBox="0 0 24 24">
+      <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+    </svg>
+    <div class="upload-top-title">Adicionar Contrato de Locação em PDF</div>
+    <div class="upload-top-desc">Clique para selecionar o contrato assinado que será armazenado com segurança em pasta individual</div>
+    <div class="upload-file-status" id="file-name-display">Nenhum contrato anexado</div>
+  </div>
+  <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="handleFileSelected(event)">
+
   <div class="tabs">
     <button class="tab-btn active" onclick="setTab('calculo', this)">📊 Cálculo de Cobrança & Repasse</button>
     <button class="tab-btn" onclick="setTab('whatsapp', this)">💬 Texto de Cobrança</button>
@@ -453,20 +492,6 @@
       <div style="font-size:0.75rem; color:#64748b; margin-top:8px; text-align:center;">
         Aluguel Efetivo: <strong id="res-aluguel-efetivo">R$ 0,00</strong> | Condomínio Efetivo: <strong id="res-cond-efetivo">R$ 0,00</strong> | Taxa de Administração: <strong id="res-taxa-adm">R$ 0,00</strong>
       </div>
-    </div>
-
-    <!-- 4. ANEXAR CONTRATO -->
-    <div class="card">
-      <div class="card-title">4. Documentação do Contrato</div>
-      <label>Anexar Contrato Assinado em PDF</label>
-      <div class="file-input-box" onclick="document.getElementById('contratoFile').click()">
-        <svg style="width:34px;height:34px;fill:var(--accent);margin:0 auto 6px auto;display:block;" viewBox="0 0 24 24">
-          <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
-        </svg>
-        <div style="font-size:0.88rem; font-weight:600; color:#334155;">Clique para selecionar o contrato em PDF</div>
-        <div class="file-name-info" id="file-name-display">Nenhum ficheiro selecionado</div>
-      </div>
-      <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="handleFileSelected(event)">
 
       <button type="button" class="btn btn-gold" id="btn-salvar-tudo" style="width:100%; margin-top:16px;" onclick="salvarLocacaoNoBanco()">
         💾 Salvar Contrato e Cálculos no Repositório Seguro
@@ -564,14 +589,14 @@
         alert('Por favor, selecione apenas ficheiros em formato PDF.');
         event.target.value = '';
         selectedPdfFile = null;
-        display.innerText = 'Nenhum ficheiro selecionado';
+        display.innerText = 'Nenhum contrato anexado';
         return;
       }
       selectedPdfFile = file;
-      display.innerText = '✓ Ficheiro pronto: ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+      display.innerText = '✓ Ficheiro pronto para upload: ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
     } else {
       selectedPdfFile = null;
-      display.innerText = 'Nenhum ficheiro selecionado';
+      display.innerText = 'Nenhum contrato anexado';
     }
   }
 
@@ -785,7 +810,6 @@
     };
   }
 
-  // GRAVAÇÃO COMPLETA: STORAGE (PASTA INDIVIDUAL) + TABELA LOCAÇÕES
   async function salvarLocacaoNoBanco() {
     calcularTudo();
     const btn = document.getElementById('btn-salvar-tudo');
@@ -799,7 +823,6 @@
     
     let uploadedPdfUrl = null;
 
-    // 1. Upload do Ficheiro PDF para pasta individual no Supabase Storage
     if (selectedPdfFile) {
       const pastaIndividual = `${cleanInq}_${Date.now()}`;
       const filePath = `${pastaIndividual}/contrato.pdf`;
@@ -817,15 +840,12 @@
 
         if (uploadResp.ok) {
           uploadedPdfUrl = `${SUPABASE_BASE_URL}/storage/v1/object/public/contratos/${filePath}`;
-        } else {
-          console.warn('Aviso: Certifique-se de que o bucket "contratos" existe no Storage do Supabase.');
         }
       } catch (err) {
         console.error('Falha no upload do contrato:', err);
       }
     }
 
-    // 2. Gravação do registo na tabela locacoes
     const payload = {
       user_email: userEmail,
       inquilino: document.getElementById('inquilino').value,
@@ -862,7 +882,7 @@
         alert('✓ Dados e contrato guardados com sucesso no repositório seguro!');
         selectedPdfFile = null;
         document.getElementById('contratoFile').value = '';
-        document.getElementById('file-name-display').innerText = 'Nenhum ficheiro selecionado';
+        document.getElementById('file-name-display').innerText = 'Nenhum contrato anexado';
       } else {
         const err = await resp.json();
         alert('Erro ao salvar no banco: ' + (err.message || JSON.stringify(err)));
@@ -924,10 +944,8 @@
     }
   }
 
-  // CONTROLE DO VISUALIZADOR DE PDF EM ECRÃ (NUNCA DOWNLOAD)
   function abrirVisualizadorPdf(url, inquilino) {
     document.getElementById('pdf-modal-title').innerText = `Contrato de Locação — ${inquilino}`;
-    // Visualizador de PDF integrado em ecrã com bloqueio de descarregamento automático
     document.getElementById('pdf-iframe').src = `${url}#toolbar=0&navpanes=0&scrollbar=1`;
     document.getElementById('pdf-modal').style.display = 'flex';
   }
