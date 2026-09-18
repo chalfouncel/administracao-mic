@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gestão de Locação Imobiliária — M&IC</title>
+<!-- Leitor de PDF para extração via IA -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
 <style>
   :root {
     --primary: #121315;
@@ -69,45 +74,6 @@
 
   .container { max-width: 960px; margin: 20px auto; padding: 0 16px; }
   
-  /* BANNER PRINCIPAL DE ANEXO DO CONTRATO */
-  .upload-top-banner {
-    background: #ffffff;
-    border: 2px dashed var(--accent);
-    border-radius: 12px;
-    padding: 20px 16px;
-    margin-bottom: 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: 0.2s;
-    box-shadow: 0 4px 12px rgba(197,155,39,0.08);
-  }
-  .upload-top-banner:hover {
-    background: #faf6eb;
-    border-color: var(--gold-light);
-  }
-  .upload-top-banner svg {
-    width: 38px;
-    height: 38px;
-    fill: var(--accent);
-    margin-bottom: 6px;
-  }
-  .upload-top-title {
-    font-size: 1rem;
-    font-weight: 800;
-    color: var(--primary);
-  }
-  .upload-top-desc {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-top: 4px;
-  }
-  .upload-file-status {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--success);
-    margin-top: 6px;
-  }
-
   .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; overflow-x: auto; }
   .tab-btn {
     background: #fff;
@@ -171,6 +137,33 @@
   }
   input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(197,155,39,0.2); }
 
+  /* CAIXA DE ANEXO */
+  .upload-box {
+    border: 2px dashed var(--accent);
+    background: #faf8f2;
+    border-radius: 10px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-bottom: 16px;
+  }
+  .upload-box:hover { background: #f5eedb; }
+  .upload-box svg { width: 40px; height: 40px; fill: var(--accent); margin-bottom: 8px; }
+  .upload-status-text { font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-top: 6px; }
+
+  .ai-loader {
+    display: none;
+    padding: 12px;
+    background: #e0f2fe;
+    color: #0369a1;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
   .summary-box {
     background: #0f172a;
     border: 1px solid var(--accent);
@@ -212,7 +205,7 @@
   table.data-table td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
   table.data-table tr:hover { background: #f8fafc; }
 
-  /* MODAL DE LOGIN */
+  /* MODAIS */
   #auth-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(15, 23, 42, 0.94);
@@ -253,7 +246,6 @@
   .auth-msg.ok { background: #dcfce7; color: var(--success); border: 1px solid #86efac; }
   .auth-msg.loading { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; }
 
-  /* MODAL VISUALIZADOR DE PDF EM TELA */
   #pdf-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(15, 23, 42, 0.85);
@@ -292,17 +284,8 @@
     font-size: 1.3rem;
     cursor: pointer;
   }
-  .pdf-viewer-body {
-    flex: 1;
-    width: 100%;
-    height: 100%;
-    background: #525659;
-  }
-  .pdf-viewer-body iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-  }
+  .pdf-viewer-body { flex: 1; width: 100%; height: 100%; background: #525659; }
+  .pdf-viewer-body iframe { width: 100%; height: 100%; border: none; }
 
   .chat-box {
     border: 1.5px solid #e2e8f0;
@@ -350,7 +333,7 @@
   </div>
 </div>
 
-<!-- MODAL VISUALIZADOR DE PDF EM TELA -->
+<!-- MODAL VISUALIZADOR DE PDF -->
 <div id="pdf-modal">
   <div class="pdf-viewer-card">
     <div class="pdf-viewer-header">
@@ -379,50 +362,92 @@
 </header>
 
 <div class="container">
-  <!-- CAMPO PARA ADICIONAR O CONTRATO NO TOPO -->
-  <div class="upload-top-banner" onclick="document.getElementById('contratoFile').click()">
-    <svg viewBox="0 0 24 24">
-      <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
-    </svg>
-    <div class="upload-top-title">Adicionar Contrato de Locação em PDF</div>
-    <div class="upload-top-desc">Clique para selecionar o contrato assinado que será armazenado com segurança em pasta individual</div>
-    <div class="upload-file-status" id="file-name-display">Nenhum contrato anexado</div>
-  </div>
-  <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="handleFileSelected(event)">
-
+  <!-- NAVEGAÇÃO DAS ABAS -->
   <div class="tabs">
-    <button class="tab-btn active" onclick="setTab('calculo', this)">📊 Cálculo de Cobrança & Repasse</button>
+    <button class="tab-btn active" onclick="setTab('resumo', this)">📄 Resumo do contrato</button>
+    <button class="tab-btn" onclick="setTab('calculo', this)">📊 Cálculo de Cobrança & Repasse</button>
     <button class="tab-btn" onclick="setTab('whatsapp', this)">💬 Texto de Cobrança</button>
     <button class="tab-btn" onclick="setTab('historico', this)">📁 Histórico de Locações Salvas</button>
     <button class="tab-btn" onclick="setTab('agentes', this)">🤖 Agente de IA Gemini</button>
   </div>
 
-  <!-- ABA 1: CÁLCULO E REPASSE -->
-  <div id="tab-calculo" class="tab-content active">
+  <!-- ABA 1: RESUMO DO CONTRATO COM EXTRAÇÃO POR IA -->
+  <div id="tab-resumo" class="tab-content active">
     <div class="card">
-      <div class="card-title">1. Dados do Contrato & Competência</div>
+      <div class="card-title">Anexar Contrato para Leitura com IA</div>
+      <div class="upload-box" onclick="document.getElementById('contratoFile').click()">
+        <svg viewBox="0 0 24 24">
+          <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+        </svg>
+        <div style="font-size:1.05rem; font-weight:800; color:var(--primary);">Anexar Contrato (.PDF)</div>
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Selecione o arquivo assinado. O Gemini fará a leitura e preenchimento automático.</div>
+        <div class="upload-status-text" id="upload-status-msg">Nenhum contrato anexado</div>
+      </div>
+      <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="processarContratoComIA(event)">
+
+      <div class="ai-loader" id="ai-extract-loader">
+        ⏳ O Gemini está lendo e extraindo os dados contratuais...
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <label>Proprietário</label>
+          <input type="text" id="proprietario" placeholder="Locador extraído do contrato" oninput="sincronizarCampos()">
+        </div>
+        <div>
+          <label>Inquilino</label>
+          <input type="text" id="inquilino" placeholder="Locatário extraído do contrato" oninput="sincronizarCampos()">
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label>Endereço</label>
+        <input type="text" id="endereco" placeholder="Endereço completo do imóvel locado">
+      </div>
+
+      <div class="grid-3" style="margin-top:14px;">
+        <div>
+          <label>Data de Início</label>
+          <input type="date" id="dataInicio" onchange="sincronizarCampos()">
+        </div>
+        <div>
+          <label>Data de fim</label>
+          <input type="date" id="dataFim">
+        </div>
+        <div>
+          <label>Valor do aluguel</label>
+          <input type="number" id="aluguelBase" placeholder="R$ 0,00" oninput="sincronizarCampos()">
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-gold" style="width:100%; margin-top:18px;" onclick="setTab('calculo', document.querySelectorAll('.tab-btn')[1])">
+        Avançar para Cálculo de Cobrança & Repasse ➔
+      </button>
+    </div>
+  </div>
+
+  <!-- ABA 2: CÁLCULO E REPASSE -->
+  <div id="tab-calculo" class="tab-content">
+    <div class="card">
+      <div class="card-title">1. Dados de Cobrança & Mês de Referência</div>
       <div class="grid-3">
         <div>
           <label>Inquilino</label>
-          <input type="text" id="inquilino" placeholder="Nome do inquilino" value="Ex: Roberto Silva">
+          <input type="text" id="calc-inquilino" readonly style="background:#f1f5f9;">
         </div>
         <div>
           <label>Proprietário</label>
-          <input type="text" id="proprietario" placeholder="Nome do proprietário" value="Ex: Dra. Maria Helena">
+          <input type="text" id="calc-proprietario" readonly style="background:#f1f5f9;">
         </div>
         <div>
           <label>Mês e Ano de Referência</label>
           <input type="month" id="mesAno">
         </div>
       </div>
-      <div class="grid-3" style="margin-top:12px;">
+      <div class="grid-2" style="margin-top:12px;">
         <div>
-          <label>Data de Início da Ocupação</label>
-          <input type="date" id="dataInicio">
-        </div>
-        <div>
-          <label>Aluguel Base Integral</label>
-          <input type="number" id="aluguelBase" value="2500" oninput="calcularTudo()">
+          <label>Valor do aluguel Base</label>
+          <input type="number" id="calc-aluguelBase" oninput="calcularTudo()">
         </div>
         <div>
           <label>Condomínio Base Integral</label>
@@ -499,7 +524,7 @@
     </div>
   </div>
 
-  <!-- ABA 2: MENSAGEM WHATSAPP -->
+  <!-- ABA 3: MENSAGEM WHATSAPP -->
   <div id="tab-whatsapp" class="tab-content">
     <div class="card">
       <div class="card-title">Texto Automático da Cobrança</div>
@@ -519,7 +544,7 @@
     </div>
   </div>
 
-  <!-- ABA 3: HISTÓRICO DE DADOS SALVOS -->
+  <!-- ABA 4: HISTÓRICO DE DADOS SALVOS -->
   <div id="tab-historico" class="tab-content">
     <div class="card">
       <div class="card-title">
@@ -549,7 +574,7 @@
     </div>
   </div>
 
-  <!-- ABA 4: AGENTE IA GEMINI -->
+  <!-- ABA 5: AGENTE IA GEMINI -->
   <div id="tab-agentes" class="tab-content">
     <div class="card">
       <div class="card-title">
@@ -557,7 +582,7 @@
         <span style="font-size:0.75rem; color:#16a34a; font-weight:700;">● Chave Protegida no Servidor</span>
       </div>
       <div class="chat-box" id="chatArea">
-        <div class="chat-msg bot">Olá! Sou o assistente de IA da M&IC. Posso redigir mensagens de cobrança amigáveis, analisar notificações contratuais ou explicar regras de reajuste. Em que posso ajudar?</div>
+        <div class="chat-msg bot">Olá! Sou o assistente de IA da M&IC. Posso redigir mensagens de cobrança amigáveis, analisar cláusulas contratuais ou explicar regras de reajuste. Em que posso ajudar?</div>
       </div>
 
       <div style="display:flex; gap:8px;">
@@ -581,23 +606,76 @@
 
   let selectedPdfFile = null;
 
-  function handleFileSelected(event) {
+  // EXTRAÇÃO DO CONTRATO VIA IA
+  async function processarContratoComIA(event) {
     const file = event.target.files[0];
-    const display = document.getElementById('file-name-display');
-    if (file) {
-      if (file.type !== 'application/pdf') {
-        alert('Por favor, selecione apenas ficheiros em formato PDF.');
-        event.target.value = '';
-        selectedPdfFile = null;
-        display.innerText = 'Nenhum contrato anexado';
-        return;
-      }
-      selectedPdfFile = file;
-      display.innerText = '✓ Ficheiro pronto para upload: ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
-    } else {
-      selectedPdfFile = null;
-      display.innerText = 'Nenhum contrato anexado';
+    const statusMsg = document.getElementById('upload-status-msg');
+    const loader = document.getElementById('ai-extract-loader');
+
+    if (!file || file.type !== 'application/pdf') {
+      alert('Selecione um ficheiro válido em formato PDF.');
+      return;
     }
+
+    selectedPdfFile = file;
+    statusMsg.innerText = `✓ Anexado: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+    loader.style.display = 'block';
+
+    try {
+      // 1. Leitura direta do texto do PDF com pdf.js
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+
+      for (let p = 1; p <= Math.min(pdf.numPages, 10); p++) {
+        const page = await pdf.getPage(p);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        fullText += `\n--- PÁGINA ${p} ---\n` + pageText;
+      }
+
+      // 2. Chamada ao backend Gemini seguro
+      const res = await fetch('/api/extract-contract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: fullText })
+      });
+
+      if (!res.ok) {
+        throw new Error('Falha na resposta do extrator de IA.');
+      }
+
+      const extracted = await res.json();
+
+      // 3. Preenchimento automático dos campos
+      if (extracted.proprietario) document.getElementById('proprietario').value = extracted.proprietario;
+      if (extracted.inquilino) document.getElementById('inquilino').value = extracted.inquilino;
+      if (extracted.endereco) document.getElementById('endereco').value = extracted.endereco;
+      if (extracted.data_inicio) document.getElementById('dataInicio').value = extracted.data_inicio;
+      if (extracted.data_fim) document.getElementById('dataFim').value = extracted.data_fim;
+      if (extracted.valor_aluguel) document.getElementById('aluguelBase').value = extracted.valor_aluguel;
+
+      sincronizarCampos();
+      alert('✓ Contrato lido com sucesso! Os campos foram preenchidos automaticamente pela IA.');
+
+    } catch (err) {
+      console.error('Erro na extração:', err);
+      alert('Aviso: Não foi possível ler automaticamente todas as cláusulas do PDF. Você pode conferir e digitar manualmente nos campos.');
+    } finally {
+      loader.style.display = 'none';
+    }
+  }
+
+  function sincronizarCampos() {
+    const prop = document.getElementById('proprietario').value;
+    const inq = document.getElementById('inquilino').value;
+    const aluguel = document.getElementById('aluguelBase').value;
+
+    document.getElementById('calc-proprietario').value = prop;
+    document.getElementById('calc-inquilino').value = inq;
+    document.getElementById('calc-aluguelBase').value = aluguel;
+
+    calcularTudo();
   }
 
   function getLocalSession() {
@@ -747,7 +825,7 @@
     venc.setDate(venc.getDate() + 5);
     document.getElementById('dataVencimento').valueAsDate = venc;
 
-    calcularTudo();
+    sincronizarCampos();
     checkSession();
   });
 
@@ -763,7 +841,7 @@
   let calcCache = {};
 
   function calcularTudo() {
-    const aluguelBase = parseFloat(document.getElementById('aluguelBase').value) || 0;
+    const aluguelBase = parseFloat(document.getElementById('calc-aluguelBase').value) || parseFloat(document.getElementById('aluguelBase').value) || 0;
     const condBase = parseFloat(document.getElementById('condominioBase').value) || 0;
     const isProp = document.getElementById('isProporcional').value === 'sim';
     const dias = parseInt(document.getElementById('diasOcupados').value) || 30;
@@ -852,7 +930,7 @@
       proprietario: document.getElementById('proprietario').value,
       mes_ano: document.getElementById('mesAno').value,
       data_inicio: document.getElementById('dataInicio').value || null,
-      aluguel_base: parseFloat(document.getElementById('aluguelBase').value) || 0,
+      aluguel_base: parseFloat(document.getElementById('calc-aluguelBase').value) || parseFloat(document.getElementById('aluguelBase').value) || 0,
       condominio_base: parseFloat(document.getElementById('condominioBase').value) || 0,
       is_proporcional: document.getElementById('isProporcional').value,
       dias_ocupados: parseInt(document.getElementById('diasOcupados').value) || 30,
@@ -880,9 +958,6 @@
 
       if (resp.ok) {
         alert('✓ Dados e contrato guardados com sucesso no repositório seguro!');
-        selectedPdfFile = null;
-        document.getElementById('contratoFile').value = '';
-        document.getElementById('file-name-display').innerText = 'Nenhum contrato anexado';
       } else {
         const err = await resp.json();
         alert('Erro ao salvar no banco: ' + (err.message || JSON.stringify(err)));
