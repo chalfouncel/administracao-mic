@@ -465,25 +465,35 @@
 
   let selectedPdfFile = null;
 
-  // CORREÇÃO E DECODIFICAÇÃO EM PORTUGUÊS DO BRASIL
+  // CORREÇÃO ROBUSTA DO TEXTO EXTRAÍDO DE PDF (PT-BR)
+  // Alguns PDFs retornam caracteres quebrados no pdf.js.
+  // Exemplos: LOCAT£RIO -> LOCATÁRIO, IM”VEL -> IMÓVEL, inÌcio -> início.
   function normalizarTextoBrasil(text) {
     if (!text) return '';
-    let s = text;
-    s = s.replace(/PraÁa/g, 'Praça')
-         .replace(/praÁa/g, 'praça')
-         .replace(/HÈlder/g, 'Hélder')
-         .replace(/hÈlder/g, 'hélder')
-         .replace(/c‚mara/g, 'câmara')
-         .replace(/C‚mara/g, 'Câmara')
-         .replace(/n∫/g, 'nº')
-         .replace(/N∫/g, 'Nº')
-         .replace(/n\s*∫/g, 'nº')
-         .replace(/∫/g, 'º')
-         .replace(/™/g, 'ª')
-         .replace(/‚/g, 'â')
-         .replace(/È/g, 'é')
-         .replace(/Á(?=[a-z])/g, 'ç');
-    try { s = s.normalize('NFC'); } catch(e) {}
+    let s = String(text);
+
+    s = s
+      .replace(/PraÁa/g, 'Praça')
+      .replace(/praÁa/g, 'praça')
+      .replace(/HÈlder/g, 'Hélder')
+      .replace(/hÈlder/g, 'hélder')
+      .replace(/c‚mara/g, 'câmara')
+      .replace(/C‚mara/g, 'Câmara')
+      .replace(/n∫/g, 'nº')
+      .replace(/N∫/g, 'Nº')
+      .replace(/n\s*∫/g, 'nº')
+      .replace(/∫/g, 'º')
+      .replace(/™/g, 'ª')
+      .replace(/«/g, 'Ç')
+      .replace(/£/g, 'Á')
+      .replace(/”/g, 'Ó')
+      .replace(/Ì/g, 'Í')
+      .replace(/È/g, 'É')
+      .replace(/„/g, 'Ã')
+      .replace(/‚/g, 'Â')
+      .replace(/·/g, 'Á');
+
+    try { s = s.normalize('NFC'); } catch (e) {}
     return s.replace(/\s+/g, ' ').trim();
   }
 
