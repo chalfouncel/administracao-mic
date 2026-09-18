@@ -74,7 +74,7 @@
 
   /* LAYOUT COM SIDEBAR À ESQUERDA */
   .main-wrapper {
-    max-width: 1240px;
+    max-width: 1260px;
     margin: 20px auto;
     padding: 0 16px;
     display: grid;
@@ -268,6 +268,7 @@
   table.data-table td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
   table.data-table tr:hover { background: #f8fafc; }
 
+  /* MODAIS */
   #auth-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(15, 23, 42, 0.94);
@@ -592,7 +593,7 @@
           <div class="summary-item">
             <div class="label">Valor a Repassar</div>
             <div class="val green" id="res-valor-repassar">R$ 0,00</div>
-          </div>
+        </div>
         </div>
         <div style="font-size:0.75rem; color:#64748b; margin-top:8px; text-align:center;">
           Aluguel Efetivo: <strong id="res-aluguel-efetivo">R$ 0,00</strong> | Condomínio Efetivo: <strong id="res-cond-efetivo">R$ 0,00</strong> | Taxa de Administração: <strong id="res-taxa-adm">R$ 0,00</strong>
@@ -687,18 +688,19 @@
 
   let selectedPdfFile = null;
 
-  // CORREÇÃO RIGOROSA DE CODIFICAÇÃO E ACENTOS (PORTUGUÊS DO BRASIL)
+  // CORREÇÃO E DECODIFICAÇÃO EM PORTUGUÊS DO BRASIL (SEM ERROS DE ACENTUAÇÃO)
   function normalizarTextoBrasil(text) {
     if (!text) return '';
     let s = text;
-    s = s.replace(/PraÁa/gi, 'Praça')
-         .replace(/praÁa/gi, 'praça')
-         .replace(/HÈlder/gi, 'Hélder')
-         .replace(/c‚mara/gi, 'câmara')
-         .replace(/C‚mara/gi, 'Câmara')
-         .replace(/n∫/gi, 'nº')
-         .replace(/N∫/gi, 'Nº')
-         .replace(/n\s*∫/gi, 'nº')
+    s = s.replace(/PraÁa/g, 'Praça')
+         .replace(/praÁa/g, 'praça')
+         .replace(/HÈlder/g, 'Hélder')
+         .replace(/hÈlder/g, 'hélder')
+         .replace(/c‚mara/g, 'câmara')
+         .replace(/C‚mara/g, 'Câmara')
+         .replace(/n∫/g, 'nº')
+         .replace(/N∫/g, 'Nº')
+         .replace(/n\s*∫/g, 'nº')
          .replace(/∫/g, 'º')
          .replace(/™/g, 'ª')
          .replace(/‚/g, 'â')
@@ -712,23 +714,23 @@
   function cleanExtractedName(raw) {
     if (!raw) return '';
     let s = raw.trim();
-    s = s.replace(/^(?:Nome|Locador|Locat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '');
+    s = s.replace(/^(?:Nome|Signat[aá]rio|Locador|Locat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '');
     s = s.replace(/\s+CPF.*$/i, '').replace(/\s+CNPJ.*$/i, '').replace(/\s+assinou.*$/i, '');
-    const primeiroBloco = s.split(',')[0].trim();
-    return normalizarTextoBrasil(primeiroBloco);
+    const primeiro = s.split(',')[0].trim();
+    return normalizarTextoBrasil(primeiro);
   }
 
   function isCorretor(name) {
     if (!name) return false;
     const n = name.toLowerCase();
-    return n.includes('chalfoun') || n.includes('ivy carla') || n.includes('mario jr');
+    return n.includes('chalfoun') || n.includes('ivy carla') || n.includes('corretor');
   }
 
-  // RENDERIZAÇÃO DA THUMBNAIL DA 1ª PÁGINA
+  // RENDERIZAÇÃO DA THUMBNAIL DA PÁGINA 1
   async function renderPdfThumbnail(pdfDoc) {
     try {
       const page = await pdfDoc.getPage(1);
-      const viewport = page.getViewport({ scale: 0.7 });
+      const viewport = page.getViewport({ scale: 0.75 });
       const canvas = document.getElementById('pdf-thumb-canvas');
       const placeholder = document.getElementById('thumb-placeholder');
       const context = canvas.getContext('2d');
@@ -741,18 +743,18 @@
       placeholder.style.display = 'none';
       canvas.style.display = 'block';
     } catch (e) {
-      console.warn('Erro ao gerar thumbnail:', e);
+      console.warn('Erro thumbnail:', e);
     }
   }
 
-  // EXTRAÇÃO COM FOCO PRECISO NO PADRÃO CLICKSIGN M&IC
+  // EXTRAÇÃO EXATA DO CONTRATO CLICKSIGN
   async function processarContratoComIA(event) {
     const file = event.target.files[0];
     const loader = document.getElementById('ai-extract-loader');
     const pill = document.getElementById('file-name-pill');
 
     if (!file || file.type !== 'application/pdf') {
-      alert('Selecione um arquivo válido em formato PDF.');
+      alert('Selecione um arquivo PDF válido.');
       return;
     }
 
@@ -768,16 +770,27 @@
 
       let fullText = '';
       let page1Text = '';
+      const allLines = [];
 
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p);
         const textContent = await page.getTextContent();
-        const pageStr = textContent.items.map(item => item.str).join(' ');
-        fullText += ' ' + pageStr;
-        if (p === 1) page1Text = pageStr;
+        let pStr = '';
+        for (let i = 0; i < textContent.items.length; i++) {
+          const itemStr = textContent.items[i].str;
+          if (itemStr && itemStr.trim()) {
+            allLines.push(itemStr.trim());
+            pStr += ' ' + itemStr.trim();
+          }
+        }
+        fullText += ' ' + pStr;
+        if (p === 1) page1Text = pStr;
       }
 
-      // Chamada à API
+      // Normaliza strings antes de processar
+      page1Text = normalizarTextoBrasil(page1Text);
+      fullText = normalizarTextoBrasil(fullText);
+
       let extracted = {};
       try {
         const res = await fetch('/api/extract-contract', {
@@ -788,42 +801,53 @@
         if (res.ok) {
           extracted = await res.json();
         }
-      } catch (apiErr) {
-        console.warn('IA falhou, usando extrator local:', apiErr);
+      } catch (err) {
+        console.warn('IA falhou, usando extrator local robusto:', err);
       }
 
-      // Fallbacks robustos locais
-      // 1. Locador / Proprietário
-      if (!extracted.proprietario) {
+      // 1. PROPRIETÁRIO / LOCADOR
+      if (!extracted.proprietario || isCorretor(extracted.proprietario)) {
         const mLoc = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
         if (mLoc) extracted.proprietario = mLoc[1].trim();
       }
 
-      // 2. Locatário / Inquilino (Elimina corretores e extrai o verdadeiro inquilino)
+      // 2. INQUILINO / LOCATÁRIO (Preâmbulo da Página 1 - Cristiano Nogueira da Costa)
       if (!extracted.inquilino || isCorretor(extracted.inquilino)) {
-        // Busca na qualificação da página 1
+        // Busca direta no preâmbulo da página 1
         const mLocat = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
         if (mLocat && !isCorretor(mLocat[1])) {
           extracted.inquilino = mLocat[1].trim();
         } else {
-          // Busca no relatório de assinaturas Clicksign
-          const mAssinante = fullText.match(/([A-ZÀ-Úa-zà-ú\s]{4,40})\s+CPF[^\n\r]*assinou como locat[aá]rio/i);
-          if (mAssinante && !isCorretor(mAssinante[1])) {
-            extracted.inquilino = mAssinante[1].trim();
+          // Busca nas linhas da lista de signatários da Clicksign
+          for (let j = 0; j < allLines.length; j++) {
+            const linhaNorm = allLines[j].toLowerCase();
+            if (linhaNorm.includes('assinou como locat') && !linhaNorm.includes('corretor')) {
+              // O nome do assinante fica nas linhas anteriores
+              for (let k = j - 1; k >= Math.max(0, j - 6); k--) {
+                const cand = allLines[k].trim();
+                if (cand.length > 4 && !cand.includes(':') && !isCorretor(cand) && !cand.includes('CPF')) {
+                  extracted.inquilino = cand;
+                  break;
+                }
+              }
+              if (extracted.inquilino) break;
+            }
           }
         }
       }
 
-      // 3. Endereço
+      // 3. ENDEREÇO
       if (!extracted.endereco) {
         const idxSituado = page1Text.toLowerCase().indexOf('situado');
         if (idxSituado !== -1) {
-          const rawEnd = page1Text.substring(idxSituado + 7).replace(/^(?:na|no|à|a|em|:)\s+/i, '').split(/[;\.\r\n]/)[0];
-          extracted.endereco = rawEnd.trim();
+          let rawEnd = page1Text.substring(idxSituado + 7).trim();
+          rawEnd = rawEnd.replace(/^(?:na|no|à|a|em|:)\s+/i, '').split(/[;\.\r\n]/)[0].trim();
+          rawEnd = rawEnd.replace(/(?:,?\s*destinado\s+exclusivamente|para\s+fins\s+residenciais|conforme).*/i, '').trim();
+          extracted.endereco = rawEnd;
         }
       }
 
-      // 4. Datas de Início e Fim (Cláusula Primeira)
+      // 4. DATAS DE VIGÊNCIA (Cláusula Primeira)
       if (!extracted.data_inicio || !extracted.data_fim) {
         const datas = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
         if (datas && datas.length >= 2) {
@@ -833,7 +857,7 @@
         }
       }
 
-      // 5. Valor do Aluguel
+      // 5. VALOR DO ALUGUEL (Cláusula Segunda)
       if (!extracted.valor_aluguel) {
         const mVal = page1Text.match(/R\$\s*([\d\.,]+)/i) || fullText.match(/R\$\s*([\d\.,]+)/i);
         if (mVal) {
@@ -842,20 +866,20 @@
         }
       }
 
-      // Aplicação nos inputs da tela com limpeza de caracteres
+      // Aplicação com garantia visual
       if (extracted.proprietario) document.getElementById('proprietario').value = cleanExtractedName(extracted.proprietario);
       if (extracted.inquilino) document.getElementById('inquilino').value = cleanExtractedName(extracted.inquilino);
-      if (extracted.endereco) document.getElementById('endereco').value = normalizarTextoBrasil(extracted.endereco);
+      if (extracted.endereco) document.getElementById('endereco').value = normalizarTextoBrasil(extracted.endereco).replace(/^(?:na|no)\s+/i, '');
       if (extracted.data_inicio) document.getElementById('dataInicio').value = extracted.data_inicio;
       if (extracted.data_fim) document.getElementById('dataFim').value = extracted.data_fim;
       if (extracted.valor_aluguel) document.getElementById('aluguelBase').value = extracted.valor_aluguel;
 
       sincronizarCampos();
-      alert('✓ Contrato processado! Proprietário e Inquilino capturados corretamente.');
+      alert('✓ Contrato lido com sucesso!\n\n• Proprietário: ' + document.getElementById('proprietario').value + '\n• Inquilino: ' + document.getElementById('inquilino').value);
 
     } catch (err) {
       console.error('Erro na extração:', err);
-      alert('Não foi possível ler o arquivo automaticamente: ' + err.message);
+      alert('Erro ao processar contrato: ' + err.message);
     } finally {
       loader.style.display = 'none';
     }
@@ -1153,6 +1177,9 @@
 
       if (resp.ok) {
         alert('✓ Dados e contrato salvos com sucesso no repositório seguro!');
+        selectedPdfFile = null;
+        document.getElementById('contratoFile').value = '';
+        document.getElementById('file-name-pill').style.display = 'none';
       } else {
         const err = await resp.json();
         alert('Erro ao salvar no banco: ' + (err.message || JSON.stringify(err)));
