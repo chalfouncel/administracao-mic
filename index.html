@@ -64,16 +64,16 @@
   }
   .btn-logout { background: transparent; border: none; color: #ff6b6b; cursor: pointer; font-weight: 600; text-decoration: underline; font-size: 0.78rem; }
 
-  .main-wrapper {
-    max-width: 98%;
-    margin: 20px auto;
-    padding: 0 16px;
+  .container { max-width: 1300px; margin: 20px auto; padding: 0 16px; }
+
+  /* Layout exclusivo da aba Resumo (Sidebar + Formulário) */
+  .resumo-layout {
     display: grid;
     grid-template-columns: 320px 1fr;
     gap: 20px;
     align-items: start;
   }
-  @media(max-width: 900px) { .main-wrapper { grid-template-columns: 1fr; } }
+  @media(max-width: 900px) { .resumo-layout { grid-template-columns: 1fr; } }
 
   .sidebar-contract-card {
     background: var(--card);
@@ -247,40 +247,44 @@
   </div>
 </header>
 
-<div class="main-wrapper">
+<div class="container">
   
-  <aside class="sidebar-contract-card">
-    <div class="sidebar-contract-title">Contrato de Locação</div>
-    <div class="sidebar-contract-desc">Anexe o arquivo assinado da Clicksign para arquivamento no repositório.</div>
+  <!-- ABAS DE NAVEGAÇÃO SUPERIOR -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="setTab('resumo', this)">📄 Resumo do contrato</button>
+    <button class="tab-btn" onclick="setTab('imoveis', this)">🏘️ Imóveis Administrados</button>
+    <button class="tab-btn" onclick="setTab('calculo', this)">📊 Cálculo de Cobrança & Repasse</button>
+    <button class="tab-btn" onclick="setTab('whatsapp', this)">💬 Texto de Cobrança</button>
+    <button class="tab-btn" onclick="setTab('historico', this)">📁 Histórico de Locações Salvas</button>
+    <button class="tab-btn" onclick="setTab('agentes', this)">🤖 Agente de IA Gemini</button>
+  </div>
+
+  <!-- ABA 1: RESUMO DO CONTRATO (COM A SIDEBAR EMBUTIDA APENAS AQUI) -->
+  <div id="tab-resumo" class="tab-content active">
     
-    <div class="thumbnail-wrapper" id="thumb-click-box" onclick="document.getElementById('contratoFile').click()">
-      <canvas id="pdf-thumb-canvas"></canvas>
-      <div class="thumbnail-placeholder" id="thumb-placeholder">
-        <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-        <div style="font-weight:700; font-size:0.85rem;">Clique para Anexar Contrato (.PDF)</div>
-        <div style="font-size:0.72rem; color:#94a3b8;">A thumbnail da 1ª página aparecerá aqui</div>
-      </div>
-    </div>
-    <div class="file-name-pill" id="file-name-pill"></div>
-    <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="processarContratoPDF(event)">
-    <button type="button" class="btn btn-gold" style="width:100%; font-size:0.85rem; padding:10px;" onclick="document.getElementById('contratoFile').click()">
-      📎 Anexar / Trocar Contrato
-    </button>
-  </aside>
+    <div class="resumo-layout">
+      <!-- PAINEL LATERAL: ANEXO DO CONTRATO -->
+      <aside class="sidebar-contract-card">
+        <div class="sidebar-contract-title">Contrato de Locação</div>
+        <div class="sidebar-contract-desc">Anexe o arquivo assinado da Clicksign para arquivamento no repositório.</div>
+        
+        <div class="thumbnail-wrapper" id="thumb-click-box" onclick="document.getElementById('contratoFile').click()">
+          <canvas id="pdf-thumb-canvas"></canvas>
+          <div class="thumbnail-placeholder" id="thumb-placeholder">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+            <div style="font-weight:700; font-size:0.85rem;">Clique para Anexar Contrato (.PDF)</div>
+            <div style="font-size:0.72rem; color:#94a3b8;">A thumbnail da 1ª página aparecerá aqui</div>
+          </div>
+        </div>
+        <div class="file-name-pill" id="file-name-pill"></div>
+        <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="processarContratoPDF(event)">
+        <button type="button" class="btn btn-gold" style="width:100%; font-size:0.85rem; padding:10px;" onclick="document.getElementById('contratoFile').click()">
+          📎 Anexar / Trocar Contrato
+        </button>
+      </aside>
 
-  <main>
-    <div class="tabs">
-      <button class="tab-btn active" onclick="setTab('resumo', this)">📄 Resumo do contrato</button>
-      <button class="tab-btn" onclick="setTab('imoveis', this)">🏘️ Imóveis Administrados</button>
-      <button class="tab-btn" onclick="setTab('calculo', this)">📊 Cálculo de Cobrança & Repasse</button>
-      <button class="tab-btn" onclick="setTab('whatsapp', this)">💬 Texto de Cobrança</button>
-      <button class="tab-btn" onclick="setTab('historico', this)">📁 Histórico de Locações Salvas</button>
-      <button class="tab-btn" onclick="setTab('agentes', this)">🤖 Agente de IA Gemini</button>
-    </div>
-
-    <!-- ABA 1: RESUMO DO CONTRATO (MANUAL) -->
-    <div id="tab-resumo" class="tab-content active">
-      <div class="card">
+      <!-- PAINEL PRINCIPAL: FORMULÁRIO -->
+      <div class="card" style="margin-bottom:0;">
         <div class="card-title">Resumo dos Dados Contratuais</div>
 
         <div class="grid-3">
@@ -345,238 +349,238 @@
         </button>
       </div>
     </div>
+  </div>
 
-    <!-- ABA 1.5: IMÓVEIS ADMINISTRADOS (NOVA TABELA COMPLETA) -->
-    <div id="tab-imoveis" class="tab-content">
-      <div class="card" style="padding: 10px;">
-        <div class="card-title" style="padding: 10px;">
-          Controle Geral de Imóveis Administrados
-          <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="carregarImoveisAdministrados()">🔄 Atualizar Tabela</button>
+  <!-- ABA 1.5: IMÓVEIS ADMINISTRADOS (NOVA TABELA COMPLETA) -->
+  <div id="tab-imoveis" class="tab-content">
+    <div class="card" style="padding: 10px;">
+      <div class="card-title" style="padding: 10px;">
+        Controle Geral de Imóveis Administrados
+        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="carregarImoveisAdministrados()">🔄 Atualizar Tabela</button>
+      </div>
+      
+      <div class="table-imoveis-container">
+        <table class="table-imoveis">
+          <thead>
+            <tr>
+              <th>ANO</th>
+              <th>MÊS</th>
+              <th>PROPRIETÁRIO</th>
+              <th>ATIVO ?</th>
+              <th>IMÓVEL</th>
+              <th>INQUILINO</th>
+              <th>ZAP INQUILINO</th>
+              <th>VALOR</th>
+              <th>INICIO</th>
+              <th>I</th>
+              <th>FIM</th>
+              <th>F</th>
+              <th>CONTRATO</th>
+              <th>PIX PROPRIETÁRIO</th>
+              <th>PIX CONDOMÍNIO</th>
+              <th>Proporcional</th>
+              <th>Repassa o condomínio</th>
+              <th>VLR DO ALUGUEL</th>
+              <th>VLR DO COND.</th>
+              <th>ALUGUEL + CONDOMINIO</th>
+              <th>COBRAR INQUILINO</th>
+              <th>VENCIMENTO</th>
+              <th>ADMINISTRAÇÃO</th>
+              <th>VALOR PRA REPASSAR</th>
+              <th>OBSERVAÇÃO</th>
+              <th>COND. PROPORCIONAL</th>
+              <th>CONDOMÍNIO</th>
+              <th>IPTU</th>
+              <th>BOMBEIRO</th>
+              <th>OUTRAS COBRANÇAS</th>
+              <th>COBRANÇA</th>
+              <th class="bg-green">DESCONTO</th>
+              <th>TEXTO</th>
+            </tr>
+          </thead>
+          <tbody id="imoveis-tabela-body">
+            <tr>
+              <td colspan="33" style="text-align: center; padding: 20px; color: #64748b;">
+                Clique em "Atualizar Tabela" para carregar os dados salvos no banco.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA 2: CÁLCULO E REPASSE -->
+  <div id="tab-calculo" class="tab-content">
+    <div class="card">
+      <div class="card-title">1. Dados de Cobrança & Mês de Referência</div>
+      <div class="grid-3">
+        <div>
+          <label>Inquilino</label>
+          <input type="text" id="calc-inquilino" readonly style="background:#f1f5f9;">
         </div>
-        
-        <div class="table-imoveis-container">
-          <table class="table-imoveis">
-            <thead>
-              <tr>
-                <th>ANO</th>
-                <th>MÊS</th>
-                <th>PROPRIETÁRIO</th>
-                <th>ATIVO ?</th>
-                <th>IMÓVEL</th>
-                <th>INQUILINO</th>
-                <th>ZAP INQUILINO</th>
-                <th>VALOR</th>
-                <th>INICIO</th>
-                <th>I</th>
-                <th>FIM</th>
-                <th>F</th>
-                <th>CONTRATO</th>
-                <th>PIX PROPRIETÁRIO</th>
-                <th>PIX CONDOMÍNIO</th>
-                <th>Proporcional</th>
-                <th>Repassa o condomínio</th>
-                <th>VLR DO ALUGUEL</th>
-                <th>VLR DO COND.</th>
-                <th>ALUGUEL + CONDOMINIO</th>
-                <th>COBRAR INQUILINO</th>
-                <th>VENCIMENTO</th>
-                <th>ADMINISTRAÇÃO</th>
-                <th>VALOR PRA REPASSAR</th>
-                <th>OBSERVAÇÃO</th>
-                <th>COND. PROPORCIONAL</th>
-                <th>CONDOMÍNIO</th>
-                <th>IPTU</th>
-                <th>BOMBEIRO</th>
-                <th>OUTRAS COBRANÇAS</th>
-                <th>COBRANÇA</th>
-                <th class="bg-green">DESCONTO</th>
-                <th>TEXTO</th>
-              </tr>
-            </thead>
-            <tbody id="imoveis-tabela-body">
-              <tr>
-                <td colspan="33" style="text-align: center; padding: 20px; color: #64748b;">
-                  Clique em "Atualizar Tabela" para carregar os dados salvos no banco.
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div>
+          <label>Proprietário</label>
+          <input type="text" id="calc-proprietario" readonly style="background:#f1f5f9;">
+        </div>
+        <div>
+          <label>Mês e Ano de Referência</label>
+          <input type="month" id="mesAno">
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:12px;">
+        <div>
+          <label>Valor do aluguel Base</label>
+          <input type="number" id="calc-aluguelBase" oninput="calcularTudo()">
+        </div>
+        <div>
+          <label>Condomínio Base Integral</label>
+          <input type="number" id="condominioBase" value="650" oninput="calcularTudo()">
         </div>
       </div>
     </div>
 
-    <!-- ABA 2: CÁLCULO E REPASSE -->
-    <div id="tab-calculo" class="tab-content">
-      <div class="card">
-        <div class="card-title">1. Dados de Cobrança & Mês de Referência</div>
-        <div class="grid-3">
-          <div>
-            <label>Inquilino</label>
-            <input type="text" id="calc-inquilino" readonly style="background:#f1f5f9;">
-          </div>
-          <div>
-            <label>Proprietário</label>
-            <input type="text" id="calc-proprietario" readonly style="background:#f1f5f9;">
-          </div>
-          <div>
-            <label>Mês e Ano de Referência</label>
-            <input type="month" id="mesAno">
-          </div>
+    <div class="card">
+      <div class="card-title">2. Proporcionalidade & Encargos</div>
+      <div class="grid-2">
+        <div>
+          <label>Cálculo Proporcional</label>
+          <select id="isProporcional" onchange="calcularTudo()">
+            <option value="nao">Não — Mês Completo Integral</option>
+            <option value="sim">Sim — Calcular Dias Proporcionais</option>
+          </select>
         </div>
-        <div class="grid-2" style="margin-top:12px;">
-          <div>
-            <label>Valor do aluguel Base</label>
-            <input type="number" id="calc-aluguelBase" oninput="calcularTudo()">
-          </div>
-          <div>
-            <label>Condomínio Base Integral</label>
-            <input type="number" id="condominioBase" value="650" oninput="calcularTudo()">
-          </div>
+        <div id="box-dias-prop" style="display:none;">
+          <label>Dias de Ocupação no Primeiro Mês</label>
+          <input type="number" id="diasOcupados" value="15" min="1" max="31" oninput="calcularTudo()">
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-title">2. Proporcionalidade & Encargos</div>
-        <div class="grid-2">
-          <div>
-            <label>Cálculo Proporcional</label>
-            <select id="isProporcional" onchange="calcularTudo()">
-              <option value="nao">Não — Mês Completo Integral</option>
-              <option value="sim">Sim — Calcular Dias Proporcionais</option>
-            </select>
-          </div>
-          <div id="box-dias-prop" style="display:none;">
-            <label>Dias de Ocupação no Primeiro Mês</label>
-            <input type="number" id="diasOcupados" value="15" min="1" max="31" oninput="calcularTudo()">
-          </div>
+      <div class="grid-3" style="margin-top:14px;">
+        <div>
+          <label>IPTU Mensal</label>
+          <input type="number" id="iptu" value="120" oninput="calcularTudo()">
         </div>
-
-        <div class="grid-3" style="margin-top:14px;">
-          <div>
-            <label>IPTU Mensal</label>
-            <input type="number" id="iptu" value="120" oninput="calcularTudo()">
-          </div>
-          <div>
-            <label>Taxa de Incêndio ou Bombeiro</label>
-            <input type="number" id="bombeiro" value="35" oninput="calcularTudo()">
-          </div>
-          <div>
-            <label>Outras Taxas ou Cobranças</label>
-            <input type="number" id="outrasTaxas" value="0" oninput="calcularTudo()">
-          </div>
+        <div>
+          <label>Taxa de Incêndio ou Bombeiro</label>
+          <input type="number" id="bombeiro" value="35" oninput="calcularTudo()">
         </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">3. Regras de Repasse & Administração</div>
-        <div class="grid-2">
-          <div>
-            <label>Taxa de Administração Imobiliária Percentual</label>
-            <input type="number" id="taxaAdm" value="10" step="0.5" oninput="calcularTudo()">
-          </div>
-          <div>
-            <label>Regra do Condomínio</label>
-            <select id="regraCondominio" onchange="calcularTudo()">
-              <option value="repassa">Repassar Condomínio ao Proprietário</option>
-              <option value="retém">Imobiliária Paga o Condomínio</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="summary-box">
-          <div class="summary-item">
-            <div class="label">Valor a Cobrar do Inquilino</div>
-            <div class="val" id="res-total-inquilino">R$ 0,00</div>
-          </div>
-          <div class="summary-item">
-            <div class="label">Valor a Repassar</div>
-            <div class="val green" id="res-valor-repassar">R$ 0,00</div>
-          </div>
-        </div>
-        <div style="font-size:0.75rem; color:#64748b; margin-top:8px; text-align:center;">
-          Aluguel Efetivo: <strong id="res-aluguel-efetivo">R$ 0,00</strong> | Condomínio Efetivo: <strong id="res-cond-efetivo">R$ 0,00</strong> | Taxa de Administração: <strong id="res-taxa-adm">R$ 0,00</strong>
-        </div>
-
-        <button type="button" class="btn btn-gold" id="btn-salvar-tudo" style="width:100%; margin-top:16px;" onclick="salvarLocacaoNoBanco()">
-          💾 Salvar Contrato e Cálculos no Repositório Seguro
-        </button>
-      </div>
-    </div>
-
-    <!-- ABA 3: MENSAGEM WHATSAPP -->
-    <div id="tab-whatsapp" class="tab-content">
-      <div class="card">
-        <div class="card-title">Texto Automático da Cobrança</div>
-        <label>Chave PIX para Cobrança</label>
-        <input type="text" id="chavePix" value="financeiro@micimoveis.com.br" oninput="gerarTextoCobranca()" style="margin-bottom:12px;">
-
-        <label>Vencimento do Boleto ou PIX</label>
-        <input type="date" id="dataVencimento" onchange="gerarTextoCobranca()" style="margin-bottom:12px;">
-
-        <label>Mensagem Formatada para Envio</label>
-        <textarea id="textoMsg" rows="11" readonly style="background:#f8fafc; font-family:monospace; font-size:0.85rem;"></textarea>
-
-        <div style="display:flex; gap:10px; margin-top:14px;">
-          <button class="btn btn-gold" onclick="copiarTexto()">📋 Copiar Mensagem</button>
-          <button class="btn btn-whatsapp" onclick="enviarWhatsApp()">📲 Abrir no WhatsApp</button>
+        <div>
+          <label>Outras Taxas ou Cobranças</label>
+          <input type="number" id="outrasTaxas" value="0" oninput="calcularTudo()">
         </div>
       </div>
     </div>
 
-    <!-- ABA 4: HISTÓRICO DE DADOS SALVOS -->
-    <div id="tab-historico" class="tab-content">
-      <div class="card">
-        <div class="card-title">
-          <span>Contratos e Lançamentos Salvos</span>
-          <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="carregarHistoricoLocacoes()">🔄 Atualizar Lista</button>
+    <div class="card">
+      <div class="card-title">3. Regras de Repasse & Administração</div>
+      <div class="grid-2">
+        <div>
+          <label>Taxa de Administração Imobiliária Percentual</label>
+          <input type="number" id="taxaAdm" value="10" step="0.5" oninput="calcularTudo()">
         </div>
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Data Registro</th>
-                <th>Inquilino</th>
-                <th>Proprietário</th>
-                <th>Competência</th>
-                <th>Total Cobrado</th>
-                <th>Repasse Líquido</th>
-                <th>Contrato PDF</th>
-              </tr>
-            </thead>
-            <tbody id="lista-historico-body">
-              <tr>
-                <td colspan="7" style="text-align:center; color:#94a3b8; padding:16px;">Carregando histórico...</td>
-              </tr>
-            </tbody>
-          </table>
+        <div>
+          <label>Regra do Condomínio</label>
+          <select id="regraCondominio" onchange="calcularTudo()">
+            <option value="repassa">Repassar Condomínio ao Proprietário</option>
+            <option value="retém">Imobiliária Paga o Condomínio</option>
+          </select>
         </div>
       </div>
-    </div>
 
-    <!-- ABA 5: AGENTE IA GEMINI -->
-    <div id="tab-agentes" class="tab-content">
-      <div class="card">
-        <div class="card-title">
-          <span>Assistente Especialista M&IC</span>
-          <span style="font-size:0.75rem; color:#16a34a; font-weight:700;">● Chave Protegida no Servidor</span>
+      <div class="summary-box">
+        <div class="summary-item">
+          <div class="label">Valor a Cobrar do Inquilino</div>
+          <div class="val" id="res-total-inquilino">R$ 0,00</div>
         </div>
-        <div class="chat-box" id="chatArea">
-          <div class="chat-msg bot">Olá! Sou o assistente de IA da M&IC. Posso redigir mensagens de cobrança amigáveis, analisar cláusulas contratuais ou explicar regras de reajuste. Em que posso ajudar?</div>
-        </div>
-
-        <div style="display:flex; gap:8px;">
-          <input type="text" id="chatInput" placeholder="Ex: Redija uma cobrança educada com base nos cálculos..." onkeypress="if(event.key==='Enter') sendChat()">
-          <button class="btn btn-gold" onclick="sendChat()">Enviar</button>
-        </div>
-
-        <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
-          <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('cobrar')">💬 Notificação Amigável</button>
-          <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('reajuste')">📈 Reajuste Anual</button>
-          <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('extrato')">📑 Demonstrativo de Repasse</button>
+        <div class="summary-item">
+          <div class="label">Valor a Repassar</div>
+          <div class="val green" id="res-valor-repassar">R$ 0,00</div>
         </div>
       </div>
+      <div style="font-size:0.75rem; color:#64748b; margin-top:8px; text-align:center;">
+        Aluguel Efetivo: <strong id="res-aluguel-efetivo">R$ 0,00</strong> | Condomínio Efetivo: <strong id="res-cond-efetivo">R$ 0,00</strong> | Taxa de Administração: <strong id="res-taxa-adm">R$ 0,00</strong>
+      </div>
+
+      <button type="button" class="btn btn-gold" id="btn-salvar-tudo" style="width:100%; margin-top:16px;" onclick="salvarLocacaoNoBanco()">
+        💾 Salvar Contrato e Cálculos no Repositório Seguro
+      </button>
     </div>
-  </main>
+  </div>
+
+  <!-- ABA 3: MENSAGEM WHATSAPP -->
+  <div id="tab-whatsapp" class="tab-content">
+    <div class="card">
+      <div class="card-title">Texto Automático da Cobrança</div>
+      <label>Chave PIX para Cobrança</label>
+      <input type="text" id="chavePix" value="financeiro@micimoveis.com.br" oninput="gerarTextoCobranca()" style="margin-bottom:12px;">
+
+      <label>Vencimento do Boleto ou PIX</label>
+      <input type="date" id="dataVencimento" onchange="gerarTextoCobranca()" style="margin-bottom:12px;">
+
+      <label>Mensagem Formatada para Envio</label>
+      <textarea id="textoMsg" rows="11" readonly style="background:#f8fafc; font-family:monospace; font-size:0.85rem;"></textarea>
+
+      <div style="display:flex; gap:10px; margin-top:14px;">
+        <button class="btn btn-gold" onclick="copiarTexto()">📋 Copiar Mensagem</button>
+        <button class="btn btn-whatsapp" onclick="enviarWhatsApp()">📲 Abrir no WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA 4: HISTÓRICO DE DADOS SALVOS -->
+  <div id="tab-historico" class="tab-content">
+    <div class="card">
+      <div class="card-title">
+        <span>Contratos e Lançamentos Salvos</span>
+        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="carregarHistoricoLocacoes()">🔄 Atualizar Lista</button>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Data Registro</th>
+              <th>Inquilino</th>
+              <th>Proprietário</th>
+              <th>Competência</th>
+              <th>Total Cobrado</th>
+              <th>Repasse Líquido</th>
+              <th>Contrato PDF</th>
+            </tr>
+          </thead>
+          <tbody id="lista-historico-body">
+            <tr>
+              <td colspan="7" style="text-align:center; color:#94a3b8; padding:16px;">Carregando histórico...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA 5: AGENTE IA GEMINI -->
+  <div id="tab-agentes" class="tab-content">
+    <div class="card">
+      <div class="card-title">
+        <span>Assistente Especialista M&IC</span>
+        <span style="font-size:0.75rem; color:#16a34a; font-weight:700;">● Chave Protegida no Servidor</span>
+      </div>
+      <div class="chat-box" id="chatArea">
+        <div class="chat-msg bot">Olá! Sou o assistente de IA da M&IC. Posso redigir mensagens de cobrança amigáveis, analisar cláusulas contratuais ou explicar regras de reajuste. Em que posso ajudar?</div>
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="chatInput" placeholder="Ex: Redija uma cobrança educada com base nos cálculos..." onkeypress="if(event.key==='Enter') sendChat()">
+        <button class="btn btn-gold" onclick="sendChat()">Enviar</button>
+      </div>
+
+      <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('cobrar')">💬 Notificação Amigável</button>
+        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('reajuste')">📈 Reajuste Anual</button>
+        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('extrato')">📑 Demonstrativo de Repasse</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -782,6 +786,9 @@
 
     const today = new Date();
     document.getElementById('mesAno').value = today.toISOString().substring(0, 7);
+    
+    // Deixando a data de início vazia (conforme pedido)
+    // document.getElementById('dataInicio').valueAsDate = today; 
     
     const venc = new Date();
     venc.setDate(venc.getDate() + 5);
@@ -1017,7 +1024,6 @@
 
       tbody.innerHTML = '';
       list.forEach(item => {
-        // Formatar datas
         let mesStr = '-';
         let anoStr = '-';
         if (item.mes_ano) {
@@ -1027,7 +1033,6 @@
         }
         const inicioStr = item.data_inicio ? new Date(item.data_inicio).toLocaleDateString('pt-BR') : '-';
         
-        // Tratar link do contrato
         const btnContrato = item.contrato_url 
           ? `<button class="btn btn-dark" style="font-size:0.7rem; padding:4px 8px;" onclick="abrirVisualizadorPdf('${item.contrato_url}', '${item.inquilino}')">VER PDF</button>`
           : 'Sem anexo';
