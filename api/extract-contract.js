@@ -14,25 +14,28 @@ export default async function handler(req, res) {
   }
 
   try {
-    const prompt = `Você é um perito em análise de contratos de locação imobiliária brasileira da M&IC.
-Analise o texto contratual e retorne EXCLUSIVAMENTE um objeto JSON estrito (sem crases, sem markdown) com a seguinte estrutura:
+    const prompt = `Você é um auditor pericial de contratos de locação residencial da imobiliária M&IC.
+Extraia com precisão cirúrgica os dados deste contrato brasileiro da Clicksign.
+
+REGRAS OBRIGATÓRIAS:
+1. "proprietario": É a pessoa indicada no cabeçalho após "LOCADOR(A):". Ignore corretores e procuradores.
+2. "inquilino": É a pessoa indicada no cabeçalho após "LOCATÁRIO(A):". 
+   ATENÇÃO: NUNCA confunda com o corretor "Mario Chalfoun Junior" ou "Ivy Carla". O inquilino é quem está alugando para residir.
+3. "endereco": Endereço completo após "IMÓVEL:". Corrija qualquer erro de acentuação como "PraÁa" para "Praça", "n∫" para "nº".
+4. "data_inicio" e "data_fim": Extraia da CLÁUSULA PRIMEIRA ("com início em DD/MM/AAAA até... DD/MM/AAAA"). Converta estritamente para formato AAAA-MM-DD.
+5. "valor_aluguel": Extraia da CLÁUSULA SEGUNDA ("estabelecido em R$ XXXX,XX"). Retorne somente o número decimal (ex: 1000.00).
+
+Responda EXCLUSIVAMENTE em formato JSON estrito, sem crases e sem markdown:
 {
   "proprietario": "Nome completo do Locador",
   "inquilino": "Nome completo do Locatário",
-  "endereco": "Endereço completo do imóvel locado com pontuação e acentuação corrigidas em Português do Brasil",
+  "endereco": "Endereço corrigido em Português do Brasil",
   "data_inicio": "AAAA-MM-DD",
   "data_fim": "AAAA-MM-DD",
   "valor_aluguel": 0.00
 }
 
-Regras Mandatórias:
-1. "proprietario": pessoa física ou jurídica identificada como LOCADOR(A). Remova CPF, estado civil e profissão.
-2. "inquilino": pessoa física ou jurídica identificada como LOCATÁRIO(A). Procure por "LOCATÁRIO", "LOCATÁRIA", "INQUILINO" ou quem assinou como tal na lista de signatários Clicksign. Remova CPF e termos como "assinou como".
-3. "endereco": corrija erros de codificação de caracteres comuns de PDF (exemplo: converta "PraÁa" para "Praça", "n∫" para "nº", "C‚mara" para "Câmara").
-4. "data_inicio" e "data_fim": formato AAAA-MM-DD.
-5. "valor_aluguel": valor numérico decimal puro (exemplo: 1000.00).
-
-Texto do Contrato:
+TEXTO DO CONTRATO:
 ${text.substring(0, 25000)}`;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
@@ -42,7 +45,7 @@ ${text.substring(0, 25000)}`;
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.1,
+          temperature: 0.0,
           responseMimeType: "application/json"
         }
       })
