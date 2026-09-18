@@ -1,1503 +1,701 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Gestão de Locação Imobiliária — M&amp;IC</title>
-  
-  <!-- Supabase JS Client v2 -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- Tailwind CSS para utilitários modernos e responsividade rápida -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <style>
-    :root {
-      --primary: #121315;
-      --secondary: #1a1c20;
-      --accent: #c59b27;
-      --gold: #d4af37;
-      --gold-light: #dfba48;
-      --bg: #f4f5f7;
-      --card: #ffffff;
-      --text: #1a1a1a;
-      --border: #e2e8f0;
-    }
-    body {
-      background-color: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .gold-gradient-btn {
-      background: linear-gradient(135deg, #c59b27 0%, #dfba48 100%);
-      color: #121315;
-      font-weight: 700;
-      box-shadow: 0 4px 12px rgba(197, 155, 39, 0.25);
-      transition: all 0.2s ease;
-    }
-    .gold-gradient-btn:hover {
-      filter: brightness(1.05);
-      transform: translateY(-1px);
-    }
-    .gold-gradient-btn:active {
-      transform: translateY(0);
-    }
-    .dark-card {
-      background: linear-gradient(145deg, #16181d 0%, #1f232b 100%);
-      border: 1px solid #2e3540;
-    }
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 4px;
-    }
-    /* Estilo das abas de navegação */
-    .tab-btn.active {
-      background-color: #1a1c20;
-      color: #dfba48;
-      border-bottom: 2px solid #c59b27;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Gestão de Locação Imobiliária — M&IC</title>
+<!-- Supabase JS CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --primary: #121315;
+    --secondary: #1a1c20;
+    --accent: #c59b27;
+    --gold: #d4af37;
+    --gold-light: #dfba48;
+    --border: #e2e8f0;
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --success: #16a34a;
+    --danger: #dc2626;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { background: var(--bg); color: var(--text); padding-bottom: 40px; }
+
+  header {
+    background: linear-gradient(135deg, #0d0e10 0%, #1a1c20 70%, #2b261b 100%);
+    border-bottom: 3px solid var(--accent);
+    color: #fff;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .brand-area { display: flex; align-items: center; gap: 12px; }
+  .logo-box {
+    background: #000;
+    border: 1px solid var(--accent);
+    color: var(--gold);
+    font-weight: 800;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+  }
+  header h1 { font-size: 1.15rem; color: var(--gold); font-weight: 700; }
+  header p { font-size: 0.76rem; color: #cfd4dc; }
+
+  .user-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.08);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: #fff;
+    border: 1px solid rgba(197,155,39,0.3);
+  }
+  .btn-logout {
+    background: transparent;
+    border: none;
+    color: #ff6b6b;
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: underline;
+    font-size: 0.78rem;
+  }
+
+  .container { max-width: 960px; margin: 20px auto; padding: 0 16px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; }
+  .tab-btn {
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px 8px 0 0;
+    padding: 10px 18px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .tab-btn.active {
+    background: var(--secondary);
+    color: var(--gold);
+    border-color: var(--secondary);
+    border-bottom: 2px solid var(--accent);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeIn 0.2s ease-in-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .card-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--primary);
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  @media(max-width: 768px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  label { display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 4px; text-transform: uppercase; }
+  input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    background: #fff;
+    color: var(--text);
+    outline: none;
+    transition: 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(197,155,39,0.2); }
+
+  .summary-box {
+    background: #0f172a;
+    border: 1px solid var(--accent);
+    color: #fff;
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    text-align: center;
+  }
+  .summary-item .label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+  .summary-item .val { font-size: 1.35rem; font-weight: 800; color: var(--gold); }
+  .summary-item .val.green { color: #4ade80; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: 0.15s;
+    text-decoration: none;
+    gap: 8px;
+    font-size: 0.92rem;
+  }
+  .btn-gold { background: linear-gradient(135deg, #c59b27, #dfba48); color: #121315; }
+  .btn-gold:hover { opacity: 0.95; }
+  .btn-dark { background: var(--secondary); color: #fff; }
+  .btn-whatsapp { background: #25D366; color: #fff; }
+
+  /* OVERLAY DE LOGIN */
+  #auth-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15, 23, 42, 0.94);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .auth-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 28px 24px;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    border-top: 4px solid var(--accent);
+  }
+  .auth-card .logo {
+    display: inline-block;
+    background: #000;
+    border: 1px solid var(--accent);
+    color: var(--gold);
+    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+  }
+  .auth-msg {
+    margin-top: 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    min-height: 20px;
+    padding: 6px;
+    border-radius: 6px;
+  }
+  .auth-msg.err { background: #fee2e2; color: var(--danger); }
+  .auth-msg.ok { background: #dcfce7; color: var(--success); }
+
+  /* CHAT AI */
+  .chat-box {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    height: 320px;
+    overflow-y: auto;
+    padding: 12px;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .chat-msg {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    max-width: 85%;
+    line-height: 1.4;
+  }
+  .chat-msg.user { align-self: flex-end; background: #e0e7ff; color: #1e1b4b; }
+  .chat-msg.bot { align-self: flex-start; background: #fff; border: 1px solid #cbd5e1; color: #0f172a; white-space: pre-wrap; }
+</style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body>
 
-  <!-- MODAL DE AUTENTICAÇÃO (SUPABASE AUTH) -->
-  <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
-      <div class="bg-gradient-to-r from-[#0e1012] via-[#1a1c20] to-[#252219] p-6 text-center border-b-2 border-[#c59b27]">
-        <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#c59b27]/20 border border-[#c59b27] mb-3 text-[#dfba48] font-bold text-xl">
-          M&amp;IC
+<!-- MODAL DE AUTENTICAÇÃO SUPABASE -->
+<div id="auth-modal">
+  <div class="auth-card">
+    <div class="logo">M&IC</div>
+    <h2 style="font-size:1.2rem; color:var(--primary); margin-bottom:4px;">GESTÃO DE LOCAÇÃO</h2>
+    <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:18px;">Acesso Restrito ao Sistema Imobiliário</p>
+
+    <label style="text-align:left;">E-mail Corporativo</label>
+    <input type="email" id="auth-email" placeholder="seuemail@gmail.com" style="margin-bottom:12px;">
+
+    <label style="text-align:left;">Senha de Acesso</label>
+    <input type="password" id="auth-pass" placeholder="••••••••" style="margin-bottom:16px;">
+
+    <button class="btn btn-gold" style="width:100%; margin-bottom:8px;" onclick="doLogin()">Entrar no Sistema</button>
+    <button class="btn btn-dark" style="width:100%;" onclick="doRegister()">Cadastrar Novo Usuário</button>
+
+    <div id="auth-status" class="auth-msg" style="display:none;"></div>
+    <div style="font-size:0.72rem; color:#94a3b8; margin-top:14px;">Autenticado via Repositório Seguro Supabase</div>
+  </div>
+</div>
+
+<!-- CABEÇALHO -->
+<header>
+  <div class="brand-area">
+    <div class="logo-box">M&IC</div>
+    <div>
+      <h1>GESTÃO DE LOCAÇÃO IMOBILIÁRIA</h1>
+      <p>Controle Operacional, Repasses, Cobrança & Agentes de IA</p>
+    </div>
+  </div>
+  <div class="user-badge" id="user-pill" style="display:none;">
+    <span>Conectado: <strong id="logged-user-email"></strong></span>
+    <button class="btn-logout" onclick="doLogout()">Sair</button>
+  </div>
+</header>
+
+<div class="container">
+  <!-- ABAS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="setTab('calculo', this)">📊 Cálculo de Cobrança & Repasse</button>
+    <button class="tab-btn" onclick="setTab('whatsapp', this)">💬 Texto de Cobrança (WhatsApp)</button>
+    <button class="tab-btn" onclick="setTab('agentes', this)">🤖 Agentes de IA (Gemini & Groq)</button>
+  </div>
+
+  <!-- ABA 1: CÁLCULOS (BASEADO NA PLANILHA EXCEL) -->
+  <div id="tab-calculo" class="tab-content active">
+    <div class="card">
+      <div class="card-title">1. Dados do Contrato & Competência</div>
+      <div class="grid-3">
+        <div>
+          <label>Inquilino / Locatário</label>
+          <input type="text" id="inquilino" placeholder="Nome do inquilino" value="Ex: Roberto Silva">
         </div>
-        <h2 class="text-xl font-extrabold text-[#d4af37] tracking-wide">GESTÃO DE LOCAÇÃO</h2>
-        <p class="text-xs text-gray-300 mt-1">Acesso Restrito ao Sistema Imobiliário</p>
+        <div>
+          <label>Proprietário / Locador</label>
+          <input type="text" id="proprietario" placeholder="Nome do proprietário" value="Ex: Dra. Maria Helena">
+        </div>
+        <div>
+          <label>Mês / Ano de Referência (B/C)</label>
+          <input type="month" id="mesAno">
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:12px;">
+        <div>
+          <label>Data de Início da Ocupação (J)</label>
+          <input type="date" id="dataInicio">
+        </div>
+        <div>
+          <label>Aluguel Base Integral (I)</label>
+          <input type="number" id="aluguelBase" value="2500" oninput="calcularTudo()">
+        </div>
+        <div>
+          <label>Condomínio Base Integral (AB)</label>
+          <input type="number" id="condominioBase" value="650" oninput="calcularTudo()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">2. Proporcionalidade & Encargos</div>
+      <div class="grid-2">
+        <div>
+          <label>Cálculo Proporcional? (Q)</label>
+          <select id="isProporcional" onchange="calcularTudo()">
+            <option value="nao">Não — Mês Completo Integral (30 dias)</option>
+            <option value="sim">Sim — Calcular Dias Proporcionais</option>
+          </select>
+        </div>
+        <div id="box-dias-prop" style="display:none;">
+          <label>Dias de Ocupação no Primeiro Mês</label>
+          <input type="number" id="diasOcupados" value="15" min="1" max="31" oninput="calcularTudo()">
+        </div>
       </div>
 
-      <div class="p-6">
-        <div id="auth-notification" class="hidden mb-4 p-3 rounded-lg text-xs font-semibold leading-snug"></div>
-
-        <form id="auth-form" onsubmit="event.preventDefault(); handleAuthAction();" class="space-y-4">
-          <div>
-            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">E-mail Corporativo</label>
-            <input type="email" id="auth-email" required placeholder="seu.email@imobiliaria.com"
-              class="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c59b27] transition" />
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Senha de Acesso</label>
-            <input type="password" id="auth-password" required placeholder="••••••••"
-              class="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c59b27] transition" />
-          </div>
-
-          <div class="pt-2 flex flex-col gap-2.5">
-            <button type="submit" id="btn-login" class="w-full py-3 rounded-lg gold-gradient-btn text-xs font-bold uppercase tracking-wider">
-              Entrar no Sistema
-            </button>
-            <button type="button" onclick="handleSignUpAction()" id="btn-signup" class="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold tracking-wider transition">
-              Cadastrar Novo Usuário
-            </button>
-          </div>
-        </form>
-
-        <div class="mt-5 text-center text-[11px] text-gray-500">
-          Autenticado via Repositório Seguro <span class="text-emerald-600 font-bold">Supabase</span>
+      <div class="grid-3" style="margin-top:14px;">
+        <div>
+          <label>IPTU Mensal (V)</label>
+          <input type="number" id="iptu" value="120" oninput="calcularTudo()">
         </div>
+        <div>
+          <label>Taxa de Incêndio / Bombeiro (V)</label>
+          <input type="number" id="bombeiro" value="35" oninput="calcularTudo()">
+        </div>
+        <div>
+          <label>Outras Taxas / Cobranças (V)</label>
+          <input type="number" id="outrasTaxas" value="0" oninput="calcularTudo()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">3. Regras de Repasse & Administração</div>
+      <div class="grid-2">
+        <div>
+          <label>Taxa de Administração Imobiliária (X %)</label>
+          <input type="number" id="taxaAdm" value="10" step="0.5" oninput="calcularTudo()">
+        </div>
+        <div>
+          <label>Destinação do Condomínio (Regra R)</label>
+          <select id="regraCondominio" onchange="calcularTudo()">
+            <option value="repassa">Repassar Condomínio ao Proprietário (Ele Paga)</option>
+            <option value="retém">Imobiliária Paga o Condomínio (Retém do Repasse)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- PAINEL DE RESULTADOS (RESUMO) -->
+      <div class="summary-box">
+        <div class="summary-item">
+          <div class="label">Total a Cobrar do Inquilino</div>
+          <div class="val" id="res-total-inquilino">R$ 0,00</div>
+        </div>
+        <div class="summary-item">
+          <div class="label">Valor Líquido a Repassar (AH)</div>
+          <div class="val green" id="res-valor-repassar">R$ 0,00</div>
+        </div>
+      </div>
+      <div style="font-size:0.75rem; color:#64748b; margin-top:8px; text-align:center;">
+        Aluguel Efetivo: <strong id="res-aluguel-efetivo">R$ 0,00</strong> | Condomínio Efetivo: <strong id="res-cond-efetivo">R$ 0,00</strong> | Taxa Adm (X): <strong id="res-taxa-adm">R$ 0,00</strong>
       </div>
     </div>
   </div>
 
-  <!-- CABEÇALHO DO SISTEMA -->
-  <header class="bg-gradient-to-r from-[#0d0e10] via-[#181a1f] to-[#2b261b] border-b-2 border-[#c59b27] text-white py-3 px-4 shadow-lg sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <div class="h-10 px-3 flex items-center justify-center bg-[#121315] border border-[#c59b27] rounded-lg shadow-sm">
-          <span class="text-sm font-extrabold text-[#d4af37] tracking-wider">M&amp;IC</span>
-        </div>
-        <div>
-          <h1 class="text-base md:text-lg font-extrabold text-[#dfba48] tracking-tight flex items-center gap-2">
-            ADMINISTRAÇÃO DE LOCAÇÃO
-            <span class="bg-[#c59b27]/25 text-[#dfba48] text-[10px] font-bold px-2 py-0.5 rounded border border-[#c59b27]/40 uppercase tracking-widest">Pro</span>
-          </h1>
-          <p class="text-[11px] text-gray-400">Motor de Cálculo Proporcional, Repasses &amp; Agentes de IA</p>
-        </div>
+  <!-- ABA 2: MENSAGEM WHATSAPP -->
+  <div id="tab-whatsapp" class="tab-content">
+    <div class="card">
+      <div class="card-title">Texto Automático da Cobrança (AH)</div>
+      <label>Chave PIX para Cobrança</label>
+      <input type="text" id="chavePix" value="financeiro@micimoveis.com.br" oninput="gerarTextoCobranca()" style="margin-bottom:12px;">
+
+      <label>Vencimento do Boleto / PIX</label>
+      <input type="date" id="dataVencimento" onchange="gerarTextoCobranca()" style="margin-bottom:12px;">
+
+      <label>Mensagem Formatada para WhatsApp</label>
+      <textarea id="textoMsg" rows="11" readonly style="background:#f8fafc; font-family:monospace; font-size:0.85rem;"></textarea>
+
+      <div style="display:flex; gap:10px; margin-top:14px;">
+        <button class="btn btn-gold" onclick="copiarTexto()">📋 Copiar Mensagem</button>
+        <button class="btn btn-whatsapp" onclick="enviarWhatsApp()">📲 Abrir no WhatsApp</button>
       </div>
-
-      <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-        <div class="text-right hidden sm:block">
-          <div id="user-pill-email" class="text-xs font-medium text-gray-300 truncate max-w-[200px]">Carregando...</div>
-          <div class="text-[10px] text-emerald-400 font-bold flex items-center justify-end gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Conexão Segura
-          </div>
-        </div>
-        <button onclick="handleLogout()" class="px-3 py-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-300 hover:text-red-100 text-xs rounded-md border border-red-800/60 transition flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-          Sair
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- ABAS DE NAVEGAÇÃO -->
-  <nav class="bg-[#121315] border-b border-[#252830] text-gray-400 sticky top-[66px] z-30 shadow-md">
-    <div class="max-w-7xl mx-auto flex overflow-x-auto custom-scrollbar text-xs font-bold uppercase tracking-wider">
-      <button onclick="switchTab('calculo')" id="tab-btn-calculo" class="tab-btn active px-4 py-3 whitespace-nowrap transition flex items-center gap-2">
-        <svg class="w-4 h-4 text-[#c59b27]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-        1. Cálculo &amp; Cobrança
-      </button>
-      <button onclick="switchTab('extrato')" id="tab-btn-extrato" class="tab-btn px-4 py-3 whitespace-nowrap transition flex items-center gap-2">
-        <svg class="w-4 h-4 text-[#c59b27]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        2. Demonstrativo &amp; WhatsApp
-      </button>
-      <button onclick="switchTab('agentes')" id="tab-btn-agentes" class="tab-btn px-4 py-3 whitespace-nowrap transition flex items-center gap-2">
-        <svg class="w-4 h-4 text-[#c59b27]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-        3. Central de Agentes de IA
-      </button>
-      <button onclick="switchTab('config')" id="tab-btn-config" class="tab-btn px-4 py-3 whitespace-nowrap transition flex items-center gap-2">
-        <svg class="w-4 h-4 text-[#c59b27]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        4. Configurações &amp; Chaves
-      </button>
-    </div>
-  </nav>
-
-  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
-
-    <!-- ABA 1: MOTOR DE CÁLCULO DE LOCAÇÃO -->
-    <section id="tab-calculo" class="space-y-6">
-      
-      <!-- Top banner informativo da planilha -->
-      <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-            Regra Contratual M&amp;IC
-          </span>
-          <h2 class="text-base font-bold text-gray-900 mt-1">Cálculo de Locação, Proporcionalidade &amp; Repasse</h2>
-          <p class="text-xs text-gray-500">Fluxo automatizado: Contrato $\to$ Proporcional $\to$ Encargos $\to$ Cobrança $\to$ Repasse</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button type="button" onclick="carregarExemplo()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition border border-gray-300">
-            Preencher Exemplo
-          </button>
-          <button type="button" onclick="limparFormulario()" class="px-3 py-2 bg-white hover:bg-gray-50 text-gray-600 text-xs font-semibold rounded-lg transition border border-gray-300">
-            Limpar
-          </button>
-        </div>
-      </div>
-
-      <form id="calc-form" class="grid grid-cols-1 lg:grid-cols-12 gap-6" oninput="executarCalculoGeral()">
-        
-        <!-- COLUNA 1: DADOS DO CONTRATO & IMÓVEL (7 colunas) -->
-        <div class="lg:col-span-7 space-y-6">
-          
-          <!-- Card: Identificação -->
-          <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-            <h3 class="text-xs font-extrabold uppercase tracking-wider text-[#c59b27] border-b pb-2 mb-4 flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-              Identificação do Contrato &amp; Partes
-            </h3>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div class="sm:col-span-2">
-                <label class="block text-xs font-bold text-gray-700 mb-1">Endereço do Imóvel / Unidade</label>
-                <input type="text" id="imovel-identificacao" placeholder="Ex: Av. Atlântica, 1500 - Apto 802 - Copacabana"
-                  class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-1 focus:ring-[#c59b27] focus:outline-none" />
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Locador(a) / Proprietário</label>
-                <input type="text" id="locador-nome" placeholder="Nome do Locador"
-                  class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-1 focus:ring-[#c59b27] focus:outline-none" />
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Locatário(a) / Inquilino</label>
-                <input type="text" id="locatario-nome" placeholder="Nome do Inquilino"
-                  class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-1 focus:ring-[#c59b27] focus:outline-none" />
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Mês/Ano Competência (B/C)</label>
-                <input type="month" id="mes-competencia"
-                  class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-1 focus:ring-[#c59b27] focus:outline-none" />
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Data Início do Contrato (J)</label>
-                <input type="date" id="data-inicio-contrato"
-                  class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-1 focus:ring-[#c59b27] focus:outline-none" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Card: Valores Base e Proporcionalidade (Q) -->
-          <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-            <h3 class="text-xs font-extrabold uppercase tracking-wider text-[#c59b27] border-b pb-2 mb-4 flex items-center justify-between">
-              <span class="flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Valores Contratuais &amp; Regra Proporcional (Q)
-              </span>
-              <span id="badge-proporcional-status" class="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600">Integral</span>
-            </h3>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Aluguel Integral Mensal (I) (R$)</label>
-                <div class="relative">
-                  <span class="absolute left-3 top-2 text-xs font-bold text-gray-400">R$</span>
-                  <input type="number" step="0.01" min="0" id="valor-aluguel-base" placeholder="0,00"
-                    class="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm font-semibold text-gray-900 focus:bg-white focus:ring-1 focus:ring-[#c59b27] focus:outline-none" />
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Condomínio Mensal (AB) (R$)</label>
-                <div class="relative">
-                  <span class="absolute left-3 top-2 text-xs font-bold text-gray-400">R$</span>
-                  <input type="number" step="0.01" min="0" id="valor-condominio-base" placeholder="0,00"
-                    class="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm font-semibold text-gray-900 focus:bg-white focus:ring-1 focus:ring-[#c59b27] focus:outline-none" />
-                </div>
-              </div>
-
-              <!-- Switch Proporcional -->
-              <div class="sm:col-span-2 bg-[#fbf9f4] border border-[#ecdcb4] p-3 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div>
-                  <div class="text-xs font-bold text-gray-900">Aplicar Cálculo Proporcional (Q)?</div>
-                  <div class="text-[11px] text-gray-500">Útil para início de locação ou rescisão no meio do mês</div>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="check-proporcional" class="sr-only peer" onchange="toggleProporcionalUI()">
-                  <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#c59b27]"></div>
-                </label>
-              </div>
-
-              <!-- Detalhes do Proporcional -->
-              <div id="painel-proporcional" class="sm:col-span-2 hidden grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <div>
-                  <label class="block text-[11px] font-bold text-gray-600 mb-1">Dias de Ocupação (Q)</label>
-                  <input type="number" id="dias-proporcionais" min="1" max="31" value="15"
-                    class="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded text-xs font-bold text-gray-800" />
-                </div>
-                <div>
-                  <label class="block text-[11px] font-bold text-gray-600 mb-1">Base do Mês (Dias)</label>
-                  <select id="base-dias-mes" class="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded text-xs font-bold text-gray-800">
-                    <option value="30" selected>30 dias (Comercial)</option>
-                    <option value="31">31 dias</option>
-                    <option value="28">28 dias (Fevereiro)</option>
-                  </select>
-                </div>
-                <div class="flex flex-col justify-center">
-                  <span class="text-[10px] text-gray-500 font-bold">Fração calculada</span>
-                  <span id="label-fracao-proporcional" class="text-xs font-extrabold text-[#c59b27]">15 / 30 (50%)</span>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          <!-- Card: Encargos Adicionais (V) -->
-          <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-            <h3 class="text-xs font-extrabold uppercase tracking-wider text-[#c59b27] border-b pb-2 mb-4 flex items-center justify-between">
-              <span>Encargos Adicionais da Locação (V)</span>
-              <span class="text-[11px] text-gray-500 font-normal">IPTU, Bombeiros e Taxas</span>
-            </h3>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Cota IPTU (R$)</label>
-                <input type="number" step="0.01" min="0" id="encargo-iptu" placeholder="0,00"
-                  class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-semibold text-gray-800 focus:bg-white focus:outline-none" />
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Taxa Incêndio / Bombeiro</label>
-                <input type="number" step="0.01" min="0" id="encargo-bombeiro" placeholder="0,00"
-                  class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-semibold text-gray-800 focus:bg-white focus:outline-none" />
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Outras Taxas / Cobranças</label>
-                <input type="number" step="0.01" min="0" id="encargo-outros" placeholder="0,00"
-                  class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-semibold text-gray-800 focus:bg-white focus:outline-none" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Card: Regra de Administração e Condomínio (X e R) -->
-          <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-            <h3 class="text-xs font-extrabold uppercase tracking-wider text-[#c59b27] border-b pb-2 mb-4">
-              Regras de Repasse &amp; Administração Imobiliária (X &amp; R)
-            </h3>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Taxa de Administração (X) %</label>
-                <div class="relative">
-                  <input type="number" step="0.1" min="0" max="100" id="taxa-adm-percent" value="10"
-                    class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm font-semibold text-gray-800 focus:bg-white focus:outline-none" />
-                  <span class="absolute right-3 top-2 text-xs font-bold text-gray-400">%</span>
-                </div>
-                <span class="text-[10px] text-gray-500 mt-1 block">Incide sobre o valor apurado de aluguel</span>
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Regra do Condomínio (R)</label>
-                <select id="regra-condominio" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-semibold text-gray-800 focus:bg-white focus:outline-none">
-                  <option value="direto">Locatário paga direto à administradora</option>
-                  <option value="repassar">Cobrado no boleto e repassado ao Locador</option>
-                  <option value="imobiliaria_paga">Imobiliária retém e efetua o pagamento</option>
-                </select>
-                <span class="text-[10px] text-gray-500 mt-1 block">Define o destino do condomínio no cálculo de repasse</span>
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Data de Vencimento da Cobrança</label>
-                <input type="date" id="data-vencimento-cobranca"
-                  class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs text-gray-800 focus:bg-white focus:outline-none" />
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">Chave Pix para Recebimento</label>
-                <input type="text" id="chave-pix-cobranca" placeholder="financeiro@mic.imb.br ou CNPJ"
-                  class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs text-gray-800 focus:bg-white focus:outline-none" />
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- COLUNA 2: QUADRO RESUMO AO VIVO (5 colunas) -->
-        <div class="lg:col-span-5 space-y-6">
-          
-          <!-- Card Dourado de Destaque: Cobrança vs Repasse -->
-          <div class="dark-card rounded-2xl p-6 text-white shadow-xl space-y-5">
-            <div class="flex items-center justify-between border-b border-gray-800 pb-3">
-              <div>
-                <span class="text-[10px] uppercase font-extrabold tracking-widest text-[#d4af37]">Demonstrativo Instantâneo</span>
-                <h4 class="text-sm font-bold text-gray-200">Apuração de Valores</h4>
-              </div>
-              <span class="px-2.5 py-1 bg-[#c59b27]/20 border border-[#c59b27]/40 text-[#dfba48] rounded text-[10px] font-bold">
-                Ao Vivo
-              </span>
-            </div>
-
-            <!-- Total Inquilino -->
-            <div class="bg-black/40 rounded-xl p-4 border border-[#c59b27]/30">
-              <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Total a Cobrar do Inquilino</div>
-              <div class="text-2xl sm:text-3xl font-black text-[#dfba48] mt-1" id="resumo-total-inquilino">R$ 0,00</div>
-              <div class="text-[10px] text-gray-400 mt-1" id="resumo-composicao-inquilino">Aluguel: R$ 0,00 | Condomínio: R$ 0,00</div>
-            </div>
-
-            <!-- Detalhamento Proporcional (S e T) -->
-            <div class="space-y-2 text-xs border-t border-gray-800 pt-3 text-gray-300">
-              <div class="flex justify-between items-center py-1">
-                <span>Aluguel Efetivo (S):</span>
-                <span class="font-bold text-white" id="resumo-aluguel-efetivo">R$ 0,00</span>
-              </div>
-              <div class="flex justify-between items-center py-1">
-                <span>Condomínio Efetivo (T):</span>
-                <span class="font-bold text-white" id="resumo-condominio-efetivo">R$ 0,00</span>
-              </div>
-              <div class="flex justify-between items-center py-1">
-                <span>Total Aluguel + Condomínio (U):</span>
-                <span class="font-bold text-[#dfba48]" id="resumo-subtotal-u">R$ 0,00</span>
-              </div>
-              <div class="flex justify-between items-center py-1">
-                <span>Encargos Adicionais (V):</span>
-                <span class="font-bold text-gray-200" id="resumo-total-encargos">R$ 0,00</span>
-              </div>
-            </div>
-
-            <!-- Taxa e Repasse ao Locador -->
-            <div class="bg-white/5 rounded-xl p-4 border border-gray-800 space-y-2">
-              <div class="flex justify-between items-center text-xs">
-                <span class="text-gray-400">Taxa Administração (X):</span>
-                <span class="text-red-400 font-bold" id="resumo-taxa-adm">- R$ 0,00</span>
-              </div>
-              <div class="flex justify-between items-center text-xs border-b border-gray-800 pb-2">
-                <span class="text-gray-400">Destino Condomínio (R):</span>
-                <span class="text-gray-300 font-bold text-[11px]" id="resumo-regra-cond-txt">Direto Administradora</span>
-              </div>
-              <div class="pt-1 flex justify-between items-baseline">
-                <div>
-                  <span class="text-[10px] uppercase font-bold text-emerald-400">Líquido a Repassar (AH)</span>
-                  <div class="text-xs text-gray-400">Valor creditado ao proprietário</div>
-                </div>
-                <div class="text-xl sm:text-2xl font-black text-emerald-400" id="resumo-valor-repasse">R$ 0,00</div>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 pt-1">
-              <button type="button" onclick="irParaExtrato()" class="w-full py-2.5 gold-gradient-btn rounded-lg text-xs uppercase tracking-wider font-bold text-center">
-                Ver Mensagem ➔
-              </button>
-              <button type="button" onclick="pedirRefinamentoIA()" class="w-full py-2.5 bg-[#252830] hover:bg-[#313642] text-[#dfba48] border border-[#c59b27]/40 rounded-lg text-xs uppercase tracking-wider font-bold transition flex items-center justify-center gap-1.5">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                Auditar com IA
-              </button>
-            </div>
-
-          </div>
-
-          <!-- Dica pericial da Lei do Inquilinato -->
-          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 leading-relaxed">
-            <strong class="font-bold flex items-center gap-1 text-blue-950 mb-1">
-              <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              Conformidade Lei nº 8.245/91 (Lei do Inquilinato)
-            </strong>
-            O cálculo proporcional deve considerar a data exata da entrega ou disponibilização das chaves. Encargos extraordinários de condomínio são de responsabilidade do locador (art. 22).
-          </div>
-
-        </div>
-
-      </form>
-
-    </section>
-
-    <!-- ABA 2: EXTRATO / TEXTO AUTOMÁTICO DE COBRANÇA (WHATSAPP) -->
-    <section id="tab-extrato" class="hidden space-y-6">
-      
-      <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-            Canal Direto
-          </span>
-          <h2 class="text-base font-bold text-gray-900 mt-1">Texto Formatado para WhatsApp do Inquilino</h2>
-          <p class="text-xs text-gray-500">Demonstrativo claro com detalhamento, vencimento e instrução de pagamento.</p>
-        </div>
-
-        <div class="flex items-center gap-2 w-full sm:w-auto">
-          <button type="button" onclick="copiarTextoWhatsapp()" class="flex-1 sm:flex-initial px-4 py-2.5 gold-gradient-btn rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-            Copiar Mensagem
-          </button>
-          <button type="button" onclick="abrirNoWhatsapp()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold uppercase tracking-wider transition flex items-center gap-1.5">
-            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-            WhatsApp
-          </button>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        <!-- Editor do texto de cobrança -->
-        <div class="lg:col-span-7 bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-3">
-          <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">Prévia e Edição do Texto</label>
-          <textarea id="texto-whatsapp-cobranca" rows="16"
-            class="w-full p-4 bg-gray-50 border border-gray-300 rounded-xl text-xs font-mono text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c59b27] leading-relaxed custom-scrollbar"></textarea>
-          <div class="flex justify-between items-center text-[11px] text-gray-500">
-            <span>Você pode editar o texto acima livremente antes de enviar.</span>
-            <button type="button" onclick="regerarTextoCobranca()" class="text-[#c59b27] hover:underline font-bold">
-              Restaurar Original
-            </button>
-          </div>
-        </div>
-
-        <!-- Card de resumo do Locador (Repasse) -->
-        <div class="lg:col-span-5 space-y-4">
-          <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
-            <h3 class="text-xs font-extrabold uppercase tracking-wider text-[#c59b27] border-b pb-2">
-              Recibo de Repasse ao Proprietário
-            </h3>
-
-            <div class="text-xs space-y-2.5 text-gray-700">
-              <div class="flex justify-between">
-                <span class="text-gray-500">Locador:</span>
-                <span class="font-bold text-gray-900" id="recibo-locador">-</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-500">Imóvel:</span>
-                <span class="font-bold text-gray-900 text-right max-w-[200px] truncate" id="recibo-imovel">-</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-500">Competência:</span>
-                <span class="font-bold text-gray-900" id="recibo-competencia">-</span>
-              </div>
-              <div class="flex justify-between border-t pt-2">
-                <span class="text-gray-500">Aluguel Apurado:</span>
-                <span class="font-bold text-gray-900" id="recibo-aluguel">R$ 0,00</span>
-              </div>
-              <div class="flex justify-between text-red-600">
-                <span>Taxa Administração Imobiliária:</span>
-                <span class="font-bold" id="recibo-taxa-adm">- R$ 0,00</span>
-              </div>
-              <div class="flex justify-between" id="recibo-linha-cond">
-                <span class="text-gray-500">Condomínio a Repassar:</span>
-                <span class="font-bold text-gray-900" id="recibo-condominio">R$ 0,00</span>
-              </div>
-              <div class="flex justify-between border-t pt-2 text-sm font-black text-emerald-600">
-                <span>Líquido a Transferir:</span>
-                <span id="recibo-liquido">R$ 0,00</span>
-              </div>
-            </div>
-
-            <button type="button" onclick="copiarReciboLocador()" class="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-lg border border-gray-300 transition">
-              Copiar Demonstrativo do Locador
-            </button>
-          </div>
-
-          <!-- Ação Rápida com Agente de Cobrança -->
-          <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 text-xs space-y-2">
-            <span class="font-bold text-amber-900 flex items-center gap-1.5">
-              <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-              Deseja refinar a abordagem do texto?
-            </span>
-            <p class="text-amber-800">
-              Peça ao <strong>Agente Cobrador Amigável</strong> para reescrever em tom mais formal ou com foco em negociação se houver atraso.
-            </p>
-            <button onclick="switchTab('agentes'); selecionarAgentePredefinido('cobrador');" class="text-xs font-bold text-amber-900 underline">
-              Abrir Agente Cobrador ➔
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-    </section>
-
-    <!-- ABA 3: CENTRAL DE AGENTES DE IA -->
-    <section id="tab-agentes" class="hidden space-y-6">
-      
-      <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
-            Inteligência Artificial Integrada
-          </span>
-          <h2 class="text-base font-bold text-gray-900 mt-1">Central de Agentes Especialistas M&amp;IC</h2>
-          <p class="text-xs text-gray-500">Gemini (Google) e Modelos Gratuitos (Groq/Llama) configuráveis com prompts dedicados.</p>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <button type="button" onclick="abrirModalNovoAgente()" class="px-3.5 py-2 gold-gradient-btn rounded-lg text-xs uppercase font-bold tracking-wider flex items-center gap-1.5">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Novo Agente
-          </button>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        <!-- Lista de Agentes Cadastrados (4 colunas) -->
-        <div class="lg:col-span-4 space-y-3">
-          <div class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Agentes Disponíveis</div>
-          <div id="lista-agentes-container" class="space-y-2.5">
-            <!-- Cards dinâmicos inseridos via JavaScript -->
-          </div>
-        </div>
-
-        <!-- Playground / Chat Interativo do Agente (8 colunas) -->
-        <div class="lg:col-span-8 bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-[580px] overflow-hidden">
-          
-          <!-- Topo do Chat -->
-          <div class="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-lg bg-[#121315] border border-[#c59b27] flex items-center justify-center text-[#dfba48] font-bold text-xs" id="chat-agente-avatar">
-                AI
-              </div>
-              <div>
-                <h4 class="text-xs font-bold text-gray-900" id="chat-agente-nome">Selecione um Agente</h4>
-                <p class="text-[11px] text-gray-500" id="chat-agente-modelo">Modelo: Nenhum</p>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <button type="button" onclick="injetarContextoContratoNoChat()" class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold rounded border border-amber-300 transition flex items-center gap-1" title="Injeta valores da planilha no chat">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
-                Injetar Dados da Locação
-              </button>
-              <button type="button" onclick="limparHistoricoChat()" class="p-1.5 text-gray-400 hover:text-gray-600 rounded" title="Limpar conversa">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Área de Mensagens -->
-          <div id="chat-mensagens-container" class="flex-1 p-4 overflow-y-auto space-y-3 bg-[#fafafb] custom-scrollbar text-xs">
-            <div class="bg-white p-3.5 rounded-xl border border-gray-200 max-w-[85%] text-gray-700 shadow-sm leading-relaxed">
-              Olá! Sou o agente virtual da <strong>M&amp;IC</strong>. Selecione um dos agentes ao lado ou envie uma dúvida jurídica, solicitação de cobrança ou análise de contrato.
-            </div>
-          </div>
-
-          <!-- Spinner de Carregamento da IA -->
-          <div id="chat-loading-indicator" class="hidden px-4 py-2 text-[11px] text-gray-500 bg-gray-50 border-t border-gray-100 flex items-center gap-2">
-            <div class="w-3 h-3 border-2 border-t-transparent border-[#c59b27] rounded-full animate-spin"></div>
-            O Agente está pensando e elaborando a resposta...
-          </div>
-
-          <!-- Input do Chat -->
-          <form onsubmit="event.preventDefault(); enviarMensagemChat();" class="p-3 bg-white border-t border-gray-200 flex gap-2">
-            <input type="text" id="chat-input-msg" placeholder="Digite sua instrução ou pergunte sobre o contrato..."
-              class="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c59b27]" />
-            <button type="submit" id="btn-enviar-chat" class="px-5 py-2.5 gold-gradient-btn rounded-xl text-xs font-bold uppercase tracking-wider">
-              Enviar
-            </button>
-          </form>
-
-        </div>
-
-      </div>
-
-    </section>
-
-    <!-- ABA 4: CONFIGURAÇÕES E CHAVES DE API -->
-    <section id="tab-config" class="hidden space-y-6">
-      
-      <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-        <h2 class="text-base font-bold text-gray-900">Configuração das Chaves de API de Inteligência Artificial</h2>
-        <p class="text-xs text-gray-500 mt-1">
-          Suas chaves são salvas de forma segura no seu perfil para uso direto nas requisições aos agentes.
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        <!-- Configuração Google Gemini (Gratuito) -->
-        <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
-          <div class="flex items-center justify-between border-b pb-2">
-            <div class="flex items-center gap-2">
-              <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">G</span>
-              <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-800">Google Gemini API</h3>
-            </div>
-            <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[11px] text-blue-600 hover:underline font-bold flex items-center gap-1">
-              Obter Chave Grátis ➔
-            </a>
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold text-gray-700 mb-1">Chave de API Gemini (AI Studio)</label>
-            <input type="password" id="cfg-gemini-key" placeholder="AIzaSy..."
-              class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-mono text-gray-800 focus:bg-white focus:outline-none" />
-            <span class="text-[10px] text-gray-500 mt-1 block">Utilizado para os modelos `gemini-1.5-flash`, `gemini-2.0-flash` e vistorias</span>
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold text-gray-700 mb-1">Modelo Padrão Gemini</label>
-            <select id="cfg-gemini-model" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs text-gray-800 focus:bg-white focus:outline-none">
-              <option value="gemini-2.5-flash">gemini-2.5-flash (Mais Rápido e Moderno)</option>
-              <option value="gemini-1.5-flash" selected>gemini-1.5-flash (Estável e Econômico)</option>
-              <option value="gemini-1.5-pro">gemini-1.5-pro (Raciocínio Jurídico Complexo)</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Configuração Groq (Llama Gratuito) -->
-        <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
-          <div class="flex items-center justify-between border-b pb-2">
-            <div class="flex items-center gap-2">
-              <span class="w-6 h-6 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs">Q</span>
-              <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-800">Groq Cloud (Llama 3 Gratuito)</h3>
-            </div>
-            <a href="https://console.groq.com/keys" target="_blank" class="text-[11px] text-orange-600 hover:underline font-bold flex items-center gap-1">
-              Obter Chave Groq ➔
-            </a>
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold text-gray-700 mb-1">Chave de API Groq</label>
-            <input type="password" id="cfg-groq-key" placeholder="gsk_..."
-              class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-mono text-gray-800 focus:bg-white focus:outline-none" />
-            <span class="text-[10px] text-gray-500 mt-1 block">Permite respostas ultra-rápidas usando modelos open-source Llama</span>
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold text-gray-700 mb-1">Modelo Padrão Groq</label>
-            <select id="cfg-groq-model" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs text-gray-800 focus:bg-white focus:outline-none">
-              <option value="llama-3.3-70b-versatile" selected>llama-3.3-70b-versatile (Excelente para Português)</option>
-              <option value="llama3-8b-8192">llama3-8b-8192 (Ultra Leve)</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Chaves do Supabase -->
-        <div class="md:col-span-2 bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
-          <div class="flex items-center justify-between border-b pb-2">
-            <h3 class="text-xs font-extrabold uppercase tracking-wider text-emerald-700">Parâmetros do Supabase Conectado</h3>
-            <span class="text-[11px] font-bold text-gray-500">Projeto Ativo</span>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">URL do Supabase</label>
-              <input type="text" id="cfg-supabase-url" readonly value="https://dgadztmmarvbjcouvrnp.supabase.co"
-                class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-xs font-mono text-gray-700 cursor-not-allowed" />
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">Chave Anon (Public)</label>
-              <input type="text" id="cfg-supabase-anon" placeholder="Cole sua nova publishable/anon key se alterada"
-                class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-mono text-gray-800" />
-            </div>
-          </div>
-
-          <div class="pt-2 flex justify-end">
-            <button type="button" onclick="salvarConfiguracoesGerais()" class="px-6 py-2.5 gold-gradient-btn rounded-lg text-xs font-bold uppercase tracking-wider">
-              Salvar Todas as Configurações
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-    </section>
-
-  </main>
-
-  <!-- MODAL DE CADASTRO / EDIÇÃO DE AGENTE DE IA -->
-  <div id="modal-agente" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-    <div class="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
-      <div class="bg-gradient-to-r from-[#121315] to-[#252830] p-4 text-white border-b-2 border-[#c59b27] flex items-center justify-between">
-        <h3 class="text-xs font-bold uppercase tracking-wider text-[#dfba48]" id="modal-agente-titulo">Novo Agente de IA</h3>
-        <button onclick="fecharModalAgente()" class="text-gray-400 hover:text-white text-lg font-bold">&times;</button>
-      </div>
-
-      <form onsubmit="event.preventDefault(); salvarAgenteCustomizado();" class="p-5 space-y-4 text-xs">
-        <div>
-          <label class="block font-bold text-gray-700 mb-1">Nome do Agente</label>
-          <input type="text" id="novo-agente-nome" required placeholder="Ex: Cobrador Amigável WhatsApp"
-            class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs text-gray-800 focus:bg-white focus:outline-none" />
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-bold text-gray-700 mb-1">Provedor de IA</label>
-            <select id="novo-agente-provedor" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs text-gray-800">
-              <option value="gemini">Google Gemini (Gratuito)</option>
-              <option value="groq">Groq Cloud (Llama Gratuito)</option>
-            </select>
-          </div>
-          <div>
-            <label class="block font-bold text-gray-700 mb-1">Modelo Específico</label>
-            <input type="text" id="novo-agente-modelo" value="gemini-1.5-flash"
-              class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs text-gray-800 font-mono" />
-          </div>
-        </div>
-
-        <div>
-          <label class="block font-bold text-gray-700 mb-1">Prompt de Instruções do Sistema (System Prompt)</label>
-          <textarea id="novo-agente-prompt" rows="5" required placeholder="Você é o especialista em locações imobiliárias da M&IC Corretores..."
-            class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg text-xs text-gray-800 focus:bg-white focus:outline-none"></textarea>
-        </div>
-
-        <div class="pt-2 flex justify-end gap-2">
-          <button type="button" onclick="fecharModalAgente()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold">
-            Cancelar
-          </button>
-          <button type="submit" class="px-5 py-2 gold-gradient-btn rounded-lg font-bold uppercase tracking-wider">
-            Salvar Agente
-          </button>
-        </div>
-      </form>
     </div>
   </div>
 
-  <footer class="bg-[#121315] border-t border-gray-800 text-gray-500 text-[11px] py-4 px-4 text-center mt-auto">
-    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-      <div>
-        &copy; Desenvolvido por <strong class="text-gray-300">M&amp;IC Corretores de Imóveis</strong>. Todos os direitos reservados.
+  <!-- ABA 3: AGENTES DE IA (GEMINI & GROQ) -->
+  <div id="tab-agentes" class="tab-content">
+    <div class="card">
+      <div class="card-title">Configuração de Agentes Gratuitos</div>
+      <div class="grid-2">
+        <div>
+          <label>Motor de Inteligência Artificial</label>
+          <select id="aiEngine">
+            <option value="gemini">Google Gemini (Gratuito)</option>
+            <option value="groq">Groq Cloud (Llama 3.3 70B - Gratuito)</option>
+          </select>
+        </div>
+        <div>
+          <label>Chave de API (API Key)</label>
+          <input type="password" id="aiApiKey" placeholder="Cole sua API Key do Gemini ou Groq">
+        </div>
       </div>
-      <div class="text-[10px] text-gray-400">
-        Gestão Contratual • Conformidade com a Lei do Inquilinato (Lei nº 8.245/91)
+      <div style="font-size:0.75rem; color:#64748b; margin-top:8px;">
+        As chaves são salvas localmente no seu navegador com segurança e nunca são expostas.
       </div>
     </div>
-  </footer>
 
-  <script>
-    /* =====================================================================
-     * 1. CONFIGURAÇÃO & AUTENTICAÇÃO SUPABASE
-     * ===================================================================== */
-    const DEFAULT_SUPABASE_URL = 'https://dgadztmmarvbjcouvrnp.supabase.co';
-    // Chave anon salva em cache ou fallback
-    let SUPABASE_URL = localStorage.getItem('mic_supabase_url') || DEFAULT_SUPABASE_URL;
-    let SUPABASE_ANON = localStorage.getItem('mic_supabase_anon') || 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_Jw0jd';
+    <div class="card">
+      <div class="card-title">Assistente Especialista em Locações</div>
+      <div class="chat-box" id="chatArea">
+        <div class="chat-msg bot">Olá! Sou seu Agente de IA para Gestão Imobiliária. Posso redigir mensagens de cobrança amigáveis, analisar notificações de reajuste ou conferir cláusulas contratuais. Como posso ajudar?</div>
+      </div>
 
-    let supabaseClient = null;
-    let currentUser = null;
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="chatInput" placeholder="Ex: Crie uma mensagem educada de cobrança com os valores calculados..." onkeypress="if(event.key==='Enter') sendChat()">
+        <button class="btn btn-gold" onclick="sendChat()">Enviar</button>
+      </div>
 
-    function initSupabase() {
-      try {
-        if (window.supabase && SUPABASE_URL && SUPABASE_ANON) {
-          supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-        }
-      } catch (err) {
-        console.warn('Erro ao inicializar Supabase:', err);
-      }
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('cobrar')">💬 Pedir Notificação Amigável</button>
+        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('reajuste')">📈 Consultar Reajuste (IGPM/IPCA)</button>
+        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 10px;" onclick="preencherPrompt('extrato')">📑 Resumo do Repasse ao Locador</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 1. CONFIGURAÇÃO SUPABASE
+  const SUPABASE_URL = 'https://dgadztmmarvbjcouvrnp.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_JwOjDkAj';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Inicialização de Datas
+  window.addEventListener('DOMContentLoaded', () => {
+    const today = new Date();
+    document.getElementById('mesAno').value = today.toISOString().substring(0, 7);
+    document.getElementById('dataInicio').valueAsDate = today;
+    
+    const venc = new Date();
+    venc.setDate(venc.getDate() + 5);
+    document.getElementById('dataVencimento').valueAsDate = venc;
+
+    calcularTudo();
+    checkSession();
+  });
+
+  // Autenticação
+  async function checkSession() {
+    const { data: { session } } = await supabase.auth.getSession();
+    const modal = document.getElementById('auth-modal');
+    const pill = document.getElementById('user-pill');
+    const emailEl = document.getElementById('logged-user-email');
+
+    if (session && session.user) {
+      modal.style.display = 'none';
+      pill.style.display = 'flex';
+      emailEl.innerText = session.user.email;
+    } else {
+      modal.style.display = 'flex';
+      pill.style.display = 'none';
     }
-    initSupabase();
+  }
 
-    // Notificação visual no modal de login
-    function showAuthNotice(msg, isError = true) {
-      const el = document.getElementById('auth-notification');
-      el.className = isError 
-        ? 'mb-4 p-3 rounded-lg text-xs font-semibold bg-red-100 text-red-800 border border-red-200 block'
-        : 'mb-4 p-3 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 block';
-      el.innerText = msg;
+  async function doLogin() {
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-pass').value;
+    const status = document.getElementById('auth-status');
+    status.style.display = 'block';
+    status.className = 'auth-msg';
+    status.innerText = 'Autenticando...';
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      status.className = 'auth-msg err';
+      status.innerText = 'Falha no login: ' + error.message;
+    } else {
+      status.className = 'auth-msg ok';
+      status.innerText = '✓ Sucesso! Carregando...';
+      checkSession();
+    }
+  }
+
+  async function doRegister() {
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-pass').value;
+    const status = document.getElementById('auth-status');
+    status.style.display = 'block';
+    status.className = 'auth-msg';
+    status.innerText = 'Criando registro...';
+
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      status.className = 'auth-msg err';
+      status.innerText = 'Erro no cadastro: ' + error.message;
+    } else {
+      status.className = 'auth-msg ok';
+      status.innerText = '✓ Cadastro efetuado com sucesso!';
+      checkSession();
+    }
+  }
+
+  async function doLogout() {
+    await supabase.auth.signOut();
+    checkSession();
+  }
+
+  // Troca de Abas
+  function setTab(name, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'whatsapp') gerarTextoCobranca();
+  }
+
+  // 2. MOTOR DE CÁLCULO DA PLANILHA DE ADMINISTRAÇÃO
+  let calcCache = {};
+
+  function calcularTudo() {
+    const aluguelBase = parseFloat(document.getElementById('aluguelBase').value) || 0;
+    const condBase = parseFloat(document.getElementById('condominioBase').value) || 0;
+    const isProp = document.getElementById('isProporcional').value === 'sim';
+    const dias = parseInt(document.getElementById('diasOcupados').value) || 30;
+
+    document.getElementById('box-dias-prop').style.display = isProp ? 'block' : 'none';
+
+    // Aluguel e Condomínio Proporcionais
+    let aluguelEfetivo = isProp ? (aluguelBase / 30) * dias : aluguelBase;
+    let condEfetivo = isProp ? (condBase / 30) * dias : condBase;
+
+    // Encargos V
+    const iptu = parseFloat(document.getElementById('iptu').value) || 0;
+    const bombeiro = parseFloat(document.getElementById('bombeiro').value) || 0;
+    const outras = parseFloat(document.getElementById('outrasTaxas').value) || 0;
+    const totalEncargos = iptu + bombeiro + outras;
+
+    // Total a Cobrar do Inquilino (U + V)
+    const totalInquilino = aluguelEfetivo + condEfetivo + totalEncargos;
+
+    // Taxa de Administração X
+    const taxaAdmPct = parseFloat(document.getElementById('taxaAdm').value) || 0;
+    const valorTaxaAdm = aluguelEfetivo * (taxaAdmPct / 100);
+
+    // Regra do Condomínio R
+    const regraCond = document.getElementById('regraCondominio').value;
+    let valorRepassar = 0;
+
+    if (regraCond === 'repassa') {
+      valorRepassar = (aluguelEfetivo - valorTaxaAdm) + condEfetivo + totalEncargos;
+    } else {
+      valorRepassar = (aluguelEfetivo - valorTaxaAdm) + totalEncargos;
     }
 
-    async function checkAuthSession() {
-      if (!supabaseClient) return;
-      try {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session && session.user) {
-          onAuthSuccess(session.user);
-        } else {
-          document.getElementById('auth-modal').style.display = 'flex';
-        }
-      } catch (e) {
-        console.warn('Erro ao checar sessão:', e);
-      }
+    // Formatação BRL
+    const fmt = val => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    document.getElementById('res-total-inquilino').innerText = fmt(totalInquilino);
+    document.getElementById('res-valor-repassar').innerText = fmt(valorRepassar);
+    document.getElementById('res-aluguel-efetivo').innerText = fmt(aluguelEfetivo);
+    document.getElementById('res-cond-efetivo').innerText = fmt(condEfetivo);
+    document.getElementById('res-taxa-adm').innerText = fmt(valorTaxaAdm);
+
+    calcCache = {
+      inquilino: document.getElementById('inquilino').value,
+      proprietario: document.getElementById('proprietario').value,
+      aluguel: aluguelEfetivo,
+      cond: condEfetivo,
+      iptu: iptu,
+      bombeiro: bombeiro,
+      outras: outras,
+      totalInquilino: totalInquilino,
+      taxaAdm: valorTaxaAdm,
+      repassar: valorRepassar
+    };
+  }
+
+  // 3. TEXTO AUTOMÁTICO WHATSAPP
+  function gerarTextoCobranca() {
+    calcularTudo();
+    const pix = document.getElementById('chavePix').value;
+    const vencRaw = document.getElementById('dataVencimento').value;
+    const vencFmt = vencRaw ? vencRaw.split('-').reverse().join('/') : 'A combinar';
+    const fmt = val => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    const txt = 
+`Prezado(a) ${calcCache.inquilino}, tudo bem?
+
+Segue o demonstrativo de aluguel e encargos da locação com vencimento em *${vencFmt}*:
+
+🔹 *Aluguel:* ${fmt(calcCache.aluguel)}
+🔹 *Condomínio:* ${fmt(calcCache.cond)}
+🔹 *IPTU:* ${fmt(calcCache.iptu)}
+🔹 *Taxa de Incêndio:* ${fmt(calcCache.bombeiro)}
+${calcCache.outras > 0 ? `🔹 *Outras Taxas:* ${fmt(calcCache.outras)}\n` : ''}
+💰 *TOTAL A PAGAR: ${fmt(calcCache.totalInquilino)}*
+
+🔑 *Chave PIX:* ${pix}
+
+Favor enviar o comprovante assim que efetuar o pagamento.
+Qualquer dúvida, estamos à disposição!
+
+*M&IC Corretores de Imóveis*`;
+
+    document.getElementById('textoMsg').value = txt;
+  }
+
+  function copiarTexto() {
+    const txt = document.getElementById('textoMsg');
+    txt.select();
+    navigator.clipboard.writeText(txt.value);
+    alert('Texto de cobrança copiado com sucesso!');
+  }
+
+  function enviarWhatsApp() {
+    const txt = encodeURIComponent(document.getElementById('textoMsg').value);
+    window.open(`https://api.whatsapp.com/send?text=${txt}`, '_blank');
+  }
+
+  // 4. AGENTES DE IA (GEMINI & GROQ)
+  function preencherPrompt(tipo) {
+    const input = document.getElementById('chatInput');
+    if (tipo === 'cobrar') input.value = `Elabore uma mensagem de cobrança amigável para o inquilino ${calcCache.inquilino}, informando o total de R$ ${calcCache.totalInquilino.toFixed(2)}.`;
+    if (tipo === 'reajuste') input.value = `Como calcular o reajuste anual de aluguel pela Lei do Inquilinato (Lei 8.245/91)? Explique o uso de IPCA vs IGP-M.`;
+    if (tipo === 'extrato') input.value = `Monte um extrato detalhado para a proprietária ${calcCache.proprietario}, informando o aluguel bruto, a taxa de administração e o repasse líquido de R$ ${calcCache.repassar.toFixed(2)}.`;
+  }
+
+  async function sendChat() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const chatArea = document.getElementById('chatArea');
+    chatArea.innerHTML += `<div class="chat-msg user">${msg}</div>`;
+    input.value = '';
+    chatArea.scrollTop = chatArea.scrollHeight;
+
+    const key = document.getElementById('aiApiKey').value.trim();
+    const engine = document.getElementById('aiEngine').value;
+
+    if (!key) {
+      chatArea.innerHTML += `<div class="chat-msg bot">⚠️ Por favor, insira sua chave gratuita de API (Gemini ou Groq) no campo acima para conversar com o Agente de IA.</div>`;
+      chatArea.scrollTop = chatArea.scrollHeight;
+      return;
     }
 
-    function onAuthSuccess(user) {
-      currentUser = user;
-      document.getElementById('auth-modal').style.display = 'none';
-      document.getElementById('user-pill-email').innerText = user.email || 'Usuário Autenticado';
-      carregarConfiguracoesSalvas();
-      carregarAgentes();
-      executarCalculoGeral();
-    }
+    const botMsgEl = document.createElement('div');
+    botMsgEl.className = 'chat-msg bot';
+    botMsgEl.innerText = 'Pensando...';
+    chatArea.appendChild(botMsgEl);
+    chatArea.scrollTop = chatArea.scrollHeight;
 
-    async function handleAuthAction() {
-      const email = document.getElementById('auth-email').value.trim();
-      const password = document.getElementById('auth-password').value;
-      const btn = document.getElementById('btn-login');
-
-      if (!email || !password) {
-        showAuthNotice('Preencha seu e-mail e sua senha.');
-        return;
-      }
-
-      btn.disabled = true;
-      btn.innerText = 'Autenticando...';
-
-      try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        showAuthNotice('Autenticado com sucesso!', false);
-        onAuthSuccess(data.user);
-      } catch (err) {
-        showAuthNotice('Falha no login: ' + (err.message || 'Verifique suas credenciais.'));
-      } finally {
-        btn.disabled = false;
-        btn.innerText = 'Entrar no Sistema';
-      }
-    }
-
-    async function handleSignUpAction() {
-      const email = document.getElementById('auth-email').value.trim();
-      const password = document.getElementById('auth-password').value;
-
-      if (!email || password.length < 6) {
-        showAuthNotice('Informe um e-mail válido e uma senha de no mínimo 6 dígitos.');
-        return;
-      }
-
-      try {
-        const { data, error } = await supabaseClient.auth.signUp({ email, password });
-        if (error) throw error;
-        showAuthNotice('Conta criada! Verifique seu e-mail para confirmação se necessário ou faça login.', false);
-      } catch (err) {
-        showAuthNotice('Falha no cadastro: ' + err.message);
-      }
-    }
-
-    async function handleLogout() {
-      if (supabaseClient) {
-        await supabaseClient.auth.signOut();
-      }
-      currentUser = null;
-      document.getElementById('auth-modal').style.display = 'flex';
-      showAuthNotice('Sessão encerrada.', false);
-    }
-
-    /* =====================================================================
-     * 2. CONTROLE DE ABAS
-     * ===================================================================== */
-    function switchTab(tabId) {
-      const tabs = ['calculo', 'extrato', 'agentes', 'config'];
-      tabs.forEach(t => {
-        const section = document.getElementById(`tab-${t}`);
-        const btn = document.getElementById(`tab-btn-${t}`);
-        if (t === tabId) {
-          section.classList.remove('hidden');
-          btn.classList.add('active');
-        } else {
-          section.classList.add('hidden');
-          btn.classList.remove('active');
-        }
-      });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    /* =====================================================================
-     * 3. MOTOR DE CÁLCULO DE LOCAÇÃO (ABA ADMINISTRAÇÃO EXCEL)
-     * ===================================================================== */
-    function formatarMoeda(val) {
-      return (Number(val) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
-
-    function toggleProporcionalUI() {
-      const isChecked = document.getElementById('check-proporcional').checked;
-      const painel = document.getElementById('painel-proporcional');
-      const badge = document.getElementById('badge-proporcional-status');
-      
-      if (isChecked) {
-        painel.classList.remove('hidden');
-        badge.innerText = 'Proporcional Ativo';
-        badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800';
+    try {
+      if (engine === 'gemini') {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: `Você é o assistente virtual de locação da imobiliária M&IC. Responda de forma profissional e objetiva à seguinte solicitação: ${msg}` }] }]
+          })
+        });
+        const json = await res.json();
+        const reply = json.candidates?.[0]?.content?.parts?.[0]?.text || 'Sem resposta da IA.';
+        botMsgEl.innerText = reply;
       } else {
-        painel.classList.add('hidden');
-        badge.innerText = 'Integral';
-        badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600';
+        // Groq API
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'system', content: 'Você é o assistente especialista em gestão de locações da M&IC Corretores de Imóveis.' }, { role: 'user', content: msg }]
+          })
+        });
+        const json = await res.json();
+        botMsgEl.innerText = json.choices?.[0]?.message?.content || 'Sem resposta do Groq.';
       }
-      executarCalculoGeral();
+    } catch (e) {
+      botMsgEl.innerText = 'Erro ao consultar IA: ' + e.message;
     }
-
-    function executarCalculoGeral() {
-      // 1. Entradas Principais
-      const aluguelBase = parseFloat(document.getElementById('valor-aluguel-base').value) || 0;
-      const condBase = parseFloat(document.getElementById('valor-condominio-base').value) || 0;
-      const isProporcional = document.getElementById('check-proporcional').checked;
-      
-      let diasOcupacao = parseInt(document.getElementById('dias-proporcionais').value) || 30;
-      let baseDias = parseInt(document.getElementById('base-dias-mes').value) || 30;
-
-      // 2. Cálculo Proporcional (Q, S, T)
-      let aluguelEfetivo = aluguelBase;
-      let condEfetivo = condBase;
-
-      if (isProporcional) {
-        if (diasOcupacao > baseDias) diasOcupacao = baseDias;
-        const fator = diasOcupacao / baseDias;
-        aluguelEfetivo = aluguelBase * fator;
-        condEfetivo = condBase * fator;
-        document.getElementById('label-fracao-proporcional').innerText = 
-          `${diasOcupacao} / ${baseDias} (${(fator * 100).toFixed(1)}%)`;
-      }
-
-      // 3. Aluguel + Condomínio (U)
-      const subtotalU = aluguelEfetivo + condEfetivo;
-
-      // 4. Encargos (V)
-      const iptu = parseFloat(document.getElementById('encargo-iptu').value) || 0;
-      const bombeiro = parseFloat(document.getElementById('encargo-bombeiro').value) || 0;
-      const outros = parseFloat(document.getElementById('encargo-outros').value) || 0;
-      const totalEncargosV = iptu + bombeiro + outros;
-
-      // 5. Total a Cobrar do Inquilino
-      const totalInquilino = subtotalU + totalEncargosV;
-
-      // 6. Taxa de Administração (X)
-      const taxaAdmPercent = parseFloat(document.getElementById('taxa-adm-percent').value) || 0;
-      const valorTaxaAdm = aluguelEfetivo * (taxaAdmPercent / 100);
-
-      // 7. Regra do Condomínio (R) e Repasse (AH)
-      const regraCond = document.getElementById('regra-condominio').value;
-      let condRepasse = 0;
-      let txtRegraCond = 'Direto Administradora';
-
-      if (regraCond === 'repassar') {
-        condRepasse = condEfetivo;
-        txtRegraCond = 'Repassado ao Locador';
-      } else if (regraCond === 'imobiliaria_paga') {
-        condRepasse = 0;
-        txtRegraCond = 'Imobiliária Liquida Condomínio';
-      }
-
-      // Repasse líquido ao Locador = (Aluguel Efetivo - Taxa ADM) + (Condomínio a repassar se houver) + (IPTU/Encargos devidos ao locador)
-      const repasseLiquido = (aluguelEfetivo - valorTaxaAdm) + condRepasse + iptu;
-
-      // 8. Atualização do Painel Resumo Visual
-      document.getElementById('resumo-total-inquilino').innerText = formatarMoeda(totalInquilino);
-      document.getElementById('resumo-composicao-inquilino').innerText = 
-        `Aluguel: ${formatarMoeda(aluguelEfetivo)} | Condomínio: ${formatarMoeda(condEfetivo)}`;
-      
-      document.getElementById('resumo-aluguel-efetivo').innerText = formatarMoeda(aluguelEfetivo);
-      document.getElementById('resumo-condominio-efetivo').innerText = formatarMoeda(condEfetivo);
-      document.getElementById('resumo-subtotal-u').innerText = formatarMoeda(subtotalU);
-      document.getElementById('resumo-total-encargos').innerText = formatarMoeda(totalEncargosV);
-      document.getElementById('resumo-taxa-adm').innerText = `- ${formatarMoeda(valorTaxaAdm)} (${taxaAdmPercent}%)`;
-      document.getElementById('resumo-regra-cond-txt').innerText = txtRegraCond;
-      document.getElementById('resumo-valor-repasse').innerText = formatarMoeda(repasseLiquido);
-
-      // Atualizar também tela de extrato
-      atualizarExtratoRecibo({
-        aluguelEfetivo,
-        valorTaxaAdm,
-        condRepasse,
-        repasseLiquido,
-        totalInquilino,
-        condEfetivo,
-        iptu,
-        bombeiro,
-        outros,
-        isProporcional,
-        diasOcupacao,
-        baseDias
-      });
-    }
-
-    function atualizarExtratoRecibo(calc) {
-      const locador = document.getElementById('locador-nome').value || 'Não informado';
-      const locatario = document.getElementById('locatario-nome').value || 'Prezado(a) Inquilino(a)';
-      const imovel = document.getElementById('imovel-identificacao').value || 'Imóvel sob gestão';
-      const mesComp = document.getElementById('mes-competencia').value;
-      const vencimento = document.getElementById('data-vencimento-cobranca').value;
-      const chavePix = document.getElementById('chave-pix-cobranca').value || 'financeiro@mic.com.br';
-
-      let mesFormatado = 'Mês Vigente';
-      if (mesComp) {
-        const [ano, mes] = mesComp.split('-');
-        mesFormatado = `${mes}/${ano}`;
-      }
-
-      let vencimentoFormatado = 'A combinar';
-      if (vencimento) {
-        const [a, m, d] = vencimento.split('-');
-        vencimentoFormatado = `${d}/${m}/${a}`;
-      }
-
-      // Painel Recibo Locador
-      document.getElementById('recibo-locador').innerText = locador;
-      document.getElementById('recibo-imovel').innerText = imovel;
-      document.getElementById('recibo-competencia').innerText = mesFormatado;
-      document.getElementById('recibo-aluguel').innerText = formatarMoeda(calc.aluguelEfetivo);
-      document.getElementById('recibo-taxa-adm').innerText = `- ${formatarMoeda(calc.valorTaxaAdm)}`;
-      document.getElementById('recibo-condominio').innerText = formatarMoeda(calc.condRepasse);
-      document.getElementById('recibo-liquido').innerText = formatarMoeda(calc.repasseLiquido);
-
-      // Geração do Texto de WhatsApp (Regra visual limpa M&IC)
-      let msg = `*M&IC CORRETORES DE IMÓVEIS — DEMONSTRATIVO DE LOCAÇÃO*\n`;
-      msg += `📍 *Imóvel:* ${imovel}\n`;
-      msg += `👤 *Locatário(a):* ${locatario}\n`;
-      msg += `🗓️ *Competência:* ${mesFormatado}\n`;
-      msg += `-------------------------------------------\n`;
-      
-      if (calc.isProporcional) {
-        msg += `*Aluguel Proporcional (${calc.diasOcupacao}/${calc.baseDias} dias):* ${formatarMoeda(calc.aluguelEfetivo)}\n`;
-        msg += `*Condomínio Proporcional:* ${formatarMoeda(calc.condEfetivo)}\n`;
-      } else {
-        msg += `*Aluguel Mensal:* ${formatarMoeda(calc.aluguelEfetivo)}\n`;
-        msg += `*Condomínio:* ${formatarMoeda(calc.condEfetivo)}\n`;
-      }
-
-      if (calc.iptu > 0) msg += `*Cota IPTU:* ${formatarMoeda(calc.iptu)}\n`;
-      if (calc.bombeiro > 0) msg += `*Taxa Incêndio:* ${formatarMoeda(calc.bombeiro)}\n`;
-      if (calc.outros > 0) msg += `*Outras Taxas:* ${formatarMoeda(calc.outros)}\n`;
-
-      msg += `-------------------------------------------\n`;
-      msg += `💰 *TOTAL A PAGAR:* *${formatarMoeda(calc.totalInquilino)}*\n`;
-      msg += `📅 *Vencimento:* ${vencimentoFormatado}\n\n`;
-      msg += `🔑 *Chave Pix para Pagamento:* \n${chavePix}\n\n`;
-      msg += `_Favor encaminhar o comprovante de pagamento respondendo esta mensagem. Estamos à disposição!_`;
-
-      document.getElementById('texto-whatsapp-cobranca').value = msg;
-    }
-
-    function irParaExtrato() {
-      switchTab('extrato');
-    }
-
-    function regerarTextoCobranca() {
-      executarCalculoGeral();
-    }
-
-    function copiarTextoWhatsapp() {
-      const textarea = document.getElementById('texto-whatsapp-cobranca');
-      textarea.select();
-      document.execCommand('copy');
-      mostrarToast('✓ Mensagem de WhatsApp copiada com sucesso!');
-    }
-
-    function copiarReciboLocador() {
-      const locador = document.getElementById('recibo-locador').innerText;
-      const imovel = document.getElementById('recibo-imovel').innerText;
-      const comp = document.getElementById('recibo-competencia').innerText;
-      const liquido = document.getElementById('recibo-liquido').innerText;
-      const adm = document.getElementById('recibo-taxa-adm').innerText;
-
-      const txt = `*REPASSE DE LOCAÇÃO — M&IC*\nProprietário(a): ${locador}\nImóvel: ${imovel}\nCompetência: ${comp}\nTaxa Adm: ${adm}\n*Valor Líquido Creditado: ${liquido}*`;
-      
-      const temp = document.createElement('textarea');
-      temp.value = txt;
-      document.body.appendChild(temp);
-      temp.select();
-      document.execCommand('copy');
-      document.body.removeChild(temp);
-      mostrarToast('✓ Demonstrativo do Locador copiado!');
-    }
-
-    function abrirNoWhatsapp() {
-      const txt = encodeURIComponent(document.getElementById('texto-whatsapp-cobranca').value);
-      window.open(`https://api.whatsapp.com/send?text=${txt}`, '_blank');
-    }
-
-    function carregarExemplo() {
-      document.getElementById('imovel-identificacao').value = 'Rua Barata Ribeiro, 450 - Apto 302 - Copacabana';
-      document.getElementById('locador-nome').value = 'Carlos Eduardo de Souza';
-      document.getElementById('locatario-nome').value = 'Mariana Vasconcelos';
-      document.getElementById('valor-aluguel-base').value = '3500.00';
-      document.getElementById('valor-condominio-base').value = '850.00';
-      document.getElementById('encargo-iptu').value = '220.00';
-      document.getElementById('encargo-bombeiro').value = '45.00';
-      document.getElementById('taxa-adm-percent').value = '10';
-      document.getElementById('chave-pix-cobranca').value = 'pix@miccorretores.com.br';
-      
-      const hoje = new Date();
-      const ano = hoje.getFullYear();
-      const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-      document.getElementById('mes-competencia').value = `${ano}-${mes}`;
-      
-      const venc = new Date(hoje.getFullYear(), hoje.getMonth(), 10);
-      document.getElementById('data-vencimento-cobranca').value = venc.toISOString().split('T')[0];
-
-      executarCalculoGeral();
-      mostrarToast('✓ Exemplo carregado!');
-    }
-
-    function limparFormulario() {
-      document.getElementById('calc-form').reset();
-      document.getElementById('check-proporcional').checked = false;
-      toggleProporcionalUI();
-      executarCalculoGeral();
-    }
-
-    /* =====================================================================
-     * 4. CENTRAL DE AGENTES DE IA (GEMINI E GROQ GRATUITOS)
-     * ===================================================================== */
-    let agentesCadastrados = [
-      {
-        id: 'cobrador',
-        nome: 'Cobrador Amigável WhatsApp',
-        provedor: 'gemini',
-        modelo: 'gemini-1.5-flash',
-        prompt: 'Você é um assistente de atendimento e cobrança amigável da M&IC Corretores de Imóveis. Seu objetivo é redigir mensagens cordiais, claras e profissionais de cobrança de aluguel e negociação de eventuais atrasos, mantendo um tom de respeito e preservando a boa relação entre locatário e imobiliária.'
-      },
-      {
-        id: 'juridico',
-        nome: 'Assistente Jurídico de Locações',
-        provedor: 'gemini',
-        modelo: 'gemini-1.5-pro',
-        prompt: 'Você é um consultor jurídico imobiliário especialista na Lei do Inquilinato brasileira (Lei Federal nº 8.245/1991). Tire dúvidas sobre responsabilidade de despesas ordinárias/extraordinárias de condomínio, rescisão, multas proporcionais e garantias locatícias com clareza e fundamentação.'
-      },
-      {
-        id: 'auditor',
-        nome: 'Auditor de Vistorias e Contratos',
-        provedor: 'groq',
-        modelo: 'llama-3.3-70b-versatile',
-        prompt: 'Você é um perito técnico em vistorias imobiliárias e análise de contratos da M&IC. Avalie descrições de avarias, estado de conservação e divergências contratuais, redigindo termos técnicos e imparciais.'
-      }
-    ];
-
-    let agenteSelecionadoId = 'cobrador';
-
-    function carregarAgentes() {
-      const saved = localStorage.getItem('mic_agentes_cadastrados');
-      if (saved) {
-        try { agentesCadastrados = JSON.parse(saved); } catch(e){}
-      }
-      renderizarListaAgentes();
-      selecionarAgente(agenteSelecionadoId);
-    }
-
-    function salvarListaAgentesStorage() {
-      localStorage.setItem('mic_agentes_cadastrados', JSON.stringify(agentesCadastrados));
-    }
-
-    function renderizarListaAgentes() {
-      const container = document.getElementById('lista-agentes-container');
-      container.innerHTML = '';
-
-      agentesCadastrados.forEach(ag => {
-        const isSelected = ag.id === agenteSelecionadoId;
-        const card = document.createElement('div');
-        card.className = `p-3 rounded-xl border transition cursor-pointer flex items-center justify-between ${
-          isSelected ? 'bg-white border-[#c59b27] shadow-md ring-1 ring-[#c59b27]' : 'bg-gray-50 border-gray-200 hover:bg-white'
-        }`;
-        card.onclick = () => selecionarAgente(ag.id);
-
-        card.innerHTML = `
-          <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg ${ag.provedor === 'gemini' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'} font-bold flex items-center justify-center text-xs">
-              ${ag.provedor === 'gemini' ? 'G' : 'Q'}
-            </div>
-            <div>
-              <div class="text-xs font-bold text-gray-900">${ag.nome}</div>
-              <div class="text-[10px] text-gray-500 font-mono">${ag.modelo}</div>
-            </div>
-          </div>
-          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${isSelected ? 'bg-[#c59b27] text-white' : 'bg-gray-200 text-gray-600'}">
-            ${isSelected ? 'Ativo' : 'Usar'}
-          </span>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    function selecionarAgente(id) {
-      agenteSelecionadoId = id;
-      const agente = agentesCadastrados.find(a => a.id === id) || agentesCadastrados[0];
-      
-      document.getElementById('chat-agente-nome').innerText = agente.nome;
-      document.getElementById('chat-agente-modelo').innerText = `Provedor: ${agente.provedor.toUpperCase()} | Modelo: ${agente.modelo}`;
-      document.getElementById('chat-agente-avatar').innerText = agente.provedor === 'gemini' ? 'GEM' : 'LLM';
-      
-      renderizarListaAgentes();
-    }
-
-    function selecionarAgentePredefinido(id) {
-      selecionarAgente(id);
-    }
-
-    function abrirModalNovoAgente() {
-      document.getElementById('modal-agente').classList.remove('hidden');
-      document.getElementById('modal-agente').classList.add('flex');
-    }
-
-    function fecharModalAgente() {
-      document.getElementById('modal-agente').classList.add('hidden');
-      document.getElementById('modal-agente').classList.remove('flex');
-    }
-
-    function salvarAgenteCustomizado() {
-      const nome = document.getElementById('novo-agente-nome').value.trim();
-      const provedor = document.getElementById('novo-agente-provedor').value;
-      const modelo = document.getElementById('novo-agente-modelo').value.trim();
-      const prompt = document.getElementById('novo-agente-prompt').value.trim();
-
-      if (!nome || !prompt) return;
-
-      const novo = {
-        id: 'agent_' + Date.now(),
-        nome,
-        provedor,
-        modelo,
-        prompt
-      };
-
-      agentesCadastrados.push(novo);
-      salvarListaAgentesStorage();
-      renderizarListaAgentes();
-      selecionarAgente(novo.id);
-      fecharModalAgente();
-      mostrarToast('✓ Novo Agente cadastrado!');
-    }
-
-    function injetarContextoContratoNoChat() {
-      const imovel = document.getElementById('imovel-identificacao').value || 'Não preenchido';
-      const locatario = document.getElementById('locatario-nome').value || 'Inquilino';
-      const total = document.getElementById('resumo-total-inquilino').innerText;
-      const aluguel = document.getElementById('resumo-aluguel-efetivo').innerText;
-      const cond = document.getElementById('resumo-condominio-efetivo').innerText;
-      const vencimento = document.getElementById('data-vencimento-cobranca').value || 'A definir';
-
-      const contexto = `[DADOS ATUAIS DA LOCAÇÃO: Imóvel: ${imovel} | Locatário: ${locatario} | Aluguel Apurado: ${aluguel} | Condomínio: ${cond} | Total a Cobrar: ${total} | Vencimento: ${vencimento}]`;
-
-      const input = document.getElementById('chat-input-msg');
-      input.value = `${contexto} Gostaria que você gerasse uma mensagem personalizada com esses dados.`;
-      input.focus();
-    }
-
-    function pedirRefinamentoIA() {
-      switchTab('agentes');
-      selecionarAgente('cobrador');
-      injetarContextoContratoNoChat();
-    }
-
-    function limparHistoricoChat() {
-      const container = document.getElementById('chat-mensagens-container');
-      container.innerHTML = `
-        <div class="bg-white p-3.5 rounded-xl border border-gray-200 max-w-[85%] text-gray-700 shadow-sm leading-relaxed">
-          Histórico limpo. Como posso ajudar com sua locação ou cobrança agora?
-        </div>
-      `;
-    }
-
-    async function enviarMensagemChat() {
-      const input = document.getElementById('chat-input-msg');
-      const mensagem = input.value.trim();
-      if (!mensagem) return;
-
-      const container = document.getElementById('chat-mensagens-container');
-      const loader = document.getElementById('chat-loading-indicator');
-      const btn = document.getElementById('btn-enviar-chat');
-
-      // Adiciona mensagem do usuário
-      const userBubble = document.createElement('div');
-      userBubble.className = 'ml-auto bg-[#1a1c20] text-[#dfba48] p-3 rounded-xl max-w-[85%] shadow-sm leading-relaxed';
-      userBubble.innerText = mensagem;
-      container.appendChild(userBubble);
-      container.scrollTop = container.scrollHeight;
-
-      input.value = '';
-      btn.disabled = true;
-      loader.classList.remove('hidden');
-
-      const agente = agentesCadastrados.find(a => a.id === agenteSelecionadoId) || agentesCadastrados[0];
-
-      try {
-        let respostaTexto = '';
-
-        if (agente.provedor === 'gemini') {
-          respostaTexto = await chamarGoogleGemini(agente, mensagem);
-        } else {
-          respostaTexto = await chamarGroqCloud(agente, mensagem);
-        }
-
-        // Adiciona resposta da IA
-        const aiBubble = document.createElement('div');
-        aiBubble.className = 'bg-white p-3.5 rounded-xl border border-gray-200 max-w-[85%] text-gray-800 shadow-sm leading-relaxed whitespace-pre-line';
-        aiBubble.innerHTML = formatarMarkdownBasico(respostaTexto);
-        container.appendChild(aiBubble);
-
-      } catch (err) {
-        const errBubble = document.createElement('div');
-        errBubble.className = 'bg-red-50 text-red-800 p-3 rounded-xl border border-red-200 max-w-[85%] text-xs';
-        errBubble.innerText = `Erro ao contactar o Agente (${agente.provedor}): ${err.message}. Verifique a chave de API na aba Configurações.`;
-        container.appendChild(errBubble);
-      } finally {
-        loader.classList.add('hidden');
-        btn.disabled = false;
-        container.scrollTop = container.scrollHeight;
-      }
-    }
-
-    async function chamarGoogleGemini(agente, userMsg) {
-      const geminiKey = localStorage.getItem('mic_gemini_key') || '';
-      if (!geminiKey) {
-        throw new Error('Chave de API do Google Gemini não configurada.');
-      }
-
-      const model = agente.modelo || 'gemini-1.5-flash';
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
-
-      const body = {
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: `${agente.prompt}\n\nInstrução ou Pergunta do Usuário:\n${userMsg}` }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 1000
-        }
-      };
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error?.message || `HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
-      const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      return candidate || 'Sem resposta do Gemini.';
-    }
-
-    async function chamarGroqCloud(agente, userMsg) {
-      const groqKey = localStorage.getItem('mic_groq_key') || '';
-      if (!groqKey) {
-        throw new Error('Chave de API do Groq não configurada.');
-      }
-
-      const model = agente.modelo || 'llama-3.3-70b-versatile';
-      const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
-
-      const body = {
-        model: model,
-        messages: [
-          { role: 'system', content: agente.prompt },
-          { role: 'user', content: userMsg }
-        ],
-        temperature: 0.3,
-        max_tokens: 1000
-      };
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${groqKey}`
-        },
-        body: JSON.stringify(body)
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error?.message || `HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
-      return data.choices?.[0]?.message?.content || 'Sem resposta do Groq.';
-    }
-
-    function formatarMarkdownBasico(txt) {
-      if (!txt) return '';
-      return txt
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 rounded text-red-600 font-mono text-[11px]">$1</code>');
-    }
-
-    /* =====================================================================
-     * 5. CONFIGURAÇÕES GERAIS E STORAGE
-     * ===================================================================== */
-    function salvarConfiguracoesGerais() {
-      const geminiKey = document.getElementById('cfg-gemini-key').value.trim();
-      const groqKey = document.getElementById('cfg-groq-key').value.trim();
-      const anonKey = document.getElementById('cfg-supabase-anon').value.trim();
-
-      if (geminiKey) localStorage.setItem('mic_gemini_key', geminiKey);
-      if (groqKey) localStorage.setItem('mic_groq_key', groqKey);
-      if (anonKey) {
-        localStorage.setItem('mic_supabase_anon', anonKey);
-        SUPABASE_ANON = anonKey;
-        initSupabase();
-      }
-
-      mostrarToast('✓ Configurações e Chaves salvas com sucesso!');
-    }
-
-    function carregarConfiguracoesSalvas() {
-      const geminiKey = localStorage.getItem('mic_gemini_key');
-      const groqKey = localStorage.getItem('mic_groq_key');
-      const anonKey = localStorage.getItem('mic_supabase_anon');
-
-      if (geminiKey) document.getElementById('cfg-gemini-key').value = geminiKey;
-      if (groqKey) document.getElementById('cfg-groq-key').value = groqKey;
-      if (anonKey) document.getElementById('cfg-supabase-anon').value = anonKey;
-    }
-
-    function mostrarToast(msg) {
-      const toast = document.createElement('div');
-      toast.className = 'fixed bottom-5 right-5 z-50 bg-[#121315] text-[#dfba48] border border-[#c59b27] px-4 py-2.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2 animate-bounce';
-      toast.innerText = msg;
-      document.body.appendChild(toast);
-      setTimeout(() => {
-        toast.remove();
-      }, 3000);
-    }
-
-    // Inicialização ao carregar página
-    window.addEventListener('DOMContentLoaded', () => {
-      checkAuthSession();
-      carregarConfiguracoesSalvas();
-      carregarAgentes();
-
-      // Data de competência padrão = mês atual
-      const hoje = new Date();
-      const ano = hoje.getFullYear();
-      const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-      document.getElementById('mes-competencia').value = `${ano}-${mes}`;
-      
-      executarCalculoGeral();
-    });
-  </script>
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+</script>
 </body>
 </html>
