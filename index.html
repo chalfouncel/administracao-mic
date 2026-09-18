@@ -606,14 +606,23 @@
 
   let selectedPdfFile = null;
 
-  // EXTRAÇÃO DO CONTRATO VIA IA
+  // FUNÇÕES DE LIMPEZA E FORMATAÇÃO DE DADOS
+  function cleanExtractedName(raw) {
+    if (!raw) return '';
+    let s = raw.trim();
+    s = s.replace(/^(?:Nome|Locador|Locat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '');
+    s = s.replace(/\s+CPF.*$/i, '').replace(/\s+CNPJ.*$/i, '').replace(/\s+assinou.*$/i, '');
+    return s.split(',')[0].trim();
+  }
+
+  // EXTRAÇÃO COMBINADA (GEMINI IA + MOTOR CLICKSIGN REGEX)
   async function processarContratoComIA(event) {
     const file = event.target.files[0];
     const statusMsg = document.getElementById('upload-status-msg');
     const loader = document.getElementById('ai-extract-loader');
 
     if (!file || file.type !== 'application/pdf') {
-      alert('Selecione um ficheiro válido em formato PDF.');
+      alert('Selecione um arquivo válido em formato PDF.');
       return;
     }
 
@@ -622,45 +631,85 @@
     loader.style.display = 'block';
 
     try {
-      // 1. Leitura direta do texto do PDF com pdf.js
+      // 1. Leitura direta de todas as páginas do PDF
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let fullText = '';
+      let page1Text = '';
 
-      for (let p = 1; p <= Math.min(pdf.numPages, 10); p++) {
+      for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p);
         const textContent = await page.getTextContent();
-        const pageText = textContent.items.map(item => item.str).join(' ');
-        fullText += `\n--- PÁGINA ${p} ---\n` + pageText;
+        const pageStr = textContent.items.map(item => item.str).join(' ');
+        fullText += ' ' + pageStr;
+        if (p === 1) page1Text = pageStr;
       }
 
-      // 2. Chamada ao backend Gemini seguro
-      const res = await fetch('/api/extract-contract', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: fullText })
-      });
-
-      if (!res.ok) {
-        throw new Error('Falha na resposta do extrator de IA.');
+      // 2. Chamada à rota segura da IA Gemini
+      let extracted = {};
+      try {
+        const res = await fetch('/api/extract-contract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: fullText })
+        });
+        if (res.ok) {
+          extracted = await res.json();
+        }
+      } catch (apiErr) {
+        console.warn('API Gemini falhou, usando extrator local:', apiErr);
       }
 
-      const extracted = await res.json();
+      // 3. Extrator Fallback local por Expressões Regulares (Padrão Clicksign M&IC)
+      if (!extracted.proprietario) {
+        const mLoc = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
+        if (mLoc) extracted.proprietario = cleanExtractedName(mLoc[1]);
+      }
 
-      // 3. Preenchimento automático dos campos
-      if (extracted.proprietario) document.getElementById('proprietario').value = extracted.proprietario;
-      if (extracted.inquilino) document.getElementById('inquilino').value = extracted.inquilino;
+      if (!extracted.inquilino) {
+        const mLocat = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
+        if (mLocat) extracted.inquilino = cleanExtractedName(mLocat[1]);
+      }
+
+      if (!extracted.endereco) {
+        const idxSituado = page1Text.toLowerCase().indexOf('situado');
+        if (idxSituado !== -1) {
+          const rawEnd = page1Text.substring(idxSituado + 7).replace(/^(?:na|no|à|a|em|:)\s+/i, '').split(/[;\.\r\n]/)[0];
+          extracted.endereco = rawEnd.trim();
+        }
+      }
+
+      if (!extracted.data_inicio || !extracted.data_fim) {
+        const datas = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
+        if (datas && datas.length >= 2) {
+          const toIso = d => d.split('/').reverse().join('-');
+          if (!extracted.data_inicio) extracted.data_inicio = toIso(datas[0]);
+          if (!extracted.data_fim) extracted.data_fim = toIso(datas[1]);
+        }
+      }
+
+      if (!extracted.valor_aluguel) {
+        const mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
+        if (mVal) {
+          const limpo = mVal[1].replace(/\./g, '').replace(',', '.');
+          extracted.valor_aluguel = parseFloat(limpo);
+        }
+      }
+
+      // 4. Preenchimento visual dos inputs na tela
+      if (extracted.proprietario) document.getElementById('proprietario').value = cleanExtractedName(extracted.proprietario);
+      if (extracted.inquilino) document.getElementById('inquilino').value = cleanExtractedName(extracted.inquilino);
       if (extracted.endereco) document.getElementById('endereco').value = extracted.endereco;
       if (extracted.data_inicio) document.getElementById('dataInicio').value = extracted.data_inicio;
       if (extracted.data_fim) document.getElementById('dataFim').value = extracted.data_fim;
       if (extracted.valor_aluguel) document.getElementById('aluguelBase').value = extracted.valor_aluguel;
 
       sincronizarCampos();
-      alert('✓ Contrato lido com sucesso! Os campos foram preenchidos automaticamente pela IA.');
+      alert('✓ Contrato processado! Dados preenchidos com sucesso.');
 
     } catch (err) {
-      console.error('Erro na extração:', err);
-      alert('Aviso: Não foi possível ler automaticamente todas as cláusulas do PDF. Você pode conferir e digitar manualmente nos campos.');
+      console.error('Erro global na extração:', err);
+      alert('Não foi possível ler o arquivo automaticamente: ' + err.message);
     } finally {
       loader.style.display = 'none';
     }
@@ -958,6 +1007,9 @@
 
       if (resp.ok) {
         alert('✓ Dados e contrato guardados com sucesso no repositório seguro!');
+        selectedPdfFile = null;
+        document.getElementById('contratoFile').value = '';
+        document.getElementById('upload-status-msg').innerText = 'Nenhum contrato anexado';
       } else {
         const err = await resp.json();
         alert('Erro ao salvar no banco: ' + (err.message || JSON.stringify(err)));
