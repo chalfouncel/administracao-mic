@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gestão de Locação Imobiliária — M&IC</title>
-<!-- Leitor de PDF para extração e geração de thumbnail -->
+<!-- Leitor de PDF para extração e thumbnail -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -72,13 +72,13 @@
     font-size: 0.78rem;
   }
 
-  /* LAYOUT PRINCIPAL COM COLUNA LATERAL */
+  /* LAYOUT COM SIDEBAR À ESQUERDA */
   .main-wrapper {
     max-width: 1240px;
     margin: 20px auto;
     padding: 0 16px;
     display: grid;
-    grid-template-columns: 310px 1fr;
+    grid-template-columns: 320px 1fr;
     gap: 20px;
     align-items: start;
   }
@@ -86,7 +86,6 @@
     .main-wrapper { grid-template-columns: 1fr; }
   }
 
-  /* SIDEBAR DE ANEXO DO CONTRATO E THUMBNAIL */
   .sidebar-contract-card {
     background: var(--card);
     border: 2px dashed var(--accent);
@@ -109,7 +108,7 @@
   }
   .thumbnail-wrapper {
     width: 100%;
-    min-height: 330px;
+    min-height: 340px;
     background: #f8fafc;
     border: 1.5px solid #cbd5e1;
     border-radius: 8px;
@@ -119,11 +118,10 @@
     justify-content: center;
     overflow: hidden;
     margin-bottom: 12px;
-    position: relative;
     cursor: pointer;
   }
   .thumbnail-wrapper canvas {
-    max-width: 100%;
+    width: 100%;
     height: auto;
     display: none;
     border-radius: 6px;
@@ -270,7 +268,6 @@
   table.data-table td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
   table.data-table tr:hover { background: #f8fafc; }
 
-  /* MODAIS */
   #auth-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(15, 23, 42, 0.94);
@@ -426,13 +423,12 @@
   </div>
 </header>
 
-<!-- LAYOUT PRINCIPAL: ANEXO LATERAL À ESQUERDA + ABAS DE GESTÃO À DIREITA -->
 <div class="main-wrapper">
   
-  <!-- COLUNA DA ESQUERDA: CAMPO DE ANEXAR CONTRATO COM THUMBNAIL -->
+  <!-- COLUNA DA ESQUERDA: CAMPO DE ANEXO E THUMBNAIL -->
   <aside class="sidebar-contract-card">
     <div class="sidebar-contract-title">Contrato de Locação</div>
-    <div class="sidebar-contract-desc">Anexe o contrato assinado em PDF para leitura automática com IA</div>
+    <div class="sidebar-contract-desc">Anexe o arquivo assinado da Clicksign para leitura com IA</div>
     
     <div class="thumbnail-wrapper" id="thumb-click-box" onclick="document.getElementById('contratoFile').click()">
       <canvas id="pdf-thumb-canvas"></canvas>
@@ -441,7 +437,7 @@
           <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
         </svg>
         <div style="font-weight:700; font-size:0.85rem;">Clique para Anexar Contrato (.PDF)</div>
-        <div style="font-size:0.72rem; color:#94a3b8;">Visualização da 1ª página aqui</div>
+        <div style="font-size:0.72rem; color:#94a3b8;">A thumbnail da 1ª página aparecerá aqui</div>
       </div>
     </div>
 
@@ -450,11 +446,11 @@
     <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="processarContratoComIA(event)">
 
     <button type="button" class="btn btn-gold" style="width:100%; font-size:0.85rem; padding:10px;" onclick="document.getElementById('contratoFile').click()">
-      📎 Selecionar Outro Contrato
+      📎 Anexar / Trocar Contrato
     </button>
   </aside>
 
-  <!-- COLUNA DA DIREITA: ABAS E FORMULÁRIOS -->
+  <!-- COLUNA DA DIREITA: RESUMO E ABAS -->
   <main>
     <div class="tabs">
       <button class="tab-btn active" onclick="setTab('resumo', this)">📄 Resumo do contrato</button>
@@ -476,11 +472,11 @@
         <div class="grid-2">
           <div>
             <label>Proprietário</label>
-            <input type="text" id="proprietario" placeholder="Nome completo do locador" oninput="sincronizarCampos()">
+            <input type="text" id="proprietario" placeholder="Locador extraído do contrato" oninput="sincronizarCampos()">
           </div>
           <div>
             <label>Inquilino</label>
-            <input type="text" id="inquilino" placeholder="Nome completo do locatário" oninput="sincronizarCampos()">
+            <input type="text" id="inquilino" placeholder="Locatário extraído do contrato" oninput="sincronizarCampos()">
           </div>
         </div>
 
@@ -691,11 +687,12 @@
 
   let selectedPdfFile = null;
 
-  // CORREÇÃO DE CODIFICAÇÃO E ACENTOS (PORTUGUÊS DO BRASIL)
+  // CORREÇÃO RIGOROSA DE CODIFICAÇÃO E ACENTOS (PORTUGUÊS DO BRASIL)
   function normalizarTextoBrasil(text) {
     if (!text) return '';
     let s = text;
     s = s.replace(/PraÁa/gi, 'Praça')
+         .replace(/praÁa/gi, 'praça')
          .replace(/HÈlder/gi, 'Hélder')
          .replace(/c‚mara/gi, 'câmara')
          .replace(/C‚mara/gi, 'Câmara')
@@ -717,14 +714,21 @@
     let s = raw.trim();
     s = s.replace(/^(?:Nome|Locador|Locat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '');
     s = s.replace(/\s+CPF.*$/i, '').replace(/\s+CNPJ.*$/i, '').replace(/\s+assinou.*$/i, '');
-    return normalizarTextoBrasil(s.split(',')[0].trim());
+    const primeiroBloco = s.split(',')[0].trim();
+    return normalizarTextoBrasil(primeiroBloco);
   }
 
-  // GERAÇÃO DE THUMBNAIL REAL DA 1ª PÁGINA DO PDF
+  function isCorretor(name) {
+    if (!name) return false;
+    const n = name.toLowerCase();
+    return n.includes('chalfoun') || n.includes('ivy carla') || n.includes('mario jr');
+  }
+
+  // RENDERIZAÇÃO DA THUMBNAIL DA 1ª PÁGINA
   async function renderPdfThumbnail(pdfDoc) {
     try {
       const page = await pdfDoc.getPage(1);
-      const viewport = page.getViewport({ scale: 0.65 });
+      const viewport = page.getViewport({ scale: 0.7 });
       const canvas = document.getElementById('pdf-thumb-canvas');
       const placeholder = document.getElementById('thumb-placeholder');
       const context = canvas.getContext('2d');
@@ -737,11 +741,11 @@
       placeholder.style.display = 'none';
       canvas.style.display = 'block';
     } catch (e) {
-      console.warn('Não foi possível renderizar thumbnail:', e);
+      console.warn('Erro ao gerar thumbnail:', e);
     }
   }
 
-  // EXTRAÇÃO COMBINADA (GEMINI IA + MOTOR CLICKSIGN REGEX)
+  // EXTRAÇÃO COM FOCO PRECISO NO PADRÃO CLICKSIGN M&IC
   async function processarContratoComIA(event) {
     const file = event.target.files[0];
     const loader = document.getElementById('ai-extract-loader');
@@ -758,7 +762,6 @@
     loader.style.display = 'block';
 
     try {
-      // 1. Leitura de texto e geração da thumbnail
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       await renderPdfThumbnail(pdf);
@@ -774,7 +777,7 @@
         if (p === 1) page1Text = pageStr;
       }
 
-      // 2. Chamada à rota Gemini
+      // Chamada à API
       let extracted = {};
       try {
         const res = await fetch('/api/extract-contract', {
@@ -786,29 +789,32 @@
           extracted = await res.json();
         }
       } catch (apiErr) {
-        console.warn('API Gemini falhou, usando extrator local:', apiErr);
+        console.warn('IA falhou, usando extrator local:', apiErr);
       }
 
-      // 3. Fallback de alta precisão para LOCATÁRIO / INQUILINO e demais campos
+      // Fallbacks robustos locais
+      // 1. Locador / Proprietário
       if (!extracted.proprietario) {
         const mLoc = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
         if (mLoc) extracted.proprietario = mLoc[1].trim();
       }
 
-      if (!extracted.inquilino) {
-        // Busca 1: Termo explícito na qualificação
+      // 2. Locatário / Inquilino (Elimina corretores e extrai o verdadeiro inquilino)
+      if (!extracted.inquilino || isCorretor(extracted.inquilino)) {
+        // Busca na qualificação da página 1
         const mLocat = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
-        if (mLocat) {
+        if (mLocat && !isCorretor(mLocat[1])) {
           extracted.inquilino = mLocat[1].trim();
         } else {
-          // Busca 2: Padrão Clicksign ("assinou como locatario")
-          const mClicksign = fullText.match(/([A-ZÀ-Úa-zà-ú\s]{4,40})\s+CPF[^\n\r]*assinou como locat[aá]rio/i);
-          if (mClicksign) {
-            extracted.inquilino = mClicksign[1].trim();
+          // Busca no relatório de assinaturas Clicksign
+          const mAssinante = fullText.match(/([A-ZÀ-Úa-zà-ú\s]{4,40})\s+CPF[^\n\r]*assinou como locat[aá]rio/i);
+          if (mAssinante && !isCorretor(mAssinante[1])) {
+            extracted.inquilino = mAssinante[1].trim();
           }
         }
       }
 
+      // 3. Endereço
       if (!extracted.endereco) {
         const idxSituado = page1Text.toLowerCase().indexOf('situado');
         if (idxSituado !== -1) {
@@ -817,6 +823,7 @@
         }
       }
 
+      // 4. Datas de Início e Fim (Cláusula Primeira)
       if (!extracted.data_inicio || !extracted.data_fim) {
         const datas = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
         if (datas && datas.length >= 2) {
@@ -826,15 +833,16 @@
         }
       }
 
+      // 5. Valor do Aluguel
       if (!extracted.valor_aluguel) {
-        const mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
+        const mVal = page1Text.match(/R\$\s*([\d\.,]+)/i) || fullText.match(/R\$\s*([\d\.,]+)/i);
         if (mVal) {
           const limpo = mVal[1].replace(/\./g, '').replace(',', '.');
           extracted.valor_aluguel = parseFloat(limpo);
         }
       }
 
-      // 4. Preenchimento visual com normalização de acentos em PT-BR
+      // Aplicação nos inputs da tela com limpeza de caracteres
       if (extracted.proprietario) document.getElementById('proprietario').value = cleanExtractedName(extracted.proprietario);
       if (extracted.inquilino) document.getElementById('inquilino').value = cleanExtractedName(extracted.inquilino);
       if (extracted.endereco) document.getElementById('endereco').value = normalizarTextoBrasil(extracted.endereco);
@@ -843,10 +851,10 @@
       if (extracted.valor_aluguel) document.getElementById('aluguelBase').value = extracted.valor_aluguel;
 
       sincronizarCampos();
-      alert('✓ Contrato processado! Proprietário, Inquilino e dados preenchidos com sucesso.');
+      alert('✓ Contrato processado! Proprietário e Inquilino capturados corretamente.');
 
     } catch (err) {
-      console.error('Erro global na extração:', err);
+      console.error('Erro na extração:', err);
       alert('Não foi possível ler o arquivo automaticamente: ' + err.message);
     } finally {
       loader.style.display = 'none';
