@@ -693,7 +693,9 @@
 
     const today = new Date();
     document.getElementById('mesAno').value = today.toISOString().substring(0, 7);
-    document.getElementById('dataInicio').valueAsDate = today;
+    
+    // Deixando o campo Data de Início VAZIO para preenchimento manual
+    // document.getElementById('dataInicio').valueAsDate = today; 
     
     const venc = new Date();
     venc.setDate(venc.getDate() + 5);
