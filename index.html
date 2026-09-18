@@ -131,6 +131,18 @@
   }
   input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(197,155,39,0.2); }
 
+  .file-input-box {
+    border: 2px dashed #cbd5e1;
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .file-input-box:hover { border-color: var(--accent); background: #fffcf0; }
+  .file-name-info { font-size: 0.8rem; color: var(--accent); font-weight: 700; margin-top: 6px; }
+
   .summary-box {
     background: #0f172a;
     border: 1px solid var(--accent);
@@ -172,6 +184,7 @@
   table.data-table td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
   table.data-table tr:hover { background: #f8fafc; }
 
+  /* MODAL DE LOGIN */
   #auth-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(15, 23, 42, 0.94);
@@ -211,6 +224,57 @@
   .auth-msg.err { background: #fee2e2; color: var(--danger); border: 1px solid #fca5a5; }
   .auth-msg.ok { background: #dcfce7; color: var(--success); border: 1px solid #86efac; }
   .auth-msg.loading { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; }
+
+  /* MODAL VISUALIZADOR DE PDF EM TELA */
+  #pdf-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(4px);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .pdf-viewer-card {
+    background: #fff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 900px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  }
+  .pdf-viewer-header {
+    background: var(--secondary);
+    color: var(--gold);
+    padding: 12px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--accent);
+  }
+  .pdf-viewer-header h3 { font-size: 1rem; font-weight: 700; }
+  .pdf-viewer-header button {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.3rem;
+    cursor: pointer;
+  }
+  .pdf-viewer-body {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    background: #525659;
+  }
+  .pdf-viewer-body iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
 
   .chat-box {
     border: 1.5px solid #e2e8f0;
@@ -258,6 +322,19 @@
   </div>
 </div>
 
+<!-- MODAL VISUALIZADOR DE PDF EM TELA -->
+<div id="pdf-modal">
+  <div class="pdf-viewer-card">
+    <div class="pdf-viewer-header">
+      <h3 id="pdf-modal-title">Visualização do Contrato</h3>
+      <button type="button" onclick="fecharVisualizadorPdf()">✕</button>
+    </div>
+    <div class="pdf-viewer-body">
+      <iframe id="pdf-iframe" src=""></iframe>
+    </div>
+  </div>
+</div>
+
 <!-- CABEÇALHO -->
 <header>
   <div class="brand-area">
@@ -276,9 +353,9 @@
 <div class="container">
   <div class="tabs">
     <button class="tab-btn active" onclick="setTab('calculo', this)">📊 Cálculo de Cobrança & Repasse</button>
-    <button class="tab-btn" onclick="setTab('whatsapp', this)">💬 Texto de Cobrança (WhatsApp)</button>
+    <button class="tab-btn" onclick="setTab('whatsapp', this)">💬 Texto de Cobrança</button>
     <button class="tab-btn" onclick="setTab('historico', this)">📁 Histórico de Locações Salvas</button>
-    <button class="tab-btn" onclick="setTab('agentes', this)">🤖 Agente de IA Gemini (Seguro)</button>
+    <button class="tab-btn" onclick="setTab('agentes', this)">🤖 Agente de IA Gemini</button>
   </div>
 
   <!-- ABA 1: CÁLCULO E REPASSE -->
@@ -287,29 +364,29 @@
       <div class="card-title">1. Dados do Contrato & Competência</div>
       <div class="grid-3">
         <div>
-          <label>Inquilino / Locatário</label>
+          <label>Inquilino</label>
           <input type="text" id="inquilino" placeholder="Nome do inquilino" value="Ex: Roberto Silva">
         </div>
         <div>
-          <label>Proprietário / Locador</label>
+          <label>Proprietário</label>
           <input type="text" id="proprietario" placeholder="Nome do proprietário" value="Ex: Dra. Maria Helena">
         </div>
         <div>
-          <label>Mês / Ano de Referência (B/C)</label>
+          <label>Mês e Ano de Referência</label>
           <input type="month" id="mesAno">
         </div>
       </div>
       <div class="grid-3" style="margin-top:12px;">
         <div>
-          <label>Data de Início da Ocupação (J)</label>
+          <label>Data de Início da Ocupação</label>
           <input type="date" id="dataInicio">
         </div>
         <div>
-          <label>Aluguel Base Integral (I)</label>
+          <label>Aluguel Base Integral</label>
           <input type="number" id="aluguelBase" value="2500" oninput="calcularTudo()">
         </div>
         <div>
-          <label>Condomínio Base Integral (AB)</label>
+          <label>Condomínio Base Integral</label>
           <input type="number" id="condominioBase" value="650" oninput="calcularTudo()">
         </div>
       </div>
@@ -319,9 +396,9 @@
       <div class="card-title">2. Proporcionalidade & Encargos</div>
       <div class="grid-2">
         <div>
-          <label>Cálculo Proporcional? (Q)</label>
+          <label>Cálculo Proporcional</label>
           <select id="isProporcional" onchange="calcularTudo()">
-            <option value="nao">Não — Mês Completo Integral (30 dias)</option>
+            <option value="nao">Não — Mês Completo Integral</option>
             <option value="sim">Sim — Calcular Dias Proporcionais</option>
           </select>
         </div>
@@ -333,15 +410,15 @@
 
       <div class="grid-3" style="margin-top:14px;">
         <div>
-          <label>IPTU Mensal (V)</label>
+          <label>IPTU Mensal</label>
           <input type="number" id="iptu" value="120" oninput="calcularTudo()">
         </div>
         <div>
-          <label>Taxa de Incêndio / Bombeiro (V)</label>
+          <label>Taxa de Incêndio ou Bombeiro</label>
           <input type="number" id="bombeiro" value="35" oninput="calcularTudo()">
         </div>
         <div>
-          <label>Outras Taxas / Cobranças (V)</label>
+          <label>Outras Taxas ou Cobranças</label>
           <input type="number" id="outrasTaxas" value="0" oninput="calcularTudo()">
         </div>
       </div>
@@ -351,34 +428,48 @@
       <div class="card-title">3. Regras de Repasse & Administração</div>
       <div class="grid-2">
         <div>
-          <label>Taxa de Administração Imobiliária (X %)</label>
+          <label>Taxa de Administração Imobiliária Percentual</label>
           <input type="number" id="taxaAdm" value="10" step="0.5" oninput="calcularTudo()">
         </div>
         <div>
-          <label>Destinação do Condomínio (Regra R)</label>
+          <label>Regra do Condomínio</label>
           <select id="regraCondominio" onchange="calcularTudo()">
-            <option value="repassa">Repassar Condomínio ao Proprietário (Ele Paga)</option>
-            <option value="retém">Imobiliária Paga o Condomínio (Retém do Repasse)</option>
+            <option value="repassa">Repassar Condomínio ao Proprietário</option>
+            <option value="retém">Imobiliária Paga o Condomínio</option>
           </select>
         </div>
       </div>
 
       <div class="summary-box">
         <div class="summary-item">
-          <div class="label">Total a Cobrar do Inquilino</div>
+          <div class="label">Valor a Cobrar do Inquilino</div>
           <div class="val" id="res-total-inquilino">R$ 0,00</div>
         </div>
         <div class="summary-item">
-          <div class="label">Valor Líquido a Repassar (AH)</div>
+          <div class="label">Valor a Repassar</div>
           <div class="val green" id="res-valor-repassar">R$ 0,00</div>
         </div>
       </div>
       <div style="font-size:0.75rem; color:#64748b; margin-top:8px; text-align:center;">
-        Aluguel Efetivo: <strong id="res-aluguel-efetivo">R$ 0,00</strong> | Condomínio Efetivo: <strong id="res-cond-efetivo">R$ 0,00</strong> | Taxa Adm (X): <strong id="res-taxa-adm">R$ 0,00</strong>
+        Aluguel Efetivo: <strong id="res-aluguel-efetivo">R$ 0,00</strong> | Condomínio Efetivo: <strong id="res-cond-efetivo">R$ 0,00</strong> | Taxa de Administração: <strong id="res-taxa-adm">R$ 0,00</strong>
       </div>
+    </div>
 
-      <button type="button" class="btn btn-gold" style="width:100%; margin-top:16px;" onclick="salvarLocacaoNoBanco()">
-        💾 Salvar Dados no Repositório Supabase
+    <!-- 4. ANEXAR CONTRATO -->
+    <div class="card">
+      <div class="card-title">4. Documentação do Contrato</div>
+      <label>Anexar Contrato Assinado em PDF</label>
+      <div class="file-input-box" onclick="document.getElementById('contratoFile').click()">
+        <svg style="width:34px;height:34px;fill:var(--accent);margin:0 auto 6px auto;display:block;" viewBox="0 0 24 24">
+          <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+        </svg>
+        <div style="font-size:0.88rem; font-weight:600; color:#334155;">Clique para selecionar o contrato em PDF</div>
+        <div class="file-name-info" id="file-name-display">Nenhum ficheiro selecionado</div>
+      </div>
+      <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="handleFileSelected(event)">
+
+      <button type="button" class="btn btn-gold" id="btn-salvar-tudo" style="width:100%; margin-top:16px;" onclick="salvarLocacaoNoBanco()">
+        💾 Salvar Contrato e Cálculos no Repositório Seguro
       </button>
     </div>
   </div>
@@ -386,14 +477,14 @@
   <!-- ABA 2: MENSAGEM WHATSAPP -->
   <div id="tab-whatsapp" class="tab-content">
     <div class="card">
-      <div class="card-title">Texto Automático da Cobrança (AH)</div>
+      <div class="card-title">Texto Automático da Cobrança</div>
       <label>Chave PIX para Cobrança</label>
       <input type="text" id="chavePix" value="financeiro@micimoveis.com.br" oninput="gerarTextoCobranca()" style="margin-bottom:12px;">
 
-      <label>Vencimento do Boleto / PIX</label>
+      <label>Vencimento do Boleto ou PIX</label>
       <input type="date" id="dataVencimento" onchange="gerarTextoCobranca()" style="margin-bottom:12px;">
 
-      <label>Mensagem Formatada para WhatsApp</label>
+      <label>Mensagem Formatada para Envio</label>
       <textarea id="textoMsg" rows="11" readonly style="background:#f8fafc; font-family:monospace; font-size:0.85rem;"></textarea>
 
       <div style="display:flex; gap:10px; margin-top:14px;">
@@ -420,11 +511,12 @@
               <th>Competência</th>
               <th>Total Cobrado</th>
               <th>Repasse Líquido</th>
+              <th>Contrato PDF</th>
             </tr>
           </thead>
           <tbody id="lista-historico-body">
             <tr>
-              <td colspan="6" style="text-align:center; color:#94a3b8; padding:16px;">Carregando histórico...</td>
+              <td colspan="7" style="text-align:center; color:#94a3b8; padding:16px;">Carregando histórico...</td>
             </tr>
           </tbody>
         </table>
@@ -436,7 +528,7 @@
   <div id="tab-agentes" class="tab-content">
     <div class="card">
       <div class="card-title">
-        <span>Assistente Especialista M&IC (Gemini IA)</span>
+        <span>Assistente Especialista M&IC</span>
         <span style="font-size:0.75rem; color:#16a34a; font-weight:700;">● Chave Protegida no Servidor</span>
       </div>
       <div class="chat-box" id="chatArea">
@@ -461,6 +553,27 @@
   const SUPABASE_BASE_URL = 'https://dgadztmmarvbjcouvrnp.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_JwOjDkAj';
   const STORAGE_KEY = 'mic_auth_session';
+
+  let selectedPdfFile = null;
+
+  function handleFileSelected(event) {
+    const file = event.target.files[0];
+    const display = document.getElementById('file-name-display');
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        alert('Por favor, selecione apenas ficheiros em formato PDF.');
+        event.target.value = '';
+        selectedPdfFile = null;
+        display.innerText = 'Nenhum ficheiro selecionado';
+        return;
+      }
+      selectedPdfFile = file;
+      display.innerText = '✓ Ficheiro pronto: ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+    } else {
+      selectedPdfFile = null;
+      display.innerText = 'Nenhum ficheiro selecionado';
+    }
+  }
 
   function getLocalSession() {
     try {
@@ -530,9 +643,7 @@
         status.className = 'auth-msg ok';
         status.innerText = '✓ Sessão iniciada com sucesso!';
         setLocalSession(data);
-        setTimeout(() => {
-          checkSession();
-        }, 300);
+        setTimeout(() => checkSession(), 300);
       }
     } catch (err) {
       status.className = 'auth-msg err';
@@ -674,11 +785,47 @@
     };
   }
 
+  // GRAVAÇÃO COMPLETA: STORAGE (PASTA INDIVIDUAL) + TABELA LOCAÇÕES
   async function salvarLocacaoNoBanco() {
     calcularTudo();
+    const btn = document.getElementById('btn-salvar-tudo');
+    btn.disabled = true;
+    btn.innerText = 'A guardar dados e ficheiro no repositório...';
+
     const session = getLocalSession();
     const userEmail = session?.user?.email || 'chalfouncorretor@gmail.com';
+    const inquilinoNome = document.getElementById('inquilino').value.trim() || 'Inquilino';
+    const cleanInq = inquilinoNome.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    
+    let uploadedPdfUrl = null;
 
+    // 1. Upload do Ficheiro PDF para pasta individual no Supabase Storage
+    if (selectedPdfFile) {
+      const pastaIndividual = `${cleanInq}_${Date.now()}`;
+      const filePath = `${pastaIndividual}/contrato.pdf`;
+
+      try {
+        const uploadResp = await fetch(`${SUPABASE_BASE_URL}/storage/v1/object/contratos/${filePath}`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/pdf'
+          },
+          body: selectedPdfFile
+        });
+
+        if (uploadResp.ok) {
+          uploadedPdfUrl = `${SUPABASE_BASE_URL}/storage/v1/object/public/contratos/${filePath}`;
+        } else {
+          console.warn('Aviso: Certifique-se de que o bucket "contratos" existe no Storage do Supabase.');
+        }
+      } catch (err) {
+        console.error('Falha no upload do contrato:', err);
+      }
+    }
+
+    // 2. Gravação do registo na tabela locacoes
     const payload = {
       user_email: userEmail,
       inquilino: document.getElementById('inquilino').value,
@@ -695,7 +842,8 @@
       taxa_adm_pct: parseFloat(document.getElementById('taxaAdm').value) || 0,
       regra_condominio: document.getElementById('regraCondominio').value,
       total_inquilino: calcCache.totalInquilino || 0,
-      valor_repassar: calcCache.repassar || 0
+      valor_repassar: calcCache.repassar || 0,
+      contrato_url: uploadedPdfUrl
     };
 
     try {
@@ -711,19 +859,25 @@
       });
 
       if (resp.ok) {
-        alert('✓ Dados da locação salvos no repositório Supabase com sucesso!');
+        alert('✓ Dados e contrato guardados com sucesso no repositório seguro!');
+        selectedPdfFile = null;
+        document.getElementById('contratoFile').value = '';
+        document.getElementById('file-name-display').innerText = 'Nenhum ficheiro selecionado';
       } else {
         const err = await resp.json();
         alert('Erro ao salvar no banco: ' + (err.message || JSON.stringify(err)));
       }
     } catch(e) {
-      alert('Falha na conexão com Supabase: ' + e.message);
+      alert('Falha de ligação: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerText = '💾 Salvar Contrato e Cálculos no Repositório Seguro';
     }
   }
 
   async function carregarHistoricoLocacoes() {
     const tbody = document.getElementById('lista-historico-body');
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:16px;">Buscando registros no Supabase...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:16px;">Buscando registros no Supabase...</td></tr>';
     const fmt = val => (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
     try {
@@ -736,19 +890,23 @@
       });
 
       if (!resp.ok) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red; padding:16px;">Tabela "locacoes" ainda não foi criada no Supabase via SQL Editor.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red; padding:16px;">Tabela "locacoes" não encontrada no Supabase.</td></tr>';
         return;
       }
 
       const list = await resp.json();
       if (!list || list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#64748b; padding:16px;">Nenhum contrato salvo até o momento.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:16px;">Nenhum contrato salvo até o momento.</td></tr>';
         return;
       }
 
       tbody.innerHTML = '';
       list.forEach(item => {
         const d = item.created_at ? new Date(item.created_at).toLocaleDateString('pt-BR') : '-';
+        const linkPdf = item.contrato_url 
+          ? `<button class="btn btn-dark" style="font-size:0.75rem; padding:4px 8px;" onclick="abrirVisualizadorPdf('${item.contrato_url}', '${item.inquilino}')">📄 Ver Contrato</button>`
+          : '<span style="color:#94a3b8; font-size:0.75rem;">Sem anexo</span>';
+
         tbody.innerHTML += `
           <tr>
             <td>${d}</td>
@@ -757,12 +915,26 @@
             <td>${item.mes_ano || '-'}</td>
             <td>${fmt(item.total_inquilino)}</td>
             <td style="color:#16a34a; font-weight:700;">${fmt(item.valor_repassar)}</td>
+            <td>${linkPdf}</td>
           </tr>
         `;
       });
     } catch(e) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red; padding:16px;">Erro ao carregar: ${e.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red; padding:16px;">Erro ao carregar: ${e.message}</td></tr>`;
     }
+  }
+
+  // CONTROLE DO VISUALIZADOR DE PDF EM ECRÃ (NUNCA DOWNLOAD)
+  function abrirVisualizadorPdf(url, inquilino) {
+    document.getElementById('pdf-modal-title').innerText = `Contrato de Locação — ${inquilino}`;
+    // Visualizador de PDF integrado em ecrã com bloqueio de descarregamento automático
+    document.getElementById('pdf-iframe').src = `${url}#toolbar=0&navpanes=0&scrollbar=1`;
+    document.getElementById('pdf-modal').style.display = 'flex';
+  }
+
+  function fecharVisualizadorPdf() {
+    document.getElementById('pdf-iframe').src = '';
+    document.getElementById('pdf-modal').style.display = 'none';
   }
 
   function gerarTextoCobranca() {
