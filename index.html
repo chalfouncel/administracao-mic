@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gestão de Locação Imobiliária — M&IC</title>
-<!-- Leitor de PDF para extração e thumbnail -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -72,7 +71,6 @@
     font-size: 0.78rem;
   }
 
-  /* LAYOUT COM SIDEBAR À ESQUERDA */
   .main-wrapper {
     max-width: 1260px;
     margin: 20px auto;
@@ -268,7 +266,6 @@
   table.data-table td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
   table.data-table tr:hover { background: #f8fafc; }
 
-  /* MODAIS */
   #auth-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(15, 23, 42, 0.94);
@@ -375,7 +372,6 @@
 </head>
 <body>
 
-<!-- MODAL DE LOGIN -->
 <div id="auth-modal">
   <div class="auth-card">
     <img src="/Loga%20marca%20nova.png" alt="M&IC Corretores" class="auth-logo" onerror="this.src='/Loga marca nova.png'">
@@ -396,7 +392,6 @@
   </div>
 </div>
 
-<!-- MODAL VISUALIZADOR DE PDF -->
 <div id="pdf-modal">
   <div class="pdf-viewer-card">
     <div class="pdf-viewer-header">
@@ -409,7 +404,6 @@
   </div>
 </div>
 
-<!-- CABEÇALHO -->
 <header>
   <div class="brand-area">
     <img src="/Loga%20marca%20nova.png" alt="M&IC Corretores" class="app-header-logo" onerror="this.src='/Loga marca nova.png'">
@@ -426,7 +420,6 @@
 
 <div class="main-wrapper">
   
-  <!-- COLUNA DA ESQUERDA: CAMPO DE ANEXO E THUMBNAIL -->
   <aside class="sidebar-contract-card">
     <div class="sidebar-contract-title">Contrato de Locação</div>
     <div class="sidebar-contract-desc">Anexe o arquivo assinado da Clicksign para leitura com IA</div>
@@ -451,7 +444,6 @@
     </button>
   </aside>
 
-  <!-- COLUNA DA DIREITA: RESUMO E ABAS -->
   <main>
     <div class="tabs">
       <button class="tab-btn active" onclick="setTab('resumo', this)">📄 Resumo do contrato</button>
@@ -461,7 +453,6 @@
       <button class="tab-btn" onclick="setTab('agentes', this)">🤖 Agente de IA Gemini</button>
     </div>
 
-    <!-- ABA 1: RESUMO DO CONTRATO -->
     <div id="tab-resumo" class="tab-content active">
       <div class="card">
         <div class="card-title">Resumo dos Dados Contratuais</div>
@@ -507,7 +498,6 @@
       </div>
     </div>
 
-    <!-- ABA 2: CÁLCULO E REPASSE -->
     <div id="tab-calculo" class="tab-content">
       <div class="card">
         <div class="card-title">1. Dados de Cobrança & Mês de Referência</div>
@@ -593,7 +583,7 @@
           <div class="summary-item">
             <div class="label">Valor a Repassar</div>
             <div class="val green" id="res-valor-repassar">R$ 0,00</div>
-        </div>
+          </div>
         </div>
         <div style="font-size:0.75rem; color:#64748b; margin-top:8px; text-align:center;">
           Aluguel Efetivo: <strong id="res-aluguel-efetivo">R$ 0,00</strong> | Condomínio Efetivo: <strong id="res-cond-efetivo">R$ 0,00</strong> | Taxa de Administração: <strong id="res-taxa-adm">R$ 0,00</strong>
@@ -605,7 +595,6 @@
       </div>
     </div>
 
-    <!-- ABA 3: MENSAGEM WHATSAPP -->
     <div id="tab-whatsapp" class="tab-content">
       <div class="card">
         <div class="card-title">Texto Automático da Cobrança</div>
@@ -625,7 +614,6 @@
       </div>
     </div>
 
-    <!-- ABA 4: HISTÓRICO DE DADOS SALVOS -->
     <div id="tab-historico" class="tab-content">
       <div class="card">
         <div class="card-title">
@@ -655,7 +643,6 @@
       </div>
     </div>
 
-    <!-- ABA 5: AGENTE IA GEMINI -->
     <div id="tab-agentes" class="tab-content">
       <div class="card">
         <div class="card-title">
@@ -688,45 +675,36 @@
 
   let selectedPdfFile = null;
 
-  // CORREÇÃO E DECODIFICAÇÃO EM PORTUGUÊS DO BRASIL (SEM ERROS DE ACENTUAÇÃO)
+  // Normalização exata para Português do Brasil e correção de encoding do Clicksign
   function normalizarTextoBrasil(text) {
     if (!text) return '';
     let s = text;
-    s = s.replace(/PraÁa/g, 'Praça')
-         .replace(/praÁa/g, 'praça')
-         .replace(/HÈlder/g, 'Hélder')
-         .replace(/hÈlder/g, 'hélder')
-         .replace(/c‚mara/g, 'câmara')
-         .replace(/C‚mara/g, 'Câmara')
-         .replace(/n∫/g, 'nº')
-         .replace(/N∫/g, 'Nº')
-         .replace(/n\s*∫/g, 'nº')
+    s = s.replace(/PraÁa/gi, 'Praça')
+         .replace(/praÁa/gi, 'praça')
+         .replace(/HÈlder/gi, 'Hélder')
+         .replace(/c‚mara/gi, 'câmara')
+         .replace(/C‚mara/gi, 'Câmara')
+         .replace(/n∫/gi, 'nº')
+         .replace(/N∫/gi, 'Nº')
+         .replace(/n\s*∫/gi, 'nº')
          .replace(/∫/g, 'º')
          .replace(/™/g, 'ª')
          .replace(/‚/g, 'â')
          .replace(/È/g, 'é')
-         .replace(/Á(?=[a-z])/g, 'ç');
+         .replace(/Á(?=[a-z])/gi, 'ç');
 
     try { s = s.normalize('NFC'); } catch(e) {}
     return s.replace(/\s+/g, ' ').trim();
   }
 
-  function cleanExtractedName(raw) {
+  function cleanNameOnly(raw) {
     if (!raw) return '';
     let s = raw.trim();
     s = s.replace(/^(?:Nome|Signat[aá]rio|Locador|Locat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '');
     s = s.replace(/\s+CPF.*$/i, '').replace(/\s+CNPJ.*$/i, '').replace(/\s+assinou.*$/i, '');
-    const primeiro = s.split(',')[0].trim();
-    return normalizarTextoBrasil(primeiro);
+    return normalizarTextoBrasil(s.split(',')[0].trim());
   }
 
-  function isCorretor(name) {
-    if (!name) return false;
-    const n = name.toLowerCase();
-    return n.includes('chalfoun') || n.includes('ivy carla') || n.includes('corretor');
-  }
-
-  // RENDERIZAÇÃO DA THUMBNAIL DA PÁGINA 1
   async function renderPdfThumbnail(pdfDoc) {
     try {
       const page = await pdfDoc.getPage(1);
@@ -747,7 +725,7 @@
     }
   }
 
-  // EXTRAÇÃO EXATA DO CONTRATO CLICKSIGN
+  // EXTRAÇÃO DETERMINÍSTICA DIRETA DO CONTRATO
   async function processarContratoComIA(event) {
     const file = event.target.files[0];
     const loader = document.getElementById('ai-extract-loader');
@@ -768,118 +746,77 @@
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       await renderPdfThumbnail(pdf);
 
-      let fullText = '';
-      let page1Text = '';
-      const allLines = [];
+      // Leitura da página 1 (onde está todo o preâmbulo com Locador, Locatário, Imóvel e Cláusula 1ª)
+      const page1 = await pdf.getPage(1);
+      const textContent = await page1.getTextContent();
+      let page1Raw = textContent.items.map(i => i.str).join(' ');
+      page1Raw = normalizarTextoBrasil(page1Raw);
 
-      for (let p = 1; p <= pdf.numPages; p++) {
-        const page = await pdf.getPage(p);
-        const textContent = await page.getTextContent();
-        let pStr = '';
-        for (let i = 0; i < textContent.items.length; i++) {
-          const itemStr = textContent.items[i].str;
-          if (itemStr && itemStr.trim()) {
-            allLines.push(itemStr.trim());
-            pStr += ' ' + itemStr.trim();
-          }
-        }
-        fullText += ' ' + pStr;
-        if (p === 1) page1Text = pStr;
+      // Leitura completa de até 3 páginas para garantir valor de aluguel (Cláusula 2ª)
+      let fullText = page1Raw;
+      for (let p = 2; p <= Math.min(pdf.numPages, 3); p++) {
+        const pg = await pdf.getPage(p);
+        const tc = await pg.getTextContent();
+        fullText += ' ' + normalizarTextoBrasil(tc.items.map(i => i.str).join(' '));
       }
 
-      // Normaliza strings antes de processar
-      page1Text = normalizarTextoBrasil(page1Text);
-      fullText = normalizarTextoBrasil(fullText);
-
-      let extracted = {};
-      try {
-        const res = await fetch('/api/extract-contract', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: fullText })
-        });
-        if (res.ok) {
-          extracted = await res.json();
-        }
-      } catch (err) {
-        console.warn('IA falhou, usando extrator local robusto:', err);
+      // 1. PROPRIETÁRIO (LOCADOR)
+      let proprietario = '';
+      const mLocador = page1Raw.match(/LOCADOR\(A\)\s*:\s*([^,]+)/i);
+      if (mLocador) {
+        proprietario = cleanNameOnly(mLocador[1]);
       }
 
-      // 1. PROPRIETÁRIO / LOCADOR
-      if (!extracted.proprietario || isCorretor(extracted.proprietario)) {
-        const mLoc = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
-        if (mLoc) extracted.proprietario = mLoc[1].trim();
+      // 2. INQUILINO (LOCATÁRIO) - Extrai com rigor sem pegar o corretor
+      let inquilino = '';
+      const mLocatario = page1Raw.match(/LOCAT[AÁ]RIO\(A\)\s*:\s*([^,]+)/i);
+      if (mLocatario) {
+        inquilino = cleanNameOnly(mLocatario[1]);
       }
 
-      // 2. INQUILINO / LOCATÁRIO (Preâmbulo da Página 1 - Cristiano Nogueira da Costa)
-      if (!extracted.inquilino || isCorretor(extracted.inquilino)) {
-        // Busca direta no preâmbulo da página 1
-        const mLocat = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
-        if (mLocat && !isCorretor(mLocat[1])) {
-          extracted.inquilino = mLocat[1].trim();
-        } else {
-          // Busca nas linhas da lista de signatários da Clicksign
-          for (let j = 0; j < allLines.length; j++) {
-            const linhaNorm = allLines[j].toLowerCase();
-            if (linhaNorm.includes('assinou como locat') && !linhaNorm.includes('corretor')) {
-              // O nome do assinante fica nas linhas anteriores
-              for (let k = j - 1; k >= Math.max(0, j - 6); k--) {
-                const cand = allLines[k].trim();
-                if (cand.length > 4 && !cand.includes(':') && !isCorretor(cand) && !cand.includes('CPF')) {
-                  extracted.inquilino = cand;
-                  break;
-                }
-              }
-              if (extracted.inquilino) break;
-            }
-          }
+      // 3. ENDEREÇO (IMÓVEL) - Remove prefixos "na ", "no " e corta no ponto final
+      let endereco = '';
+      const mImovel = page1Raw.match(/IMÓVEL\s*:\s*(?:Apartamento\s+de\s+[^,]+,\s*)?(?:situado\s+)?(?:na|no)?\s*([^;\.]+)/i);
+      if (mImovel) {
+        endereco = normalizarTextoBrasil(mImovel[1]).replace(/^(?:na|no|em)\s+/i, '').trim();
+      }
+
+      // 4. DATAS DE INÍCIO E FIM (CLÁUSULA PRIMEIRA)
+      let dataInicio = '';
+      let dataFim = '';
+      const mDatas = page1Raw.match(/in[ií]cio\s+em\s+(\d{2}\/\d{2}\/\d{4})\s+at[eé]\s+[^\d]*(\d{2}\/\d{2}\/\d{4})/i);
+      if (mDatas) {
+        dataInicio = mDatas[1].split('/').reverse().join('-');
+        dataFim = mDatas[2].split('/').reverse().join('-');
+      } else {
+        const datasGenericas = page1Raw.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
+        if (datasGenericas && datasGenericas.length >= 2) {
+          dataInicio = datasGenericas[0].split('/').reverse().join('-');
+          dataFim = datasGenericas[1].split('/').reverse().join('-');
         }
       }
 
-      // 3. ENDEREÇO
-      if (!extracted.endereco) {
-        const idxSituado = page1Text.toLowerCase().indexOf('situado');
-        if (idxSituado !== -1) {
-          let rawEnd = page1Text.substring(idxSituado + 7).trim();
-          rawEnd = rawEnd.replace(/^(?:na|no|à|a|em|:)\s+/i, '').split(/[;\.\r\n]/)[0].trim();
-          rawEnd = rawEnd.replace(/(?:,?\s*destinado\s+exclusivamente|para\s+fins\s+residenciais|conforme).*/i, '').trim();
-          extracted.endereco = rawEnd;
-        }
+      // 5. VALOR DO ALUGUEL (CLÁUSULA SEGUNDA)
+      let aluguel = '';
+      const mAluguel = fullText.match(/estabelecido\s+em\s+R\$\s*([\d\.,]+)/i) || fullText.match(/R\$\s*([\d\.,]+)/i);
+      if (mAluguel) {
+        aluguel = parseFloat(mAluguel[1].replace(/\./g, '').replace(',', '.'));
       }
 
-      // 4. DATAS DE VIGÊNCIA (Cláusula Primeira)
-      if (!extracted.data_inicio || !extracted.data_fim) {
-        const datas = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
-        if (datas && datas.length >= 2) {
-          const toIso = d => d.split('/').reverse().join('-');
-          if (!extracted.data_inicio) extracted.data_inicio = toIso(datas[0]);
-          if (!extracted.data_fim) extracted.data_fim = toIso(datas[1]);
-        }
-      }
-
-      // 5. VALOR DO ALUGUEL (Cláusula Segunda)
-      if (!extracted.valor_aluguel) {
-        const mVal = page1Text.match(/R\$\s*([\d\.,]+)/i) || fullText.match(/R\$\s*([\d\.,]+)/i);
-        if (mVal) {
-          const limpo = mVal[1].replace(/\./g, '').replace(',', '.');
-          extracted.valor_aluguel = parseFloat(limpo);
-        }
-      }
-
-      // Aplicação com garantia visual
-      if (extracted.proprietario) document.getElementById('proprietario').value = cleanExtractedName(extracted.proprietario);
-      if (extracted.inquilino) document.getElementById('inquilino').value = cleanExtractedName(extracted.inquilino);
-      if (extracted.endereco) document.getElementById('endereco').value = normalizarTextoBrasil(extracted.endereco).replace(/^(?:na|no)\s+/i, '');
-      if (extracted.data_inicio) document.getElementById('dataInicio').value = extracted.data_inicio;
-      if (extracted.data_fim) document.getElementById('dataFim').value = extracted.data_fim;
-      if (extracted.valor_aluguel) document.getElementById('aluguelBase').value = extracted.valor_aluguel;
+      // Preenchimento dos inputs da tela
+      if (proprietario) document.getElementById('proprietario').value = proprietario;
+      if (inquilino) document.getElementById('inquilino').value = inquilino;
+      if (endereco) document.getElementById('endereco').value = endereco;
+      if (dataInicio) document.getElementById('dataInicio').value = dataInicio;
+      if (dataFim) document.getElementById('dataFim').value = dataFim;
+      if (aluguel) document.getElementById('aluguelBase').value = aluguel;
 
       sincronizarCampos();
-      alert('✓ Contrato lido com sucesso!\n\n• Proprietário: ' + document.getElementById('proprietario').value + '\n• Inquilino: ' + document.getElementById('inquilino').value);
+      alert(`✓ Contrato lido com sucesso!\n\n• Proprietário: ${proprietario}\n• Inquilino: ${inquilino}`);
 
     } catch (err) {
       console.error('Erro na extração:', err);
-      alert('Erro ao processar contrato: ' + err.message);
+      alert('Erro ao processar o contrato: ' + err.message);
     } finally {
       loader.style.display = 'none';
     }
