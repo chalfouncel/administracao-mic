@@ -274,7 +274,7 @@
           </div>
           <div>
             <label>Valor do aluguel</label>
-            <input type="number" id="aluguelBase" placeholder="R$ 0,00" oninput="sincronizarCampos()">
+            <input type="text" id="aluguelBase" inputmode="decimal" placeholder="R$ 0,00" autocomplete="off" oninput="sincronizarCampos()" onblur="formatarMoedaCampo(this); sincronizarCampos()">
           </div>
         </div>
 
@@ -507,7 +507,9 @@
     }
   }
 
-  // EXTRAÇÃO COM BASE EXACTA NO LAYOUT DO CONTRATO CLICKSIGN
+  // EXTRAÇÃO DO CONTRATO: PDF COMPLETO + IA + VALIDAÇÃO LOCAL
+  // A IA recebe o texto de TODAS as páginas. Depois validamos os campos
+  // críticos com padrões determinísticos do próprio contrato.
   async function processarContratoComIA(event) {
     const file = event.target.files[0];
     const loader = document.getElementById('ai-extract-loader');
@@ -522,113 +524,160 @@
     pill.innerText = `📄 ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
     pill.style.display = 'inline-block';
     loader.style.display = 'block';
+    loader.textContent = '⏳ Lendo TODAS as páginas do contrato e extraindo os dados...';
 
     try {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       await renderPdfThumbnail(pdf);
 
-      // Lemos a primeira página e corrigimos os acentos Unicode (NFC)
-      const page1 = await pdf.getPage(1);
-      const textContent = await page1.getTextContent();
-      let page1Raw = textContent.items.map(item => item.str).join(' ');
-      page1Raw = page1Raw.normalize('NFC');
+      // Extrai o texto de todas as páginas, não somente da primeira.
+      const paginas = [];
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const pg = await pdf.getPage(p);
+        const tc = await pg.getTextContent();
+        const txt = tc.items.map(item => item.str || '').join(' ');
+        paginas.push(`\n--- PÁGINA ${p} ---\n${txt}`);
+      }
 
-      // Tenta acionar a IA (Backup/Refino)
+      const textoCompletoRaw = paginas.join('\n');
+      const textoCompleto = normalizarTextoBrasil(textoCompletoRaw);
+
+      // A IA é usada primeiro, mas nunca confiamos cegamente nela.
       let extracted = {};
       try {
         const res = await fetch('/api/extract-contract', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: normalizarTextoBrasil(page1Raw) })
+          body: JSON.stringify({ text: textoCompleto })
         });
-        if (res.ok) {
-          extracted = await res.json();
+
+        const body = await res.json().catch(() => ({}));
+        if (res.ok && body && typeof body === 'object') {
+          extracted = body;
+        } else {
+          console.warn('API de extração retornou erro:', body);
         }
       } catch (err) {
-        console.warn('A API da IA não respondeu, processando localmente:', err);
+        console.warn('A API da IA não respondeu. Usando validação local:', err);
       }
 
-      // EXTRATOR LOCAL CIRÚRGICO (Garante 100% de acerto caso a IA falhe)
-      
-      // 1. Proprietário ("LOCADOR(A): ... ,")
-      if (!extracted.proprietario) {
-        const mLoc = page1Raw.match(/LOCADOR(?:\(A\))?\s*:\s*([^,]+)/i);
-        if (mLoc) extracted.proprietario = mLoc[1].trim();
+      // ------------------------------------------------------------------
+      // VALIDAÇÃO LOCAL — os rótulos do contrato têm prioridade absoluta.
+      // Isso impede que o Gemini confunda nomes/endereço/datas com outros
+      // dados que aparecem posteriormente no documento.
+      // ------------------------------------------------------------------
+      const texto = normalizarTextoBrasil(textoCompletoRaw);
+
+      // 1. LOCADOR(A) -> Proprietário
+      const mLoc = texto.match(/\bLOCADOR\s*\(\s*A\s*\)\s*:\s*([^,\n]+?)(?=\s*,)/i)
+                 || texto.match(/\bLOCADOR\s*:\s*([^,\n]+?)(?=\s*,)/i);
+      if (mLoc) extracted.proprietario = mLoc[1].trim();
+
+      // 2. LOCATÁRIO(A) -> Inquilino
+      const mLocat = texto.match(/\bLOCAT[AÁ]RIO\s*\(\s*A\s*\)\s*:\s*([^,\n]+?)(?=\s*,)/i)
+                   || texto.match(/\bLOCAT[AÁ]RIO\s*:\s*([^,\n]+?)(?=\s*,)/i);
+      if (mLocat) extracted.inquilino = mLocat[1].trim();
+
+      // 3. IMÓVEL -> Endereço. Para o modelo do contrato, removemos apenas
+      // a descrição inicial do tipo do imóvel, preservando o endereço.
+      const mEnd = texto.match(/\bIM[ÓO]VEL\s*:\s*(.*?)(?=\s+As\s+partes\b|\s+As\s+partes\s+deste\s+instrumento\b)/i);
+      if (mEnd) {
+        let endereco = mEnd[1].trim();
+        endereco = endereco
+          .replace(/^Apartamento\s+de\s+\d+\s+quartos,?\s+situado\s+/i, '')
+          .replace(/^Casa\s*,?\s+situada\s+/i, '')
+          .trim();
+        extracted.endereco = endereco.replace(/[\s.]+$/, '');
       }
 
-      // 2. Inquilino ("LOCATÁRIO(A): ... ,")
-      if (!extracted.inquilino) {
-        const mLocat = page1Raw.match(/LOCAT[AÁ]RIO(?:\(A\))?\s*:\s*([^,]+)/i);
-        if (mLocat) extracted.inquilino = mLocat[1].trim();
+      // 4. Datas: procurar explicitamente a cláusula de prazo, evitando
+      // confundir datas de assinatura, cadastro ou outros campos.
+      const mPrazo = texto.match(/com\s+in[íi]cio\s+em\s+(\d{2}\/\d{2}\/\d{4})\s+at[ée]\s+(?:a\s+)?Data\s+Final\s+do\s+Contrato\s+em\s+(\d{2}\/\d{2}\/\d{4})/i);
+      if (mPrazo) {
+        extracted.data_inicio = mPrazo[1].split('/').reverse().join('-');
+        extracted.data_fim = mPrazo[2].split('/').reverse().join('-');
+      } else {
+        const mInicio = texto.match(/in[íi]cio\s+em\s+(\d{2}\/\d{2}\/\d{4})/i);
+        const mFim = texto.match(/(?:Data\s+Final\s+do\s+Contrato|data\s+final).*?\b(\d{2}\/\d{2}\/\d{4})/i);
+        if (mInicio) extracted.data_inicio = mInicio[1].split('/').reverse().join('-');
+        if (mFim) extracted.data_fim = mFim[1].split('/').reverse().join('-');
       }
 
-      // 3. Endereço ("IMÓVEL: ... As partes")
-      if (!extracted.endereco) {
-        const mEnd = page1Raw.match(/IM[OÓ]VEL\s*:\s*(.*?)(?=\.\s*As partes|\s*As partes|CL[AÁ]USULA)/i);
-        if (mEnd) extracted.endereco = mEnd[1].trim();
+      // 5. Valor do aluguel: procurar a expressão que identifica o aluguel
+      // mensal. Não usar simplesmente o primeiro "R$" do PDF, pois pode ser
+      // caução, corretagem ou outro valor.
+      const mAluguel = texto.match(/aluguel\s+mensal[\s\S]{0,180}?R\$\s*([\d.]+(?:,\d{1,2})?)/i);
+      if (mAluguel) {
+        extracted.valor_aluguel = parseFloat(mAluguel[1].replace(/\./g, '').replace(',', '.'));
       }
 
-      // 4. Datas
-      if (!extracted.data_inicio || !extracted.data_fim) {
-        const mDatas = page1Raw.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
-        if (mDatas && mDatas.length >= 2) {
-          extracted.data_inicio = mDatas[0].split('/').reverse().join('-');
-          extracted.data_fim = mDatas[1].split('/').reverse().join('-');
-        }
-      }
+      // Normalização final dos dados recebidos da IA.
+      const prop = normalizarTextoBrasil(extracted.proprietario || '');
+      const inq = normalizarTextoBrasil(extracted.inquilino || '');
+      const end = normalizarTextoBrasil(extracted.endereco || '');
+      const valor = Number(extracted.valor_aluguel);
 
-      // 5. Valor (buscando em todas as páginas se não achar na primeira)
-      if (!extracted.valor_aluguel) {
-        let valorEncontrado = null;
-        for (let p = 1; p <= pdf.numPages; p++) {
-          const pg = await pdf.getPage(p);
-          const txt = (await pg.getTextContent()).items.map(i => i.str).join('');
-          const mVal = txt.match(/R\$\s*([\d\.,]+)/i);
-          if (mVal) {
-            valorEncontrado = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
-            break;
-          }
-        }
-        extracted.valor_aluguel = valorEncontrado;
-      }
-
-      // PREENCHIMENTO E CORREÇÃO FINAL DOS CAMPOS
-      if (extracted.proprietario) {
-        document.getElementById('proprietario').value = normalizarTextoBrasil(extracted.proprietario);
-      }
-      if (extracted.inquilino) {
-        document.getElementById('inquilino').value = normalizarTextoBrasil(extracted.inquilino);
-      }
-      if (extracted.endereco) {
-        let limpo = normalizarTextoBrasil(extracted.endereco);
-        limpo = limpo.replace(/^(?:na|no|em)\s+/i, '').replace(/^Apartamento\s+de\s+\d+\s+quartos,\s+situado\s+/i, '');
-        document.getElementById('endereco').value = limpo.trim();
-      }
-      if (extracted.data_inicio) {
+      if (prop) document.getElementById('proprietario').value = prop;
+      if (inq) document.getElementById('inquilino').value = inq;
+      if (end) document.getElementById('endereco').value = end;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(extracted.data_inicio || '')) {
         document.getElementById('dataInicio').value = extracted.data_inicio;
       }
-      if (extracted.data_fim) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(extracted.data_fim || '')) {
         document.getElementById('dataFim').value = extracted.data_fim;
       }
-      if (extracted.valor_aluguel) {
-        document.getElementById('aluguelBase').value = extracted.valor_aluguel;
+      if (Number.isFinite(valor) && valor > 0) {
+        document.getElementById('aluguelBase').value = formatarMoedaBR(valor);
       }
 
       sincronizarCampos();
+
+      const faltantes = [];
+      if (!document.getElementById('proprietario').value) faltantes.push('Proprietário');
+      if (!document.getElementById('inquilino').value) faltantes.push('Inquilino');
+      if (!document.getElementById('endereco').value) faltantes.push('Endereço');
+      if (!document.getElementById('dataInicio').value) faltantes.push('Data de início');
+      if (!document.getElementById('dataFim').value) faltantes.push('Data de fim');
+      if (!(parseMoedaBR(document.getElementById('aluguelBase').value) > 0)) faltantes.push('Valor do aluguel');
+
+      if (faltantes.length) {
+        loader.textContent = `⚠️ Extração concluída, mas faltaram: ${faltantes.join(', ')}.`;
+      }
 
     } catch (err) {
       console.error('Erro na extração:', err);
       alert('Erro ao processar o contrato: ' + err.message);
     } finally {
-      loader.style.display = 'none';
+      setTimeout(() => { loader.style.display = 'none'; }, 1800);
     }
+  }
+
+  function formatarMoedaBR(valor) {
+    const numero = Number(valor);
+    if (!Number.isFinite(numero)) return 'R$ 0,00';
+    return numero.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function parseMoedaBR(valor) {
+    if (typeof valor === 'number') return valor;
+    if (!valor) return 0;
+    let s = String(valor).replace(/R\$\s?/gi, '').replace(/\s/g, '').trim();
+    if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+    return parseFloat(s) || 0;
+  }
+
+  function formatarMoedaCampo(input) {
+    const numero = parseMoedaBR(input.value);
+    if (!Number.isFinite(numero)) return;
+    // Durante a digitação, só aplica a máscara quando já houver um número válido.
+    input.value = formatarMoedaBR(numero);
   }
 
   function sincronizarCampos() {
     const prop = document.getElementById('proprietario').value;
     const inq = document.getElementById('inquilino').value;
-    const aluguel = document.getElementById('aluguelBase').value;
+    const aluguel = parseMoedaBR(document.getElementById('aluguelBase').value);
 
     document.getElementById('calc-proprietario').value = prop;
     document.getElementById('calc-inquilino').value = inq;
@@ -800,7 +849,7 @@
   let calcCache = {};
 
   function calcularTudo() {
-    const aluguelBase = parseFloat(document.getElementById('calc-aluguelBase').value) || parseFloat(document.getElementById('aluguelBase').value) || 0;
+    const aluguelBase = parseFloat(document.getElementById('calc-aluguelBase').value) || parseMoedaBR(document.getElementById('aluguelBase').value) || 0;
     const condBase = parseFloat(document.getElementById('condominioBase').value) || 0;
     const isProp = document.getElementById('isProporcional').value === 'sim';
     const dias = parseInt(document.getElementById('diasOcupados').value) || 30;
@@ -889,7 +938,7 @@
       proprietario: document.getElementById('proprietario').value,
       mes_ano: document.getElementById('mesAno').value,
       data_inicio: document.getElementById('dataInicio').value || null,
-      aluguel_base: parseFloat(document.getElementById('calc-aluguelBase').value) || parseFloat(document.getElementById('aluguelBase').value) || 0,
+      aluguel_base: parseFloat(document.getElementById('calc-aluguelBase').value) || parseMoedaBR(document.getElementById('aluguelBase').value) || 0,
       condominio_base: parseFloat(document.getElementById('condominioBase').value) || 0,
       is_proporcional: document.getElementById('isProporcional').value,
       dias_ocupados: parseInt(document.getElementById('diasOcupados').value) || 30,
