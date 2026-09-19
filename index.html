@@ -247,6 +247,7 @@
     </div>
   </div>
 
+  <!-- ABA IMOVEIS ADMINISTRADOS -->
   <div id="tab-imoveis" class="tab-content">
     <div class="dashboard-grid">
       <div class="dash-card"><div class="title">Contratos Ativos</div><div class="val" id="dash-ativos">0</div></div>
@@ -285,6 +286,7 @@
     </div>
   </div>
 
+  <!-- ABA CÁLCULO -->
   <div id="tab-calculo" class="tab-content">
     <div class="card">
       <div class="card-title">1. Dados de Cobrança & Mês de Referência</div>
@@ -359,7 +361,7 @@
   let selectedPdfFile = null;
 
   /* =========================================
-     FUNÇÕES AUXILIARES DE TEXTO E FORMATAÇÃO
+     MÓDULO 1: FUNÇÕES DE TEXTO (DO VISTORIA FÁCIL) E FORMATAÇÃO DE MOEDA
   ========================================= */
   const formatadorStr = val => {
     if(!val) return '';
@@ -387,6 +389,7 @@
     return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   }
 
+  // ATENÇÃO: Esta é a função que faltava e originou o erro "decodeAddressOnly is not defined"
   function decodeAddressOnly(text) {
     if (!text) return "";
     let s = text.replace(/PraÁa/gi, "Praça").replace(/praÁa/gi, "praça").replace(/HÈlder/gi, "Hélder")
@@ -468,7 +471,7 @@
   }
 
   /* =========================================
-     MÓDULO DE EXTRAÇÃO DO CONTRATO
+     MÓDULO 2: PROCESSAMENTO DO CONTRATO
   ========================================= */
   async function processarContratoPDF(event) {
     const file = event.target.files[0];
@@ -479,7 +482,7 @@
     document.getElementById('file-name-pill').style.display = 'inline-block';
     
     const loader = document.getElementById('ai-extract-loader');
-    loader.innerHTML = '⏳ Extraindo dados do contrato (Local)...';
+    loader.innerText = '⏳ Extraindo dados contratuais (Motor Local)...';
     loader.style.display = 'block';
 
     try {
@@ -507,9 +510,9 @@
       let ext = { locador: '', telLocador: '', locatario: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '' };
       let page1Text = page1RawLines.join(" ");
 
-      // ==========================================
-      // 1. EXTRAÇÃO LOCAL GARANTIDA (Motor Vistoria Fácil Pro)
-      // ==========================================
+      // =======================================================
+      // 1. BASE INTACTA E FUNCIONAL (DO VISTORIA FÁCIL PRO)
+      // =======================================================
       let mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
       if (mLoc1 && isValidPersonName(mLoc1[1])) ext.locador = cleanName(mLoc1[1]);
       if (!ext.locador) {
@@ -541,24 +544,25 @@
       let mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
       if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
-
-      // ==========================================
-      // 2. EXTRAÇÃO DE CONTATOS E PIX VIA IA
-      // ==========================================
-      loader.innerHTML = '🤖 IA extraindo telefones, e-mail e PIX...';
+      // =======================================================
+      // 2. EXTRAÇÃO COM IA APENAS PARA CONTATOS E PIX
+      // =======================================================
+      loader.innerText = '🤖 Extraindo Telefones e PIX via IA Gemini...';
       
       try {
-        const promptIA = `Você é um extrator de dados. Analise o texto do contrato abaixo e retorne APENAS um objeto JSON.
-Regras:
-- telLocador: Telefone encontrado APENAS dentro da qualificação do LOCADOR(A).
-- telLocatario: Telefone encontrado APENAS dentro da qualificação do LOCATÁRIO(A).
-- emailLocatario: E-mail encontrado APENAS dentro da qualificação do LOCATÁRIO(A).
-- pixLocador: Chave PIX encontrada na CLÁUSULA SEGUNDA após a frase "A chave PIX para transferência é".
-NÃO INVENTE DADOS. Se não encontrar, deixe a string vazia "".
-Retorne o JSON estrito: {"telLocador":"", "telLocatario":"", "emailLocatario":"", "pixLocador":""}
+        const promptIA = `Você é um perito de extração de dados. Analise o texto do contrato abaixo e retorne APENAS um objeto JSON.
+        
+REGRAS OBRIGATÓRIAS:
+- telProprietario: Busque o Telefone APENAS dentro do parágrafo de qualificação do "LOCADOR(A)".
+- emailInquilino: Busque o Email APENAS dentro do parágrafo de qualificação do "LOCATÁRIO(A)".
+- telInquilino: Busque o Telefone APENAS dentro do parágrafo de qualificação do "LOCATÁRIO(A)".
+- pixProprietario: Busque a chave PIX na "CLÁUSULA SEGUNDA" após a frase "A chave PIX para transferência é" ou na qualificação do Locador. ATENÇÃO: Nunca retorne a palavra "para". Retorne apenas o celular, email ou CPF.
 
-Texto do Contrato (Preâmbulo e Cláusulas Iniciais):
-${fullText.substring(0, 10000)}`;
+Se não encontrar a informação, deixe a string vazia "".
+Retorne o JSON estrito: {"telProprietario":"", "pixProprietario":"", "emailInquilino":"", "telInquilino":""}
+
+Texto do Contrato:
+${fullText.substring(0, 8000)}`;
 
         const resIA = await fetch('/api/chat', {
           method: 'POST',
@@ -566,22 +570,25 @@ ${fullText.substring(0, 10000)}`;
           body: JSON.stringify({ message: promptIA })
         });
         
-        if(resIA.ok) {
+        if (resIA.ok) {
           const dataIA = await resIA.json();
-          const cleanJson = dataIA.reply.replace(/```json/gi, '').replace(/```/g, '').trim();
-          const parsed = JSON.parse(cleanJson);
-          if(parsed.telLocador) ext.telLocador = parsed.telLocador;
-          if(parsed.telLocatario) ext.telLocatario = parsed.telLocatario;
-          if(parsed.emailLocatario) ext.emailLocatario = parsed.emailLocatario;
-          if(parsed.pixLocador) ext.pix = parsed.pixLocador;
+          // Regex robusta para capturar o JSON, mesmo se a IA escrever texto antes/depois
+          const matchJson = (dataIA.reply || "").match(/\{[\s\S]*\}/);
+          if (matchJson) {
+            const parsed = JSON.parse(matchJson[0]);
+            if (parsed.telProprietario) ext.telLocador = parsed.telProprietario;
+            if (parsed.pixProprietario && String(parsed.pixProprietario).toLowerCase() !== "para") ext.pix = parsed.pixProprietario;
+            if (parsed.emailInquilino) ext.emailLocatario = parsed.emailInquilino;
+            if (parsed.telInquilino) ext.telLocatario = parsed.telInquilino;
+          }
         }
       } catch(eIA) {
-        console.warn("IA falhou na captura de contatos", eIA);
+        console.warn("IA falhou na captura dos contatos:", eIA);
       }
 
-      // ==========================================
-      // 3. ATUALIZAÇÃO DOS CAMPOS NA TELA (FLASH VERDE)
-      // ==========================================
+      // =======================================================
+      // 3. PREENCHIMENTO NA TELA COM FLASH VERDE
+      // =======================================================
       function flash(id, val) { 
         if(val) { 
           const el = document.getElementById(id); 
@@ -610,7 +617,7 @@ ${fullText.substring(0, 10000)}`;
       console.error(err); alert('Erro ao processar contrato: ' + err.message);
     } finally { 
       loader.style.display = 'none'; 
-      loader.innerHTML = '⏳ Extraindo dados contratuais...'; 
+      loader.innerText = '⏳ Extraindo dados contratuais...'; 
     }
   }
 
