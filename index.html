@@ -545,45 +545,202 @@
       if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
       // =======================================================
-      // 2. EXTRAÇÃO COM IA APENAS PARA CONTATOS E PIX
+      // 2. EXTRAÇÃO COM IA - SOMENTE OS 4 CAMPOS DE CONTATO
+      //    NÃO ALTERAR A EXTRAÇÃO DOS DEMAIS CAMPOS
       // =======================================================
-      loader.innerText = '🤖 Extraindo Telefones e PIX via IA Gemini...';
-      
+      loader.innerText = '🤖 IA: lendo contatos do LOCADOR e LOCATÁRIO...';
+
       try {
-        const promptIA = `Você é um perito de extração de dados. Analise o texto do contrato abaixo e retorne APENAS um objeto JSON.
-        
-REGRAS OBRIGATÓRIAS:
-- telProprietario: Busque o Telefone APENAS dentro do parágrafo de qualificação do "LOCADOR(A)".
-- emailInquilino: Busque o Email APENAS dentro do parágrafo de qualificação do "LOCATÁRIO(A)".
-- telInquilino: Busque o Telefone APENAS dentro do parágrafo de qualificação do "LOCATÁRIO(A)".
-- pixProprietario: Busque a chave PIX na "CLÁUSULA SEGUNDA" após a frase "A chave PIX para transferência é" ou na qualificação do Locador. ATENÇÃO: Nunca retorne a palavra "para". Retorne apenas o celular, email ou CPF.
+        // A IA recebe somente a PRIMEIRA PÁGINA, onde ficam as
+        // qualificações do LOCADOR e do LOCATÁRIO.
+        const textoQualificacao = page1Text;
 
-Se não encontrar a informação, deixe a string vazia "".
-Retorne o JSON estrito: {"telProprietario":"", "pixProprietario":"", "emailInquilino":"", "telInquilino":""}
+        const promptIA = `
+Você é um sistema especializado em EXTRAÇÃO DE DADOS DE CONTRATOS DE LOCAÇÃO.
 
-Texto do Contrato:
-${fullText.substring(0, 8000)}`;
+Sua tarefa é extrair SOMENTE 4 informações das QUALIFICAÇÕES das partes.
+
+NÃO faça interpretação jurídica.
+NÃO procure informações em outras cláusulas.
+NÃO invente informações.
+NÃO altere nomes.
+NÃO confunda LOCADOR com LOCATÁRIO.
+
+====================================================
+REGRA PRINCIPAL
+====================================================
+
+Os dados devem ser extraídos prioritariamente dos parágrafos de qualificação:
+
+1. LOCADOR / LOCADOR(A)
+2. LOCATÁRIO / LOCATÁRIO(A)
+
+O texto fornecido abaixo corresponde à PRIMEIRA PÁGINA
+do contrato, onde estão as qualificações das partes.
+
+====================================================
+CAMPOS OBRIGATÓRIOS
+====================================================
+
+1. telProprietario
+- Deve ser o telefone pertencente ao LOCADOR.
+- Procurar exclusivamente dentro da qualificação do LOCADOR.
+- Pode aparecer como:
+  "Tel.:"
+  "Telefone:"
+  "Cel:"
+  "Celular:"
+- Retornar somente o número do telefone.
+- Não retornar palavras como "Tel", "Telefone", etc.
+
+2. pixProprietario
+- Deve ser a chave PIX pertencente ao LOCADOR.
+- Procurar exclusivamente dentro da qualificação do LOCADOR.
+- Pode aparecer como:
+  "Pix:"
+  "PIX:"
+  "Chave PIX:"
+- Pode ser CPF, CNPJ, telefone, e-mail ou chave aleatória.
+- Se aparecer "Pix: 12165899761 CPF", o valor correto é somente:
+  "12165899761"
+- NÃO retornar a palavra "CPF".
+- NÃO retornar a palavra "Pix".
+- NÃO retornar texto adicional.
+
+3. emailInquilino
+- Deve ser o e-mail pertencente ao LOCATÁRIO.
+- Procurar exclusivamente dentro da qualificação do LOCATÁRIO.
+- Pode aparecer como:
+  "Email:"
+  "Email.:"
+  "E-mail:"
+  "E-mail.:"
+- Retornar somente o endereço de e-mail.
+
+4. telInquilino
+- Deve ser o telefone pertencente ao LOCATÁRIO.
+- Procurar exclusivamente dentro da qualificação do LOCATÁRIO.
+- Pode aparecer como:
+  "Telefone:"
+  "Tel.:"
+  "Cel:"
+  "Celular:"
+- Retornar somente o número do telefone.
+
+====================================================
+REGRA DE ASSOCIAÇÃO
+====================================================
+
+Tudo que estiver dentro da qualificação iniciada por
+"LOCADOR" pertence ao proprietário.
+
+Tudo que estiver dentro da qualificação iniciada por
+"LOCATÁRIO" pertence ao inquilino.
+
+NUNCA troque os dados entre LOCADOR e LOCATÁRIO.
+
+Ignore:
+- CPF do locatário
+- RG
+- endereço
+- CEP
+- profissão
+- estado civil
+- dados bancários que não sejam PIX
+- informações de outras cláusulas
+- informações de assinatura
+- informações de Clicksign
+
+====================================================
+FORMATO DA RESPOSTA
+====================================================
+
+Retorne APENAS JSON válido.
+
+Não use markdown.
+Não use bloco de código.
+Não escreva explicações antes ou depois.
+
+Formato obrigatório:
+
+{
+  "telProprietario": "",
+  "pixProprietario": "",
+  "emailInquilino": "",
+  "telInquilino": ""
+}
+
+Se algum campo realmente não existir, deixe vazio.
+
+====================================================
+TEXTO DA PRIMEIRA PÁGINA / QUALIFICAÇÕES
+====================================================
+
+${textoQualificacao}
+`;
 
         const resIA = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: promptIA })
         });
-        
+
         if (resIA.ok) {
           const dataIA = await resIA.json();
-          // Regex robusta para capturar o JSON, mesmo se a IA escrever texto antes/depois
-          const matchJson = (dataIA.reply || "").match(/\{[\s\S]*\}/);
-          if (matchJson) {
-            const parsed = JSON.parse(matchJson[0]);
-            if (parsed.telProprietario) ext.telLocador = parsed.telProprietario;
-            if (parsed.pixProprietario && String(parsed.pixProprietario).toLowerCase() !== "para") ext.pix = parsed.pixProprietario;
-            if (parsed.emailInquilino) ext.emailLocatario = parsed.emailInquilino;
-            if (parsed.telInquilino) ext.telLocatario = parsed.telInquilino;
+          let respostaIA = dataIA.reply || '';
+
+          // Remove eventual bloco Markdown que a IA possa acrescentar.
+          respostaIA = respostaIA
+            .replace(/```json/gi, '')
+            .replace(/```/g, '')
+            .trim();
+
+          const inicioJSON = respostaIA.indexOf('{');
+          const fimJSON = respostaIA.lastIndexOf('}');
+
+          if (inicioJSON !== -1 && fimJSON !== -1 && fimJSON > inicioJSON) {
+            const jsonTexto = respostaIA.substring(inicioJSON, fimJSON + 1);
+
+            try {
+              const parsed = JSON.parse(jsonTexto);
+
+              if (parsed.telProprietario && String(parsed.telProprietario).trim()) {
+                ext.telLocador = String(parsed.telProprietario).trim();
+              }
+
+              if (parsed.pixProprietario && String(parsed.pixProprietario).trim()) {
+                let pix = String(parsed.pixProprietario).trim();
+                pix = pix
+                  .replace(/^pix\s*[:\-]?\s*/i, '')
+                  .replace(/\s+cpf\s*$/i, '')
+                  .replace(/\s+cnpj\s*$/i, '')
+                  .trim();
+
+                if (pix && pix.toLowerCase() !== 'para') {
+                  ext.pix = pix;
+                }
+              }
+
+              if (parsed.emailInquilino && String(parsed.emailInquilino).trim()) {
+                ext.emailLocatario = String(parsed.emailInquilino).trim();
+              }
+
+              if (parsed.telInquilino && String(parsed.telInquilino).trim()) {
+                ext.telLocatario = String(parsed.telInquilino).trim();
+              }
+
+            } catch (jsonError) {
+              console.warn('IA retornou conteúdo que não pôde ser convertido em JSON:', jsonError, respostaIA);
+            }
+          } else {
+            console.warn('IA não retornou um objeto JSON válido:', respostaIA);
           }
+        } else {
+          console.warn('Servidor da IA respondeu com erro HTTP:', resIA.status);
         }
+
       } catch(eIA) {
-        console.warn("IA falhou na captura dos contatos:", eIA);
+        console.warn('IA falhou na captura dos 4 campos de contato:', eIA);
       }
 
       // =======================================================
