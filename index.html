@@ -359,7 +359,7 @@
   let selectedPdfFile = null;
 
   /* =========================================
-     MÓDULO 1: FORMATAÇÃO DE MOEDA (PORTUGUÊS-BR)
+     MÓDULO 1: FORMATAÇÃO DE MOEDA E STRINGS
   ========================================= */
   const formatadorStr = val => {
     if(!val) return '';
@@ -382,81 +382,36 @@
     i.value = v;
   }
 
-  /* =========================================
-     MÓDULO 2: EXTRATOR LOCAL CIRÚRGICO CLICKSIGN
-  ========================================= */
-
-  function cleanSearch(text) {
-    if (!text) return "";
-    return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  }
-
-  function decodeAddressOnly(text) {
-    if (!text) return "";
-    let s = text.replace(/PraÁa/gi, "Praça").replace(/praÁa/gi, "praça").replace(/HÈlder/gi, "Hélder")
-                .replace(/hÈlder/gi, "hélder").replace(/c‚mara/gi, "câmara").replace(/C‚mara/gi, "Câmara")
-                .replace(/n∫/gi, "nº").replace(/N∫/gi, "Nº").replace(/n\s*∫/gi, "nº")
-                .replace(/∫/g, "º").replace(/™/g, "ª").replace(/‚/g, "â").replace(/È/g, "é")
-                .replace(/Á(?=[a-z])/g, "ç");
+  function normalizarTextoBrasil(text) {
+    if (!text) return '';
+    let s = text.replace(/PraÁa/gi, 'Praça').replace(/HÈlder/gi, 'Hélder').replace(/c‚mara/gi, 'câmara')
+                .replace(/C‚mara/gi, 'Câmara').replace(/n∫/gi, 'nº').replace(/N∫/gi, 'Nº').replace(/n\s*∫/gi, 'nº')
+                .replace(/∫/g, 'º').replace(/™/g, 'ª').replace(/‚/g, 'â').replace(/È/g, 'é').replace(/Á(?=[a-z])/g, 'ç');
     try { s = s.normalize('NFC'); } catch(e) {}
-    return s.replace(/\s+/g, ' ').trim();
+    return s.trim();
   }
 
-  function isValidPersonName(str) {
-    if (!str) return false;
-    let s = str.trim();
-    let sNorm = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    
-    let monthRegex = /\b(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez|janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/i;
-    if (monthRegex.test(sNorm) && /\d/.test(s)) return false;
-    if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/.test(s)) return false;
-    if (/^\d{1,2}\s+[a-z]{3,9}\s+\d{2,4}/i.test(sNorm)) return false;
-
-    if (s.indexOf('@') !== -1) return false;
-    if (sNorm.indexOf("cpf") !== -1 || sNorm.indexOf("cnpj") !== -1 || sNorm.indexOf("rg") !== -1) return false;
-    if (sNorm.indexOf("hash") !== -1 || sNorm.indexOf("ip:") !== -1 || sNorm.indexOf("token") !== -1) return false;
-    if (sNorm.indexOf("assinou") !== -1 || sNorm.indexOf("autenticado") !== -1 || sNorm.indexOf("clicksign") !== -1) return false;
-    if (/^\d+$/.test(s.replace(/[\.\-\s\/]/g, ''))) return false;
-    if (!/[A-Za-zÀ-Úà-ú]{3,}/.test(s)) return false;
-    
-    return true;
-  }
-
+  /* =========================================
+     MÓDULO 2: EXTRATOR LOCAL VISTORIA FÁCIL PRO
+  ========================================= */
   function cleanName(raw) {
     if (!raw) return "";
     let s = raw.trim();
-    s = s.replace(/^(?:Nome|Signat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '');
-    s = s.replace(/\s+CPF.*$/i, '');
-    s = s.replace(/\s+assinou.*$/i, '');
-    let parts = s.split(',');
-    return parts[0].trim();
-  }
-
-  function findTrueSignerAbove(lines, index) {
-    for (let j = index - 1; j >= Math.max(0, index - 8); j--) {
-      let candidate = lines[j].trim();
-      if (isValidPersonName(candidate)) return cleanName(candidate);
-    }
-    return "";
+    s = s.replace(/^(?:Nome|Signat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '').replace(/\s+CPF.*$/i, '').replace(/\s+assinou.*$/i, '');
+    return normalizarTextoBrasil(s.split(',')[0].trim());
   }
 
   function extractAddressAfterSituado(text) {
     if (!text) return "";
-    let normText = cleanSearch(text);
-    let indexSituado = normText.indexOf("situado");
-
+    let indexSituado = text.toLowerCase().indexOf("situado");
     if (indexSituado !== -1) {
-      let afterSituado = text.substring(indexSituado + 7).trim();
-      afterSituado = afterSituado.replace(/^(?:na|no|à|a|em|:)\s+/i, '').trim();
-      let addressCandidate = afterSituado.split(/[;\.\r\n]/)[0].trim();
-      addressCandidate = addressCandidate.replace(/(?:,?\s*destinado\s+exclusivamente|para\s+fins\s+residenciais|conforme).*/i, '').trim();
-      if (addressCandidate.length > 5) return addressCandidate;
+      let afterSituado = text.substring(indexSituado + 7).trim().replace(/^(?:na|no|à|a|em|:)\s+/i, '').split(/[;\.\r\n]/)[0].trim();
+      return afterSituado.replace(/(?:,?\s*destinado\s+exclusivamente|para\s+fins\s+residenciais|conforme).*/i, '').trim();
     }
-    let indexImovel = normText.indexOf("imovel:");
+    let indexImovel = text.toLowerCase().indexOf("imovel:");
     if (indexImovel !== -1) {
-      let afterImov = text.substring(indexImovel + 7).trim();
-      let addr = afterImov.split(/[;\.\r\n]/)[0].trim();
-      return addr.replace(/(?:destinado|para\s+fins).*/i, '').trim();
+      let afterImov = text.substring(indexImovel + 7).trim().split(/[;\.\r\n]/)[0].trim();
+      return afterImov.replace(/(?:destinado|para\s+fins).*/i, '').trim();
     }
     return "";
   }
@@ -474,7 +429,6 @@
     } catch (e) {}
   }
 
-  // --- MOTOR PRINCIPAL COM INTEGRAÇÃO DA IA GEMINI PARA OS CONTATOS E PIX ---
   async function processarContratoPDF(event) {
     const file = event.target.files[0];
     if (!file || file.type !== 'application/pdf') return;
@@ -491,99 +445,81 @@
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       await renderPdfThumbnail(pdf);
 
-      let allRawLines = [];
-      let page1RawLines = [];
       let fullText = '';
-      
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p);
         const textContent = await page.getTextContent();
         for (let i = 0; i < textContent.items.length; i++) {
           let str = textContent.items[i].str;
           if (str && str.trim().length > 0) {
-            allRawLines.push(str.trim());
             fullText += ' ' + str.trim();
-            if (p === 1) page1RawLines.push(str.trim());
           }
         }
       }
 
+      // Remover espaços que o PDF.js injeta acidentalmente para padronizar a busca
+      let cleanT = fullText.replace(/\s+/g, ' '); 
       let ext = { locador: '', telLocador: '', locatario: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '' };
-      let page1Text = page1RawLines.join(" ");
 
-      // LÓGICA LOCAL PARA OS NOMES (A MESMA QUE FUNCIONA NO APP VISTORIA)
-      let mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
-      if (mLoc1 && isValidPersonName(mLoc1[1])) ext.locador = cleanName(mLoc1[1]);
-      if (!ext.locador) {
-        for (let i = 0; i < allRawLines.length; i++) {
-          if (cleanSearch(allRawLines[i]).indexOf("assinou como locador") !== -1) {
-            ext.locador = findTrueSignerAbove(allRawLines, i); break;
-          }
-        }
+      // 1. ISOLAR BLOCOS EXATOS PARA NOME E CONTATOS (Exatamente o motor que funcionava)
+      let idxLocador = cleanT.indexOf('LOCADOR');
+      let idxLocatario = cleanT.indexOf('LOCATÁRIO');
+      if (idxLocatario === -1) idxLocatario = cleanT.indexOf('LOCATARIO');
+      let idxImovel = cleanT.indexOf('IMÓVEL');
+      if (idxImovel === -1) idxImovel = cleanT.indexOf('IMOVEL');
+
+      // Extração de dados do LOCADOR
+      if (idxLocador !== -1 && idxLocatario !== -1) {
+        let bloco1 = cleanT.substring(idxLocador, idxLocatario);
+        
+        let n1 = bloco1.replace(/LOCADOR\s*(?:\(\s*A\s*\))?\s*[:\-]?\s*/i, '');
+        ext.locador = cleanName(n1);
+        
+        // NOVO: Telefone e PIX (Locador)
+        let tel1 = bloco1.match(/(?:Tel|Telefone|Celular)\.?\s*[:\-]?\s*([\d\s\-\(\)]{9,20})/i);
+        if(tel1) ext.telLocador = tel1[1].trim();
+        
+        let pix1 = bloco1.match(/chave PIX\s+([\w\.\-\@\+]+)/i);
+        if(pix1) ext.pix = pix1[1].trim();
       }
 
-      let mLocat1 = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
-      if (mLocat1 && isValidPersonName(mLocat1[1])) ext.locatario = cleanName(mLocat1[1]);
-      if (!ext.locatario) {
-        for (let j = 0; j < allRawLines.length; j++) {
-          if (cleanSearch(allRawLines[j]).indexOf("assinou como locatario") !== -1) {
-            ext.locatario = findTrueSignerAbove(allRawLines, j); break;
-          }
-        }
+      // Extração de dados do LOCATÁRIO
+      if (idxLocatario !== -1 && idxImovel !== -1) {
+        let bloco2 = cleanT.substring(idxLocatario, idxImovel);
+        
+        let n2 = bloco2.replace(/LOCAT[AÁ]RIO\s*(?:\(\s*A\s*\))?\s*[:\-]?\s*/i, '');
+        ext.locatario = cleanName(n2);
+
+        // NOVO: Email e Telefone (Inquilino)
+        let em2 = bloco2.match(/Email\.?\s*[:\-]?\s*([a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+        if(em2) ext.emailLocatario = em2[1].trim();
+
+        let tel2 = bloco2.match(/(?:Tel|Telefone|Celular)\.?\s*[:\-]?\s*([\d\s\-\(\)]{9,20})/i);
+        if(tel2) ext.telLocatario = tel2[1].trim();
       }
 
-      // ENDEREÇO E DATAS
-      ext.endereco = extractAddressAfterSituado(page1Text);
+      // 2. ENDEREÇO E DATAS
+      ext.endereco = extractAddressAfterSituado(cleanT);
 
-      let dateMatches = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
+      let dateMatches = cleanT.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
       if (dateMatches && dateMatches.length >= 2) {
         ext.dataIn = dateMatches[0].split('/').reverse().join('-');
         ext.dataFim = dateMatches[1].split('/').reverse().join('-');
       }
 
-      // VALOR ALUGUEL
-      let mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
+      // 3. ALUGUEL BASE
+      let mVal = cleanT.match(/R\$\s*([\d\.,]+)/i);
       if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
-
-      /* --- USO EXCLUSIVO DA IA (GEMINI VIA /api/chat) PARA EXTRAIR TELEFONES, EMAIL E PIX --- */
-      document.getElementById('ai-extract-loader').innerText = "⏳ Extraindo contatos com IA Gemini...";
-      try {
-        const iaPrompt = `Analise o texto deste contrato e retorne EXCLUSIVAMENTE um objeto JSON válido, sem qualquer formatação markdown (sem \`\`\`json).
-Regras de extração:
-1. telLocador: Busque o Telefone na qualificação do "LOCADOR(A):".
-2. emailLocatario: Busque o Email na qualificação do "LOCATÁRIO(A):".
-3. telLocatario: Busque o Telefone na qualificação do "LOCATÁRIO(A):".
-4. pixLocador: Busque a chave PIX na "CLÁUSULA SEGUNDA" após a frase "A chave PIX para transferência é". ATENÇÃO: NÃO extraia a palavra "para" ou outras palavras soltas como se fossem o PIX. O PIX será um email, telefone, CPF ou chave aleatória.
-
-Retorne APENAS o JSON neste exato formato (se não achar algum, deixe a string vazia ""):
-{"telLocador": "", "emailLocatario": "", "telLocatario": "", "pixLocador": ""}
-
-Texto do Contrato (Preâmbulo e Cláusulas Iniciais):
-${fullText.substring(0, 10000)}`;
-
-        const resIA = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: iaPrompt })
-        });
-
-        if (resIA.ok) {
-          const iaData = await resIA.json();
-          const cleanJson = iaData.reply.replace(/```json/gi, '').replace(/```/g, '').trim();
-          const extIA = JSON.parse(cleanJson);
-          
-          if (extIA.telLocador) ext.telLocador = extIA.telLocador;
-          if (extIA.emailLocatario) ext.emailLocatario = extIA.emailLocatario;
-          if (extIA.telLocatario) ext.telLocatario = extIA.telLocatario;
-          if (extIA.pixLocador && String(extIA.pixLocador).toLowerCase() !== "para") ext.pix = extIA.pixLocador;
-        }
-      } catch (errIA) {
-        console.warn("IA para contatos não retornou JSON válido:", errIA);
+      // 4. PIX FALLBACK (Cláusula 2ª, ignorando palavra "para")
+      if(!ext.pix) {
+        let mPix2 = cleanT.match(/chave PIX para transfer[êe]ncia [ée]\s*(?:o\s+)?(?:celular\s+|email\s+|cpf\s+)?([\w\.\-\@]+)/i);
+        if(!mPix2) mPix2 = cleanT.match(/chave PIX.*?:\s*([\w\.\-\@]+)/i);
+        if(!mPix2) mPix2 = cleanT.match(/chave PIX\s+(?!para\b)([\w\.\-\@]+)/i);
+        if(mPix2) ext.pix = mPix2[1].trim();
       }
-      /* --------------------------------------------------------------------------------------- */
 
-      // PREENCHIMENTO DOS CAMPOS NA TELA COM EFEITO VERDE (FLASH)
+      // FUNÇÃO FLASH PARA O VISUAL (PISCA VERDE)
       function flash(id, val) { 
         if(val) { 
           const el = document.getElementById(id); 
@@ -608,10 +544,7 @@ ${fullText.substring(0, 10000)}`;
 
     } catch (err) { 
       console.error(err); alert('Erro ao processar contrato: ' + err.message);
-    } finally { 
-      loader.style.display = 'none'; 
-      document.getElementById('ai-extract-loader').innerText = "⏳ Extraindo dados contratuais..."; // Reseta texto
-    }
+    } finally { loader.style.display = 'none'; }
   }
 
 
@@ -746,7 +679,7 @@ ${fullText.substring(0, 10000)}`;
       recalcularLinha(c);
       const btnPdf = c.contrato_url ? `<button onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')" style="background:#1e293b; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">VER</button>` : '-';
       const btnZap = `<a href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(c.texto_cobranca)}" target="_blank" style="background:#25D366; color:#fff; padding:4px 8px; font-weight:bold; text-decoration:none; border-radius:4px;">Enviar</a>`;
-      const admVal = c.taxa_adm_fixa > 0 ? c.taxa_adm_fixa : (c.taxa_adm_pct || '10');
+      const admVal = c.taxa_adm_fixa > 0 ? formatadorStr(c.taxa_adm_fixa) : (c.taxa_adm_pct || '10');
 
       tbody.innerHTML += `
         <tr>
@@ -793,11 +726,11 @@ ${fullText.substring(0, 10000)}`;
   }
 
   async function updateDb(index, field, value) {
-    if (field === 'taxa_adm_pct' && !String(value).includes('%')) { contratosDB[index].taxa_adm_fixa = value; }
+    if (field === 'taxa_adm_pct' && String(value).includes(',')) { contratosDB[index].taxa_adm_fixa = parseMoedaToFloat(value); }
     contratosDB[index][field] = value; renderizarTabela();
     const s = getLocalSession(); const id = contratosDB[index].id; if(!id) return;
     let payload = { [field]: value };
-    if (field === 'taxa_adm_pct' && !String(value).includes('%')) payload.taxa_adm_fixa = value;
+    if (field === 'taxa_adm_pct' && String(value).includes(',')) payload.taxa_adm_fixa = parseMoedaToFloat(value);
     try { await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch(e) {}
   }
 
@@ -850,30 +783,6 @@ ${fullText.substring(0, 10000)}`;
     document.getElementById('pdf-modal-title').innerText = 'Contrato - ' + inq;
     document.getElementById('pdf-iframe').src = url + '#toolbar=0';
     document.getElementById('pdf-modal').style.display = 'flex';
-  }
-
-  async function sendChat() {
-    const input = document.getElementById('chatInput');
-    const msg = input.value.trim();
-    if (!msg) return;
-
-    const chatArea = document.getElementById('chatArea');
-    chatArea.innerHTML += `<div class="chat-msg user" style="text-align:right; margin: 4px 0; background:#e0e7ff; padding:8px; border-radius:8px; display:inline-block; float:right; clear:both;">${msg}</div>`;
-    input.value = '';
-    chatArea.scrollTop = chatArea.scrollHeight;
-
-    const botMsgEl = document.createElement('div');
-    botMsgEl.style = "background:#fff; border:1px solid #ddd; padding:8px; border-radius:8px; margin: 4px 0; max-width:80%; clear:both;";
-    botMsgEl.innerText = 'Pensando...';
-    chatArea.appendChild(botMsgEl);
-    chatArea.scrollTop = chatArea.scrollHeight;
-
-    try {
-      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg }) });
-      const json = await res.json();
-      botMsgEl.innerText = json.reply || json.error || 'Sem resposta do modelo.';
-    } catch (e) { botMsgEl.innerText = 'Erro ao consultar IA: ' + e.message; }
-    chatArea.scrollTop = chatArea.scrollHeight;
   }
 </script>
 </body>
