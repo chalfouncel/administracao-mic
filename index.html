@@ -68,15 +68,13 @@
   table.table-linear tr:hover { background: #f8fafc; }
   .checkbox-marcar { width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent); }
 
-  .input-calc { width: 95px; padding: 6px 8px; font-size: 0.85rem; border: 1px solid #cbd5e1; border-radius: 4px; text-align: right; }
+  .input-calc { width: 90px; padding: 6px 8px; font-size: 0.85rem; border: 1px solid #cbd5e1; border-radius: 4px; text-align: right; }
   .input-calc[readonly] { background-color: #f1f5f9; cursor: pointer; color: #64748b; font-weight: bold; text-align: center; }
 
-  /* EFEITO THUMBNAIL TABELA LINEAR */
   .row-pdf-btn { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 64px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; overflow: hidden; transition: 0.2s; position: relative; }
   .row-pdf-btn:hover { border-color: var(--accent); transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
   .row-pdf-icon { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
 
-  /* LAYOUT ABA RESUMO */
   .resumo-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
   @media(max-width: 900px) { .resumo-layout { grid-template-columns: 1fr; } }
 
@@ -152,7 +150,7 @@
     <button class="tab-btn" onclick="setTab('resumo_gerencial', this)">📈 Resumo Gerencial</button>
   </div>
 
-  <!-- ABA: RESUMO DO CONTRATO — NÃO ALTERAR -->
+  <!-- ABA: RESUMO DO CONTRATO — NÃO ALTERAR (Mantido Intacto) -->
   <div id="tab-resumo" class="tab-content active">
     <div class="resumo-layout">
       
@@ -311,7 +309,7 @@
   <div id="tab-taxas_extras" class="tab-content">
     <div class="card">
       <div class="card-title">Lançamento de Taxas Extras (IPTU, Bombeiro, Seguros, Multas)</div>
-      <p style="font-size: 0.85rem; color: #64748b;">Campos adicionados na tabela da aba Taxas Condominiais para gestão consolidada.</p>
+      <p style="font-size: 0.85rem; color: #64748b;">As opções de IPTU, Bombeiro, Seguro e Outras foram unificadas na aba "Taxas Condominiais" para facilitar o lançamento mensal.</p>
     </div>
   </div>
 
@@ -319,7 +317,7 @@
   <div id="tab-descontos" class="tab-content">
     <div class="card">
       <div class="card-title">Controle de Descontos Concedidos</div>
-      <p style="font-size: 0.85rem; color: #64748b;">Campos adicionados na tabela da aba Taxas Condominiais para gestão consolidada.</p>
+      <p style="font-size: 0.85rem; color: #64748b;">A opção de descontos foi unificada na aba "Taxas Condominiais" para centralizar o lançamento.</p>
     </div>
   </div>
 
@@ -447,7 +445,7 @@
   }
 
   // =======================================================
-  // AUTO-REFRESH DO SUPABASE (Tratamento do Erro JWT Expired)
+  // RENOVAÇÃO DO SUPABASE (Tratamento para erro 23502 / JWT Expired)
   // =======================================================
   async function refreshSession() {
     const s = getLocalSession();
@@ -467,7 +465,6 @@
     return false;
   }
 
-  // Função Wrapper para comunicar com o Supabase de forma protegida
   async function supabaseFetchWithRefresh(endpoint, options = {}) {
     let s = getLocalSession();
     if (!s) throw new Error("Sem sessão local. Faça login.");
@@ -479,23 +476,22 @@
     let url = `${SUPABASE_BASE_URL}${endpoint}`;
     let res = await fetch(url, options);
     
-    // Se der erro de Autenticação (401), tenta renovar o Token e repetir a chamada automaticamente
     if (res.status === 401 || res.status === 403) {
       const isRefreshed = await refreshSession();
       if (isRefreshed) {
-        s = getLocalSession(); // Pega a nova chave
+        s = getLocalSession();
         options.headers['Authorization'] = `Bearer ${s.access_token}`;
-        res = await fetch(url, options); // Tenta de novo invisivelmente
+        res = await fetch(url, options); 
       } else {
         doLogout();
-        throw new Error("A sua sessão expirou de vez por inatividade. Faça login novamente.");
+        throw new Error("A sua sessão expirou por inatividade. Faça login novamente.");
       }
     }
     return res;
   }
 
   // =======================================================
-  // MOTOR DE LEITURA DO PDF (Intocável)
+  // MOTOR DE LEITURA DO PDF PARA O RESUMO DO CONTRATO
   // =======================================================
   async function processarContratoPDF(event) {
     const file = event.target.files[0];
@@ -565,9 +561,10 @@
       let mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
       if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
+
       loader.innerHTML = '🤖 IA extraindo telefones, e-mail e PIX...';
       try {
-        const promptIA = `Analise o texto do contrato abaixo e retorne APENAS um objeto JSON.
+        const promptIA = `Você é um perito de extração de dados. Analise o texto do contrato abaixo e retorne APENAS um objeto JSON.
 REGRAS OBRIGATÓRIAS:
 - telProprietario: Busque o Telefone APENAS dentro da qualificação do "LOCADOR(A)".
 - emailInquilino: Busque o Email APENAS dentro da qualificação do "LOCATÁRIO(A)".
@@ -719,6 +716,7 @@ ${fullText.substring(0, 8000)}`;
       if (canvas.dataset.loaded === "true") continue;
       const url = canvas.dataset.pdfUrl;
       if (!url) continue;
+      
       try {
         const loadingTask = pdfjsLib.getDocument(url);
         const pdf = await loadingTask.promise;
@@ -750,7 +748,6 @@ ${fullText.substring(0, 8000)}`;
     if (!tbody) return;
     tbody.innerHTML = '';
     
-    // Filtro invisível para SOFT DELETE (Imóveis Excluídos não aparecem mais)
     const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
 
     if (imoveisVisiveis.length === 0) {
@@ -759,7 +756,7 @@ ${fullText.substring(0, 8000)}`;
     }
 
     imoveisVisiveis.forEach((c) => {
-      const i = contratosDB.indexOf(c); // Índice absoluto no array principal
+      const i = contratosDB.indexOf(c); // Indice real
       const idReg = c.id || c._tempId;
       const statusVal = c.ativo || 'SIM';
       
@@ -809,7 +806,6 @@ ${fullText.substring(0, 8000)}`;
     if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: #64748b;">Carregando dados do banco de dados...</td></tr>';
     
     try {
-      // Uso do wrapper protegido para renovação automática de token
       const resp = await supabaseFetchWithRefresh('/rest/v1/locacoes?select=*&order=created_at.desc', { method: 'GET' });
       if (resp.ok) { 
         contratosDB = await resp.json(); 
@@ -858,7 +854,7 @@ ${fullText.substring(0, 8000)}`;
 
 
   // =======================================================
-  // SALVAR NOVO CONTRATO NO SUPABASE
+  // SALVAR NOVO CONTRATO NO SUPABASE 
   // =======================================================
   function sincronizarCampos() { }
 
@@ -869,7 +865,6 @@ ${fullText.substring(0, 8000)}`;
     
     let urlPdf = null;
     
-    // Tenta gravar o PDF (Se falhar por falta do Bucket 'contratos', continua silenciosamente)
     if (selectedPdfFile) {
       const safeInq = (document.getElementById('inquilino').value || 'inquilino').replace(/[^a-zA-Z0-9]/g, '_');
       const filePath = `contratos/${Date.now()}_${safeInq}.pdf`;
@@ -885,7 +880,18 @@ ${fullText.substring(0, 8000)}`;
       } catch(e) { console.warn("Aviso PDF: O bucket 'contratos' pode não existir ou não ter permissão RLS.", e); }
     }
 
+    // RESOLVE O ERRO NOT-NULL (Garante que há um e-mail válido no payload)
+    const s = getLocalSession();
+    let emailUser = 'chalfouncorretor@gmail.com';
+    if (s && s.user && s.user.email) {
+       emailUser = s.user.email;
+    } else {
+       const inputEmail = document.getElementById('auth-email').value;
+       if (inputEmail) emailUser = inputEmail;
+    }
+
     const payload = {
+      user_email: emailUser,
       proprietario: document.getElementById('proprietario').value,
       telefone_proprietario: document.getElementById('telProprietario').value,
       pix_proprietario: document.getElementById('pixProprietario').value,
@@ -988,7 +994,7 @@ ${fullText.substring(0, 8000)}`;
     
     if (anoRef === anoIn && mesRefStr === mesIn) {
       const dia = parseInt(diaIn);
-      if (dia <= 1) return 'Não'; // Contrato começou no dia 1, paga cheio
+      if (dia <= 1) return 'Não'; 
       const daysInMonth = new Date(anoRef, mesRefStr, 0).getDate();
       const usedDays = daysInMonth - dia + 1;
       const valNum = typeof valorBase === 'number' ? valorBase : parseFloat(String(valorBase).replace(/\./g,'').replace(',','.'));
@@ -1002,7 +1008,6 @@ ${fullText.substring(0, 8000)}`;
     const tbody = document.getElementById('tabela-taxas-body');
     if(!tbody) return;
     
-    // Mostra apenas os contratos que foram "Marcados" e que não estão "EXCLUIDOS" e estão "SIM" ativos
     const marcados = contratosDB.filter(c => c.marcado && c.ativo === 'SIM');
 
     if (marcados.length === 0) {
@@ -1014,10 +1019,10 @@ ${fullText.substring(0, 8000)}`;
     const mesRef = document.getElementById('filtro-mes').value;
 
     marcados.forEach(c => {
-      const i = contratosDB.indexOf(c); // índice real na matriz de dados
+      const i = contratosDB.indexOf(c); 
       
-      let alugProp = c.aluguel_prop !== undefined ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
-      let condProp = c.cond_prop !== undefined ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
+      let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
+      let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
 
       tbody.innerHTML += `
         <tr>
@@ -1035,6 +1040,7 @@ ${fullText.substring(0, 8000)}`;
       `;
     });
   }
+
 </script>
 </body>
 </html>
