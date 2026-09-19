@@ -51,7 +51,7 @@
   input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; transition: 0.2s; }
   input:focus, select:focus { border-color: var(--accent); }
   
-  /* Destaque Verde na extração */
+  /* Destaque Verde na extração - Mantido Fixo */
   .field-ok { background-color: #f0fdf4 !important; border-color: #22c55e !important; color: #047857; font-weight: bold; }
 
   .summary-box { background: #0f172a; border: 1px solid var(--accent); color: #fff; border-radius: 10px; padding: 16px; margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; text-align: center; }
@@ -227,7 +227,7 @@
 
         <div class="grid-3" style="margin-top:14px;">
           <div>
-            <label>Condomínio Base</label>
+            <label>Condomínio mês contratado</label>
             <input type="text" id="condominioBase" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)">
           </div>
           <div>
@@ -247,7 +247,6 @@
     </div>
   </div>
 
-  <!-- ABA IMOVEIS ADMINISTRADOS -->
   <div id="tab-imoveis" class="tab-content">
     <div class="dashboard-grid">
       <div class="dash-card"><div class="title">Contratos Ativos</div><div class="val" id="dash-ativos">0</div></div>
@@ -286,7 +285,6 @@
     </div>
   </div>
 
-  <!-- ABA CÁLCULO -->
   <div id="tab-calculo" class="tab-content">
     <div class="card">
       <div class="card-title">1. Dados de Cobrança & Mês de Referência</div>
@@ -361,7 +359,7 @@
   let selectedPdfFile = null;
 
   /* =========================================
-     MÓDULO 1: FUNÇÕES DE TEXTO (DO VISTORIA FÁCIL) E FORMATAÇÃO DE MOEDA
+     MÓDULO 1: FUNÇÕES DE TEXTO E FORMATAÇÃO DE MOEDA
   ========================================= */
   const formatadorStr = val => {
     if(!val) return '';
@@ -389,7 +387,6 @@
     return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   }
 
-  // ATENÇÃO: Esta é a função que faltava e originou o erro "decodeAddressOnly is not defined"
   function decodeAddressOnly(text) {
     if (!text) return "";
     let s = text.replace(/PraÁa/gi, "Praça").replace(/praÁa/gi, "praça").replace(/HÈlder/gi, "Hélder")
@@ -471,7 +468,7 @@
   }
 
   /* =========================================
-     MÓDULO 2: PROCESSAMENTO DO CONTRATO
+     MÓDULO DE EXTRAÇÃO DO CONTRATO
   ========================================= */
   async function processarContratoPDF(event) {
     const file = event.target.files[0];
@@ -482,7 +479,7 @@
     document.getElementById('file-name-pill').style.display = 'inline-block';
     
     const loader = document.getElementById('ai-extract-loader');
-    loader.innerText = '⏳ Extraindo dados contratuais (Motor Local)...';
+    loader.innerHTML = '⏳ Extraindo dados do contrato (Local)...';
     loader.style.display = 'block';
 
     try {
@@ -511,7 +508,7 @@
       let page1Text = page1RawLines.join(" ");
 
       // =======================================================
-      // 1. BASE INTACTA E FUNCIONAL (DO VISTORIA FÁCIL PRO)
+      // 1. EXTRAÇÃO LOCAL GARANTIDA (Motor Vistoria Fácil Pro)
       // =======================================================
       let mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
       if (mLoc1 && isValidPersonName(mLoc1[1])) ext.locador = cleanName(mLoc1[1]);
@@ -544,10 +541,11 @@
       let mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
       if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
+
       // =======================================================
-      // 2. EXTRAÇÃO COM IA APENAS PARA CONTATOS E PIX
+      // 2. EXTRAÇÃO DE CONTATOS E PIX VIA IA
       // =======================================================
-      loader.innerText = '🤖 Extraindo Telefones e PIX via IA Gemini...';
+      loader.innerHTML = '🤖 IA extraindo telefones, e-mail e PIX...';
       
       try {
         const promptIA = `Você é um perito de extração de dados. Analise o texto do contrato abaixo e retorne APENAS um objeto JSON.
@@ -572,7 +570,7 @@ ${fullText.substring(0, 8000)}`;
         
         if (resIA.ok) {
           const dataIA = await resIA.json();
-          // Regex robusta para capturar o JSON, mesmo se a IA escrever texto antes/depois
+          // Regex robusta para capturar o JSON
           const matchJson = (dataIA.reply || "").match(/\{[\s\S]*\}/);
           if (matchJson) {
             const parsed = JSON.parse(matchJson[0]);
@@ -587,7 +585,7 @@ ${fullText.substring(0, 8000)}`;
       }
 
       // =======================================================
-      // 3. PREENCHIMENTO NA TELA COM FLASH VERDE
+      // 3. PREENCHIMENTO NA TELA COM FLASH VERDE FIXO
       // =======================================================
       function flash(id, val) { 
         if(val) { 
@@ -595,7 +593,11 @@ ${fullText.substring(0, 8000)}`;
           if(el) {
             el.value = val; 
             el.classList.add('field-ok'); 
-            setTimeout(() => el.classList.remove('field-ok'), 2500); 
+            // Opcional: remover a cor verde caso o usuário edite o campo
+            el.addEventListener('input', function onEdit() {
+              el.classList.remove('field-ok');
+              el.removeEventListener('input', onEdit);
+            });
           }
         } 
       }
@@ -617,7 +619,7 @@ ${fullText.substring(0, 8000)}`;
       console.error(err); alert('Erro ao processar contrato: ' + err.message);
     } finally { 
       loader.style.display = 'none'; 
-      loader.innerText = '⏳ Extraindo dados contratuais...'; 
+      loader.innerHTML = '⏳ Extraindo dados contratuais...'; 
     }
   }
 
