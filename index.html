@@ -45,8 +45,7 @@
   .card-title { font-size: 1rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-  @media(max-width: 768px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+  @media(max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
 
   label { display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 4px; text-transform: uppercase; }
   input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; transition: 0.2s; }
@@ -144,7 +143,7 @@
 </header>
 
 <div class="container">
-  <!-- SISTEMA DE ABAS ATUALIZADO CONFORME DIRETRIZ -->
+  <!-- SISTEMA DE ABAS -->
   <div class="tabs">
     <button class="tab-btn active" onclick="setTab('resumo', this)">📄 Resumo do contrato</button>
     <button class="tab-btn" onclick="setTab('imoveis', this)">🏘️ Imóveis Administrados</button>
@@ -289,27 +288,13 @@
     <div class="card">
       <div class="card-title">Lançamento de Taxas Condominiais (Mês a Mês)</div>
       <div class="grid-3">
-        <div>
-          <label>Competência (Mês/Ano)</label>
-          <input type="month" id="cond-mes">
-        </div>
-        <div>
-          <label>Selecionar Imóvel / Inquilino</label>
-          <select id="cond-imovel-select"><option value="">Selecione...</option></select>
-        </div>
-        <div>
-          <label>Condomínio do Mês (R$)</label>
-          <input type="text" id="cond-valor" placeholder="0,00" onkeyup="formatarMoedaInput(this)">
-        </div>
+        <div><label>Competência (Mês/Ano)</label><input type="month" id="cond-mes"></div>
+        <div><label>Selecionar Imóvel / Inquilino</label><select id="cond-imovel-select"><option value="">Selecione...</option></select></div>
+        <div><label>Condomínio do Mês (R$)</label><input type="text" id="cond-valor" placeholder="0,00" onkeyup="formatarMoedaInput(this)"></div>
       </div>
       <div class="grid-2" style="margin-top:14px;">
-        <div>
-          <label>Observação do Condomínio</label>
-          <input type="text" id="cond-obs" placeholder="Ex: Diferença de consumo de água">
-        </div>
-        <div style="display:flex; align-items:flex-end;">
-          <button class="btn btn-gold" style="width:100%;" onclick="salvarTaxaCondominio()">Salvar Lançamento Condominial</button>
-        </div>
+        <div><label>Observação</label><input type="text" id="cond-obs" placeholder="Ex: Diferença de consumo"></div>
+        <div style="display:flex; align-items:flex-end;"><button class="btn btn-gold" style="width:100%;" onclick="salvarTaxaCondominio()">Salvar Lançamento</button></div>
       </div>
     </div>
   </div>
@@ -317,45 +302,18 @@
   <!-- ABA: LANÇAMENTO DE TAXAS EXTRAS -->
   <div id="tab-extras" class="tab-content">
     <div class="card">
-      <div class="card-title">Lançamento de Taxas Extras (IPTU, Bombeiro, Multas, etc.)</div>
+      <div class="card-title">Lançamento de Taxas Extras</div>
       <div class="grid-3">
-        <div>
-          <label>Competência (Mês/Ano)</label>
-          <input type="month" id="extra-mes">
-        </div>
-        <div>
-          <label>Selecionar Imóvel / Inquilino</label>
-          <select id="extra-imovel-select"><option value="">Selecione...</option></select>
-        </div>
-        <div>
-          <label>Tipo de Taxa</label>
-          <select id="extra-tipo">
-            <option value="IPTU">IPTU</option>
-            <option value="BOMBEIRO">Bombeiro / Incêndio</option>
-            <option value="SEGURO">Seguro Residencial</option>
-            <option value="MULTA">Multa / Infração</option>
-            <option value="OUTROS">Outras Cobranças</option>
-          </select>
-        </div>
+        <div><label>Competência (Mês/Ano)</label><input type="month" id="extra-mes"></div>
+        <div><label>Selecionar Imóvel / Inquilino</label><select id="extra-imovel-select"><option value="">Selecione...</option></select></div>
+        <div><label>Tipo de Taxa</label><select id="extra-tipo"><option value="IPTU">IPTU</option><option value="BOMBEIRO">Bombeiro</option><option value="SEGURO">Seguro</option><option value="MULTA">Multa</option><option value="OUTROS">Outros</option></select></div>
       </div>
       <div class="grid-3" style="margin-top:14px;">
-        <div>
-          <label>Valor da Taxa (R$)</label>
-          <input type="text" id="extra-valor" placeholder="0,00" onkeyup="formatarMoedaInput(this)">
-        </div>
-        <div>
-          <label>Parcelas (Ex: 1/3)</label>
-          <input type="text" id="extra-parcelas" placeholder="1/1">
-        </div>
-        <div>
-          <label>Repassar ao Proprietário?</label>
-          <select id="extra-repassar"><option value="S">SIM</option><option value="N">NÃO</option></select>
-        </div>
+        <div><label>Valor (R$)</label><input type="text" id="extra-valor" placeholder="0,00" onkeyup="formatarMoedaInput(this)"></div>
+        <div><label>Parcelas</label><input type="text" id="extra-parcelas" placeholder="1/1"></div>
+        <div><label>Repassar?</label><select id="extra-repassar"><option value="S">SIM</option><option value="N">NÃO</option></select></div>
       </div>
-      <div style="margin-top:14px;">
-        <label>Descrição / Observação</label>
-        <input type="text" id="extra-obs" placeholder="Detalhes da taxa extra">
-      </div>
+      <div style="margin-top:14px;"><label>Descrição</label><input type="text" id="extra-obs" placeholder="Detalhes"></div>
       <button class="btn btn-gold" style="width:100%; margin-top:18px;" onclick="salvarTaxaExtra()">Gravar Taxa Extra</button>
     </div>
   </div>
@@ -363,26 +321,14 @@
   <!-- ABA: DESCONTOS -->
   <div id="tab-descontos" class="tab-content">
     <div class="card">
-      <div class="card-title">Lançamento de Descontos Concedidos</div>
+      <div class="card-title">Lançamento de Descontos</div>
       <div class="grid-3">
-        <div>
-          <label>Competência (Mês/Ano)</label>
-          <input type="month" id="desc-mes">
-        </div>
-        <div>
-          <label>Selecionar Imóvel / Inquilino</label>
-          <select id="desc-imovel-select"><option value="">Selecione...</option></select>
-        </div>
-        <div>
-          <label>Valor do Desconto (R$)</label>
-          <input type="text" id="desc-valor" placeholder="0,00" onkeyup="formatarMoedaInput(this)">
-        </div>
+        <div><label>Competência (Mês/Ano)</label><input type="month" id="desc-mes"></div>
+        <div><label>Selecionar Imóvel / Inquilino</label><select id="desc-imovel-select"><option value="">Selecione...</option></select></div>
+        <div><label>Valor do Desconto (R$)</label><input type="text" id="desc-valor" placeholder="0,00" onkeyup="formatarMoedaInput(this)"></div>
       </div>
-      <div style="margin-top:14px;">
-          <label>Motivo do Desconto</label>
-          <input type="text" id="desc-obs" placeholder="Ex: Pontualidade ou acordo temporário">
-      </div>
-      <button class="btn btn-gold" style="width:100%; margin-top:18px;" onclick="salvarDesconto()">Aplicar Desconto na Competência</button>
+      <div style="margin-top:14px;"><label>Motivo</label><input type="text" id="desc-obs" placeholder="Motivo do desconto"></div>
+      <button class="btn btn-gold" style="width:100%; margin-top:18px;" onclick="salvarDesconto()">Aplicar Desconto</button>
     </div>
   </div>
 
@@ -404,38 +350,27 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Imóvel</th>
-              <th>Proprietário</th>
-              <th>Inquilino</th>
-              <th>Aluguel</th>
-              <th>Condomínio</th>
-              <th>Extras</th>
-              <th>Desconto</th>
-              <th>Total Cobrar</th>
-              <th>Adm.</th>
-              <th>Repassar</th>
-              <th>Vencimento</th>
+              <th>Imóvel</th><th>Proprietário</th><th>Inquilino</th><th>Aluguel</th><th>Condomínio</th>
+              <th>Extras</th><th>Desconto</th><th>Total Cobrar</th><th>Adm.</th><th>Repassar</th><th>Vencimento</th>
             </tr>
           </thead>
           <tbody id="resumo-gerencial-body">
-            <tr><td colspan="11" style="text-align:center;">Selecione o mês e atualize.</td></tr>
+            <tr><td colspan="11" style="text-align:center;">Nenhum dado.</td></tr>
           </tbody>
         </table>
       </div>
     </div>
   </div>
 
-  <!-- ABA: WHATSAPP -->
   <div id="tab-whatsapp" class="tab-content">
     <div class="card">
       <div class="card-title">Texto Automático da Cobrança</div>
-      <label>Chave PIX para Cobrança</label><input type="text" id="chavePix" value="financeiro@micimoveis.com.br" style="margin-bottom:12px;">
+      <label>Chave PIX</label><input type="text" id="chavePix" value="financeiro@micimoveis.com.br" style="margin-bottom:12px;">
       <label>Mensagem</label><textarea id="textoMsg" rows="11" readonly style="background:#f8fafc; font-family:monospace;"></textarea>
-      <div style="display:flex; gap:10px; margin-top:14px;"><button class="btn btn-gold" onclick="copiarTexto()">📋 Copiar</button><button class="btn btn-whatsapp" onclick="enviarWhatsApp()">📲 Abrir no WhatsApp</button></div>
+      <div style="display:flex; gap:10px; margin-top:14px;"><button class="btn btn-gold" onclick="copiarTexto()">📋 Copiar</button><button class="btn btn-whatsapp" onclick="enviarWhatsApp()">📲 WhatsApp</button></div>
     </div>
   </div>
 
-  <!-- ABA: AGENTE DE IA GEMINI -->
   <div id="tab-agentes" class="tab-content">
     <div class="card">
       <div class="card-title">Assistente Especialista M&IC</div>
@@ -448,18 +383,13 @@
 </div>
 
 <script>
-  // PERSISTÊNCIA SUPABASE & ESTADO GLOBAL
   const SUPABASE_BASE_URL = 'https://dgadztmmarvbjcouvrnp.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_JwOjDkAj';
   let contratosDB = [];
-  let lancamentosCond = [];
   let taxasExtras = [];
   let descontosDB = [];
   let selectedPdfFile = null;
 
-  /* =========================================
-     MOTOR CENTRAL DE CÁLCULOS E FORMATAÇÃO
-  ========================================= */
   const formatadorStr = val => (!val ? '' : parseFloat(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
   const fmtMoeda = val => parseFloat(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const parseMoedaToFloat = str => {
@@ -521,12 +451,10 @@
     if (parseFloat(c.taxa_adm_fixa) > 0) { valAdm = parseFloat(c.taxa_adm_fixa); } 
     else { valAdm = vlr_aluguel_calc * (parseFloat(c.taxa_adm_pct || 10) / 100); }
 
-    // Somar Extras
-    const extrasObj = taxasExtras.filter(t => t.imovel_id === c.id && t.mes_ano === mesRef);
+    const extrasObj = taxasExtras.filter(t => t.imovel_id == c.id && t.mes_ano === mesRef);
     let totalExtras = extrasObj.reduce((acc, t) => acc + (parseFloat(t.valor) || 0), 0);
 
-    // Somar Descontos
-    const descObj = descontosDB.filter(d => d.imovel_id === c.id && d.mes_ano === mesRef);
+    const descObj = descontosDB.filter(d => d.imovel_id == c.id && d.mes_ano === mesRef);
     let totalDesconto = descObj.reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
 
     const cobrar_inquilino = aluguel_mais_cond + totalExtras - totalDesconto;
@@ -535,25 +463,17 @@
     const texto_cobranca = `Aluguel: ${fmtMoeda(vlr_aluguel_calc)}\nCondomínio: ${fmtMoeda(vlr_cond_calc)}\nExtras: ${fmtMoeda(totalExtras)}\nDescontos: -${fmtMoeda(totalDesconto)}\nTOTAL: *${fmtMoeda(cobrar_inquilino)}*\nVencimento: ${vencimento_calc}\nPIX: ${c.pix_proprietario || 'N/A'}`;
 
     return {
-      aluguelBase: valAluguelBase,
-      aluguelCalculado: vlr_aluguel_calc,
-      condominioBase: valCondBase,
-      condominioCalculado: vlr_cond_calc,
-      taxasExtras: totalExtras,
-      descontos: totalDesconto,
-      totalCobrar: cobrar_inquilino,
-      administracao: valAdm,
-      valorRepassar: valor_repassar,
-      vencimento: vencimento_calc,
-      proporcional,
-      calc_I,
-      calc_F,
-      texto_cobranca
+      aluguelBase: valAluguelBase, aluguelCalculado: vlr_aluguel_calc,
+      condominioBase: valCondBase, condominioCalculado: vlr_cond_calc,
+      taxasExtras: totalExtras, descontos: totalDesconto,
+      totalCobrar: cobrar_inquilino, administracao: valAdm,
+      valorRepassar: valor_repassar, vencimento: vencimento_calc,
+      proporcional, calc_I, calc_F, texto_cobranca
     };
   }
 
   /* =========================================
-     MÓDULO DE EXTRAÇÃO DO CONTRATO (Vistoria + IA)
+     EXTRATOR DE PDF BLINDADO (COM CORREÇÃO DO INQUILINO)
   ========================================= */
   function cleanSearch(text) { return text ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : ""; }
   function decodeAddressOnly(text) {
@@ -604,7 +524,6 @@
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       
-      // Thumbnail
       const page1 = await pdf.getPage(1);
       const vp = page1.getViewport({ scale: 0.65 });
       const canvas = document.getElementById('pdf-thumb-canvas');
@@ -629,11 +548,12 @@
 
       let ext = { locador: '', telLocador: '', locatario: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '' };
 
-      // Motor Vistoria Local
-      let mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
+      // CORREÇÃO: Varredura flexível para Locador e Locatário (com suporte a variações de acentuação do PDF)
+      let mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A?\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
       if (mLoc1 && isValidPersonName(mLoc1[1])) ext.locador = cleanName(mLoc1[1]);
 
-      let mLocat1 = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
+      let mLocat1 = page1Text.match(/LOCAT[AÃ]RIO(?:A)?\s*\(?\s*A?\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
+      if (!mLocat1) mLocat1 = page1Text.match(/LOCATARIO(?:A)?\s*[:\-–]?\s*([^,;\n]+)/i);
       if (mLocat1 && isValidPersonName(mLocat1[1])) ext.locatario = cleanName(mLocat1[1]);
 
       ext.endereco = extractAddressAfterSituado(page1Text);
@@ -690,7 +610,7 @@ Texto: ${fullText.substring(0, 8000)}`;
   }
 
   /* =========================================
-     GESTÃO DE ABAS E SESSÃO SUPABASE
+     GERENCIAMENTO DE SESSÃO E ABAS
   ========================================= */
   function getLocalSession() { try { return JSON.parse(localStorage.getItem('mic_auth_session')); } catch(e) { return null; } }
   function setLocalSession(session) { if (session) localStorage.setItem('mic_auth_session', JSON.stringify(session)); else localStorage.removeItem('mic_auth_session'); }
@@ -724,24 +644,6 @@ Texto: ${fullText.substring(0, 8000)}`;
 
   function doLogout() { setLocalSession(null); checkSession(); }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('btn-login').addEventListener('click', doLogin);
-    document.getElementById('btn-register').addEventListener('click', doLogin);
-    document.getElementById('btn-logout-action').addEventListener('click', doLogout);
-    const hoje = new Date();
-    const mesAtual = `${hoje.getFullYear()}-${(hoje.getMonth()+1).toString().padStart(2, '0')}`;
-    document.getElementById('filtro-mes').value = mesAtual;
-    document.getElementById('cond-mes').value = mesAtual;
-    document.getElementById('extra-mes').value = mesAtual;
-    document.getElementById('desc-mes').value = mesAtual;
-    
-    document.querySelectorAll('.card input').forEach(input => {
-      input.addEventListener('input', () => { input.classList.remove('field-ok'); });
-    });
-
-    checkSession();
-  });
-
   function setTab(name, btn) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -759,13 +661,13 @@ Texto: ${fullText.substring(0, 8000)}`;
       if (!sel) return;
       sel.innerHTML = '<option value="">Selecione...</option>';
       contratosDB.forEach(c => {
-        sel.innerHTML += `<option value="${c.id}">${c.inquilino || 'Sem nome'} — ${c.endereco || ''}</option>`;
+        sel.innerHTML += `<option value="${c.id || c.inquilino}">${c.inquilino || 'Sem nome'} — ${c.endereco || ''}</option>`;
       });
     });
   }
 
   /* =========================================
-     CRUD E RENDERIZAÇÃO DAS ABAS
+     CRUD E PERSISTÊNCIA (COM ATUALIZAÇÃO OTIMISTA)
   ========================================= */
   async function carregarImoveis() {
     const s = getLocalSession(); if (!s) return;
@@ -868,11 +770,12 @@ Texto: ${fullText.substring(0, 8000)}`;
       condominio_base: parseMoedaToFloat(document.getElementById('condominioBase').value),
       taxa_adm_fixa: parseMoedaToFloat(document.getElementById('valorTaxaAdm').value),
       taxa_adm_pct: 10, regra_condominio: document.getElementById('regraCond').value || 'N',
+      mes_ano: document.getElementById('filtro-mes').value,
       contrato_url: urlPdf, ativo: 'SIM'
     };
 
     contratosDB.unshift(payload);
-    alert('✓ Contrato gravado com sucesso e adicionado aos Imóveis Administrados!');
+    alert('✓ Contrato gravado com sucesso e adicionado à aba Imóveis Administrados!');
     
     document.querySelectorAll('#tab-resumo input').forEach(el => { el.value = ''; el.classList.remove('field-ok'); });
     selectedPdfFile = null; document.getElementById('file-name-pill').style.display = 'none';
@@ -886,7 +789,6 @@ Texto: ${fullText.substring(0, 8000)}`;
     btn.disabled = false; btn.innerText = '💾 Gravar dados do novo contrato';
   }
 
-  // LANÇAMENTOS ESPECÍFICOS
   function salvarTaxaCondominio() {
     const id = document.getElementById('cond-imovel-select').value;
     const mes = document.getElementById('cond-mes').value;
@@ -896,8 +798,7 @@ Texto: ${fullText.substring(0, 8000)}`;
 
     const im = contratosDB.find(c => c.id == id || c.inquilino === id);
     if(im) {
-      im.condominio_base = val;
-      im.observacao = obs;
+      im.condominio_base = val; im.observacao = obs;
       updateDb(contratosDB.indexOf(im), 'condominio_base', val);
       alert('✓ Condomínio do mês atualizado com sucesso!');
     }
@@ -913,8 +814,7 @@ Texto: ${fullText.substring(0, 8000)}`;
 
     taxasExtras.push({ imovel_id: id, mes_ano: mes, tipo, valor: val, observacao: obs });
     alert('✓ Taxa extra gravada com sucesso!');
-    document.getElementById('extra-valor').value = '';
-    document.getElementById('extra-obs').value = '';
+    document.getElementById('extra-valor').value = ''; document.getElementById('extra-obs').value = '';
   }
 
   function salvarDesconto() {
@@ -926,11 +826,9 @@ Texto: ${fullText.substring(0, 8000)}`;
 
     descontosDB.push({ imovel_id: id, mes_ano: mes, valor: val, observacao: obs });
     alert('✓ Desconto aplicado à competência!');
-    document.getElementById('desc-valor').value = '';
-    document.getElementById('desc-obs').value = '';
+    document.getElementById('desc-valor').value = ''; document.getElementById('desc-obs').value = '';
   }
 
-  // RESUMO GERENCIAL
   function renderizarResumoGerencial() {
     const mesRef = document.getElementById('filtro-mes').value || '2026-09';
     const tbody = document.getElementById('resumo-gerencial-body');
@@ -947,13 +845,9 @@ Texto: ${fullText.substring(0, 8000)}`;
       if (c.ativo === 'SIM') tAtivos++;
       const calc = calcularLancamentoMensal(c, mesRef);
       
-      tAluguel += calc.aluguelCalculado;
-      tCond += calc.condominioCalculado;
-      tExtras += calc.taxasExtras;
-      tDesc += calc.descontos;
-      tCobrar += calc.totalCobrar;
-      tAdm += calc.administracao;
-      tRepassar += calc.valorRepassar;
+      tAluguel += calc.aluguelCalculado; tCond += calc.condominioCalculado;
+      tExtras += calc.taxasExtras; tDesc += calc.descontos;
+      tCobrar += calc.totalCobrar; tAdm += calc.administracao; tRepassar += calc.valorRepassar;
 
       tbody.innerHTML += `
         <tr>
@@ -991,11 +885,9 @@ Texto: ${fullText.substring(0, 8000)}`;
     const input = document.getElementById('chatInput');
     const msg = input.value.trim();
     if (!msg) return;
-
     const chatArea = document.getElementById('chatArea');
     chatArea.innerHTML += `<div style="text-align:right; margin: 4px 0; background:#e0e7ff; padding:8px; border-radius:8px; display:inline-block; float:right; clear:both;">${msg}</div>`;
     input.value = '';
-
     try {
       const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg }) });
       const json = await res.json();
