@@ -51,7 +51,6 @@
   input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; transition: 0.2s; }
   input:focus, select:focus { border-color: var(--accent); }
   
-  /* Destaque Verde na extração */
   .field-ok { background-color: #f0fdf4 !important; border-color: #22c55e !important; color: #047857; font-weight: bold; }
 
   .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; transition: 0.15s; font-size: 0.92rem; }
@@ -60,13 +59,17 @@
   .btn-dark { background: var(--secondary); color: #fff; }
   .btn-danger { background: var(--danger); color: #fff; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; }
 
-  /* TABELA LINEAR DE IMOVEIS ADMINISTRADOS */
+  /* TABELA LINEAR DE IMOVEIS ADMINISTRADOS E LANÇAMENTOS */
   .table-linear-container { width: 100%; max-height: 75vh; overflow: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
   table.table-linear { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
   table.table-linear th { background: #000; color: #fff; padding: 12px 10px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: bold; }
   table.table-linear td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; }
+  table.table-linear th.fit, table.table-linear td.fit { width: 1%; white-space: nowrap; }
   table.table-linear tr:hover { background: #f8fafc; }
   .checkbox-marcar { width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent); }
+
+  .input-calc { width: 95px; padding: 6px 8px; font-size: 0.85rem; border: 1px solid #cbd5e1; border-radius: 4px; text-align: right; }
+  .input-calc[readonly] { background-color: #f1f5f9; cursor: pointer; color: #64748b; font-weight: bold; text-align: center; }
 
   /* EFEITO THUMBNAIL TABELA LINEAR */
   .row-pdf-btn { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 64px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; overflow: hidden; transition: 0.2s; position: relative; }
@@ -133,7 +136,13 @@
 </header>
 
 <div class="container">
-  <!-- MENU DE ABAS -->
+  <div style="display:flex; justify-content:flex-end; margin-bottom: 12px;">
+     <div style="display:flex; align-items:center; gap: 8px;">
+        <span style="font-size:0.85rem; font-weight:bold; color:var(--primary);">Mês e Ano de Referência:</span>
+        <input type="month" id="filtro-mes" onchange="renderizarTabelaLinear(); renderizarTaxasCondominiais();" style="width:160px; padding: 6px 12px; font-weight:bold;">
+     </div>
+  </div>
+
   <div class="tabs">
     <button class="tab-btn active" onclick="setTab('resumo', this)">📄 Resumo do contrato</button>
     <button class="tab-btn" onclick="setTab('imoveis', this)">🏘️ Imóveis Administrados</button>
@@ -143,9 +152,7 @@
     <button class="tab-btn" onclick="setTab('resumo_gerencial', this)">📈 Resumo Gerencial</button>
   </div>
 
-  <!-- ======================================================= -->
   <!-- ABA: RESUMO DO CONTRATO — NÃO ALTERAR (Mantido Intacto) -->
-  <!-- ======================================================= -->
   <div id="tab-resumo" class="tab-content active">
     <div class="resumo-layout">
       
@@ -241,9 +248,7 @@
     </div>
   </div>
 
-  <!-- ======================================================= -->
-  <!-- ABA: IMÓVEIS ADMINISTRADOS (ESTRUTURA LINEAR COM 6 COLUNAS) -->
-  <!-- ======================================================= -->
+  <!-- ABA: IMÓVEIS ADMINISTRADOS -->
   <div id="tab-imoveis" class="tab-content">
     <div class="card" style="padding: 10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 8px;">
@@ -255,12 +260,12 @@
         <table class="table-linear">
           <thead>
             <tr>
-              <th style="width: 10%;">Ações (Excluir)</th>
-              <th style="width: 5%; text-align: center;">Marcar</th>
-              <th style="width: 15%;">Status</th>
-              <th style="width: 25%;">Inquilino</th>
-              <th style="width: 35%;">Endereço do Imóvel</th>
-              <th style="width: 10%; text-align: center;">Contrato</th>
+              <th class="fit">Excluir</th>
+              <th class="fit" style="text-align: center;">Marcar</th>
+              <th class="fit">Status</th>
+              <th>Inquilino</th>
+              <th>Endereço do Imóvel</th>
+              <th class="fit" style="text-align: center;">Contrato</th>
             </tr>
           </thead>
           <tbody id="tabela-imoveis-linear-body">
@@ -273,9 +278,32 @@
 
   <!-- ABA: LANÇAMENTO DE TAXAS CONDOMINIAIS -->
   <div id="tab-taxas_cond" class="tab-content">
-    <div class="card">
-      <div class="card-title">Lançamento de Taxas Condominiais (Mês a Mês)</div>
-      <p style="font-size: 0.85rem; color: #64748b;">Módulo em desenvolvimento estrutural...</p>
+    <div class="card" style="padding: 10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 8px;">
+        <div style="font-weight:800; font-size: 1.1rem; color: var(--primary);">Lançamento de Taxas Condominiais & Extras</div>
+      </div>
+      
+      <div class="table-linear-container">
+        <table class="table-linear" style="min-width: 1300px;">
+          <thead>
+            <tr>
+              <th style="min-width:180px;">Inquilino</th>
+              <th style="min-width:250px;">Endereço do Imóvel</th>
+              <th class="fit">Alug. Prop</th>
+              <th class="fit">Cond. Prop</th>
+              <th class="fit">Cond. mês</th>
+              <th class="fit">IPTU</th>
+              <th class="fit">Bombeiro</th>
+              <th class="fit">Seguro</th>
+              <th class="fit">Outras</th>
+              <th class="fit">Desconto</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-taxas-body">
+            <tr><td colspan="10" style="text-align: center; padding: 20px; color: #64748b;">Nenhum imóvel Ativo marcado na aba anterior.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -283,7 +311,7 @@
   <div id="tab-taxas_extras" class="tab-content">
     <div class="card">
       <div class="card-title">Lançamento de Taxas Extras (IPTU, Bombeiro, Seguros, Multas)</div>
-      <p style="font-size: 0.85rem; color: #64748b;">Módulo em desenvolvimento estrutural...</p>
+      <p style="font-size: 0.85rem; color: #64748b;">Campos adicionados na tabela da aba Taxas Condominiais para gestão consolidada.</p>
     </div>
   </div>
 
@@ -291,7 +319,7 @@
   <div id="tab-descontos" class="tab-content">
     <div class="card">
       <div class="card-title">Controle de Descontos Concedidos</div>
-      <p style="font-size: 0.85rem; color: #64748b;">Módulo em desenvolvimento estrutural...</p>
+      <p style="font-size: 0.85rem; color: #64748b;">Campos adicionados na tabela da aba Taxas Condominiais para gestão consolidada.</p>
     </div>
   </div>
 
@@ -458,7 +486,7 @@
       let ext = { locador: '', telLocador: '', locatario: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '' };
       let page1Text = page1RawLines.join(" ");
 
-      // LÓGICA LOCAL PARA OS NOMES (GARANTIDA)
+      // LÓGICA LOCAL
       let mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
       if (mLoc1 && isValidPersonName(mLoc1[1])) ext.locador = cleanName(mLoc1[1]);
       if (!ext.locador) {
@@ -489,6 +517,7 @@
 
       let mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
       if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
+
 
       // IA PARA CONTATOS E PIX
       loader.innerHTML = '🤖 IA extraindo telefones, e-mail e PIX...';
@@ -594,34 +623,18 @@ ${fullText.substring(0, 8000)}`;
     } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
   }
 
-  async function doRegister() {
-    const email = document.getElementById('auth-email').value.trim();
-    const password = document.getElementById('auth-pass').value;
-    const status = document.getElementById('auth-status');
-    const btn = document.getElementById('btn-register');
-    status.style.display = 'block'; status.className = 'auth-msg loading'; status.innerText = 'Criando conta...'; btn.disabled = true;
-    if (!email || !password) { status.className = 'auth-msg err'; status.innerText = 'Preencha e-mail e senha.'; btn.disabled = false; return; }
-    try {
-      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/signup`, {
-        method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password })
-      });
-      const data = await resp.json();
-      if (!resp.ok) { status.className = 'auth-msg err'; status.innerText = 'Erro: ' + data.message; } 
-      else { status.className = 'auth-msg ok'; status.innerText = '✓ Cadastro concluído!'; setLocalSession(data); setTimeout(() => checkSession(), 400); }
-    } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
-  }
-
   function doLogout() { setLocalSession(null); checkSession(); }
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-login').addEventListener('click', doLogin);
-    document.getElementById('btn-register').addEventListener('click', doRegister);
     document.getElementById('btn-logout-action').addEventListener('click', doLogout);
+    
+    const hoje = new Date();
+    document.getElementById('filtro-mes').value = `${hoje.getFullYear()}-${(hoje.getMonth()+1).toString().padStart(2, '0')}`;
     
     document.querySelectorAll('.card input').forEach(input => {
       input.addEventListener('input', () => { input.classList.remove('field-ok'); });
     });
-
     checkSession();
   });
 
@@ -630,12 +643,14 @@ ${fullText.substring(0, 8000)}`;
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     btn.classList.add('active');
+    
     if (name === 'imoveis') carregarImoveis();
+    if (name === 'taxas_cond') renderizarTaxasCondominiais();
   }
 
 
   // =======================================================
-  // TABELA DE IMOVEIS ADMINISTRADOS (COM MINIATURA DE PDF)
+  // TABELA DE IMOVEIS ADMINISTRADOS
   // =======================================================
   
   async function loadTableThumbnails() {
@@ -656,12 +671,17 @@ ${fullText.substring(0, 8000)}`;
         await page.render({ canvasContext: ctx, viewport: viewport }).promise;
         
         canvas.dataset.loaded = "true";
-        canvas.nextElementSibling.style.display = 'none'; // Esconde o ícone de fallback
-        canvas.style.display = 'block'; // Mostra a capa do PDF
+        canvas.nextElementSibling.style.display = 'none';
+        canvas.style.display = 'block';
       } catch (e) {
         console.warn("Erro ao carregar miniatura do PDF para a linha", e);
       }
     }
+  }
+
+  function toggleMarcar(idString, isChecked) {
+    const c = contratosDB.find(x => String(x.id || x._tempId) === String(idString));
+    if(c) c.marcado = isChecked;
   }
 
   function renderizarTabelaLinear() {
@@ -669,12 +689,16 @@ ${fullText.substring(0, 8000)}`;
     if (!tbody) return;
     tbody.innerHTML = '';
     
-    if (contratosDB.length === 0) {
+    // Filtro invisível para SOFT DELETE (esconde da tela)
+    const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
+
+    if (imoveisVisiveis.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: #64748b;">Nenhum imóvel administrado registado.</td></tr>';
       return;
     }
 
-    contratosDB.forEach((c, i) => {
+    imoveisVisiveis.forEach((c) => {
+      const i = contratosDB.indexOf(c); // Indice real
       const idReg = c.id || c._tempId;
       const statusVal = c.ativo || 'SIM';
       
@@ -690,26 +714,26 @@ ${fullText.substring(0, 8000)}`;
 
       tbody.innerHTML += `
         <tr>
-          <td>
+          <td class="fit">
             <button class="btn btn-danger" onclick="excluirImovel('${idReg}')">🗑️ Excluir</button>
           </td>
-          <td style="text-align: center;">
-            <input type="checkbox" class="checkbox-marcar" value="${idReg}">
+          <td class="fit" style="text-align: center;">
+            <input type="checkbox" class="checkbox-marcar" onchange="toggleMarcar('${idReg}', this.checked)" ${c.marcado ? 'checked' : ''}>
           </td>
-          <td>
-            <select onchange="updateDbLinear(${i}, 'ativo', this.value)" style="padding: 6px; font-size: 0.82rem; width: 100%; border: 1px solid #ccc; border-radius: 4px;">
+          <td class="fit">
+            <select onchange="updateDbLinear(${i}, 'ativo', this.value)" style="padding: 6px; font-size: 0.82rem; width: 100px; border: 1px solid #ccc; border-radius: 4px;">
               <option value="SIM" ${statusVal === 'SIM' ? 'selected' : ''}>🟢 Ativo</option>
-              <option value="NÃO" ${statusVal !== 'SIM' ? 'selected' : ''}>🔴 Inativo</option>
+              <option value="NÃO" ${statusVal === 'NÃO' ? 'selected' : ''}>🔴 Inativo</option>
             </select>
           </td>
           <td>
             <strong style="font-size: 0.95rem;">${c.inquilino || 'Não informado'}</strong><br>
             <span style="font-size: 0.75rem; color: #64748b;">Locador: ${c.proprietario || '-'}</span>
           </td>
-          <td style="font-size: 0.85rem;">
+          <td>
             ${c.endereco || 'Endereço não informado'}
           </td>
-          <td style="text-align: center;">
+          <td class="fit" style="text-align: center;">
             ${btnPdf}
           </td>
         </tr>
@@ -726,26 +750,17 @@ ${fullText.substring(0, 8000)}`;
     
     try {
       const resp = await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?select=*&order=created_at.desc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}` } });
-      
-      if (resp.status === 401 || resp.status === 403) {
-        throw new Error("Sessão expirada.");
-      }
-
       if (resp.ok) { 
         contratosDB = await resp.json(); 
         renderizarTabelaLinear(); 
       }
-    } catch(e) { 
-      if (e.message.includes("Sessão expirada")) {
-        alert("Sua sessão expirou por segurança. Faça login novamente.");
-        doLogout();
-      }
-    }
+    } catch(e) {}
   }
 
   async function updateDbLinear(index, field, value) {
     contratosDB[index][field] = value;
     renderizarTabelaLinear();
+    renderizarTaxasCondominiais();
     const s = getLocalSession(); const id = contratosDB[index].id; if(!id) return;
     try {
       await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?id=eq.${id}`, {
@@ -757,44 +772,31 @@ ${fullText.substring(0, 8000)}`;
   }
 
   async function excluirImovel(idReg) {
-    const confirm1 = confirm("Tem certeza que deseja excluir este imóvel administrado?");
-    if (!confirm1) return;
-    const confirm2 = confirm("⚠️ ATENÇÃO: Esta exclusão apagará o registo do banco de dados permanentemente. Deseja mesmo prosseguir?");
-    if (!confirm2) return;
+    if (!confirm("Tem certeza que deseja remover este contrato da tela de imóveis administrados?\nEle continuará salvo no banco de dados para segurança financeira.")) return;
 
-    contratosDB = contratosDB.filter(item => (item.id || item._tempId) != idReg);
-    renderizarTabelaLinear();
+    const idx = contratosDB.findIndex(x => (x.id || x._tempId) == idReg);
+    if(idx > -1) {
+      contratosDB[idx].ativo = 'EXCLUIDO';
+      renderizarTabelaLinear();
+      renderizarTaxasCondominiais();
 
-    const s = getLocalSession();
-    if (!s || typeof idReg === 'number' || String(idReg).length > 10) {
-      alert("✓ Registo removido temporário com sucesso.");
-      return;
-    }
-
-    try {
-      const resp = await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
-        method: 'DELETE',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}` }
-      });
-      if (resp.ok) {
-        alert("✓ Registo excluído do banco de dados com sucesso.");
-      } else {
-        const erro = await resp.json();
-        if (erro.message && erro.message.includes("JWT expired")) {
-            alert("Sua sessão expirou por segurança. Faça o login e tente novamente.");
-            doLogout();
-        } else {
-            alert("Erro ao tentar excluir no banco de dados.");
-        }
+      const s = getLocalSession();
+      const idBanco = contratosDB[idx].id;
+      if (s && idBanco) {
+        try {
+          await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?id=eq.${idBanco}`, {
+            method: 'PATCH',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ativo: 'EXCLUIDO' })
+          });
+        } catch(e) {}
       }
-    } catch(e) {
-      alert("Falha de rede ao excluir: " + e.message);
     }
   }
 
 
   // =======================================================
-  // SALVAR NOVO CONTRATO NO SUPABASE DE FORMA SEGURA
+  // SALVAR NOVO CONTRATO NO SUPABASE DE FORMA SEGURA E LIMPAR FORMULÁRIO
   // =======================================================
   function sincronizarCampos() { }
 
@@ -817,13 +819,8 @@ ${fullText.substring(0, 8000)}`;
         });
         if (uRes.ok) {
             urlPdf = `${SUPABASE_BASE_URL}/storage/v1/object/public/contratos/${filePath}`;
-        } else {
-            const errD = await uRes.text();
-            alert("Aviso: O Supabase bloqueou o envio do PDF. O contrato será salvo, mas ficará 'Sem anexo'. Certifique-se que o bucket 'contratos' existe no Supabase Storage e permite uploads. Detalhe: " + errD);
         }
-      } catch(e) {
-          alert("Erro de ligação ao tentar enviar o PDF: " + e.message);
-      }
+      } catch(e) {}
     }
 
     const payload = {
@@ -892,12 +889,7 @@ ${fullText.substring(0, 8000)}`;
 
       } else {
         const errData = await r.json();
-        if (errData.message && errData.message.includes("JWT expired")) {
-            alert("A sua sessão expirou por segurança. Faça login novamente.\n\nFique tranquilo, os dados não foram apagados da tela.");
-            doLogout();
-        } else {
-            alert('Erro ao gravar no banco de dados. Verifique se adicionou todas as colunas no Supabase. Detalhe: ' + JSON.stringify(errData));
-        }
+        alert('Erro ao gravar no banco de dados. Verifique se adicionou todas as colunas no Supabase.');
       }
     } catch(e) {
       alert('Falha de conexão com o banco de dados: ' + e.message);
@@ -912,6 +904,77 @@ ${fullText.substring(0, 8000)}`;
     document.getElementById('pdf-iframe').src = url + '#toolbar=0';
     document.getElementById('pdf-modal').style.display = 'flex';
   }
+
+
+  // =======================================================
+  // ABA: TAXAS CONDOMINIAIS & EXTRAS
+  // =======================================================
+  function editarProporcional(el) {
+    if (el.readOnly) {
+      if (confirm('Deseja editar o valor proporcional calculado automaticamente?')) {
+        el.readOnly = false;
+        el.focus();
+        el.style.backgroundColor = '#fff';
+      }
+    }
+  }
+
+  function calcularProp(valorBase, dataInicio, mesRef) {
+    if (!valorBase || !dataInicio || !mesRef) return 'Não';
+    const [anoRef, mesRefStr] = mesRef.split('-');
+    const [anoIn, mesIn, diaIn] = dataInicio.split('-');
+    
+    // Se o contrato começa exatamente no mês de referência selecionado e o dia é maior que 1
+    if (anoRef === anoIn && mesRefStr === mesIn) {
+      const dia = parseInt(diaIn);
+      if (dia === 1) return 'Não'; // Mês completo
+      const daysInMonth = new Date(anoRef, mesRefStr, 0).getDate();
+      const usedDays = daysInMonth - dia + 1;
+      const valNum = typeof valorBase === 'number' ? valorBase : parseFloat(String(valorBase).replace(/\./g,'').replace(',','.'));
+      const calc = (valNum / daysInMonth) * usedDays;
+      return formatadorStr(calc);
+    }
+    return 'Não';
+  }
+
+  function renderizarTaxasCondominiais() {
+    const tbody = document.getElementById('tabela-taxas-body');
+    if(!tbody) return;
+    
+    const marcados = contratosDB.filter(c => c.marcado && c.ativo === 'SIM');
+
+    if (marcados.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel Ativo foi Marcado na aba de Imóveis Administrados.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = '';
+    const mesRef = document.getElementById('filtro-mes').value;
+
+    marcados.forEach(c => {
+      const i = contratosDB.indexOf(c); // índice real na base
+      
+      // Calcula prop. se não estiver fixado em banco
+      let alugProp = c.aluguel_prop || calcularProp(c.aluguel_base, c.data_inicio, mesRef);
+      let condProp = c.cond_prop || calcularProp(c.condominio_base, c.data_inicio, mesRef);
+
+      tbody.innerHTML += `
+        <tr>
+          <td><strong style="font-size:0.85rem;">${c.inquilino}</strong></td>
+          <td style="font-size:0.75rem;">${c.endereco}</td>
+          <td><input type="text" value="${alugProp}" readonly onclick="editarProporcional(this)" onchange="updateDbLinear(${i}, 'aluguel_prop', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+          <td><input type="text" value="${condProp}" readonly onclick="editarProporcional(this)" onchange="updateDbLinear(${i}, 'cond_prop', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+          <td><input type="text" value="${c.cond_mes || ''}" onchange="updateDbLinear(${i}, 'cond_mes', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+          <td><input type="text" value="${c.iptu || ''}" onchange="updateDbLinear(${i}, 'iptu', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+          <td><input type="text" value="${c.bombeiro || ''}" onchange="updateDbLinear(${i}, 'bombeiro', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+          <td><input type="text" value="${c.seguro || ''}" onchange="updateDbLinear(${i}, 'seguro', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+          <td><input type="text" value="${c.outras_taxas || ''}" onchange="updateDbLinear(${i}, 'outras_taxas', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+          <td><input type="text" value="${c.desconto || ''}" onchange="updateDbLinear(${i}, 'desconto', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+        </tr>
+      `;
+    });
+  }
+
 </script>
 </body>
 </html>
