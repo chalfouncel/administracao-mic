@@ -164,7 +164,7 @@
           </div>
         </div>
         <div class="file-name-pill" id="file-name-pill"></div>
-        <div id="ai-extract-loader" class="ai-loader">⏳ Extraindo dados do contrato...</div>
+        <div id="ai-extract-loader" class="ai-loader">⏳ Extraindo dados contratuais...</div>
         
         <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="processarContratoPDF(event)">
         <button type="button" class="btn btn-gold" style="width:100%; font-size:0.85rem; padding:10px;" onclick="document.getElementById('contratoFile').click()">
@@ -221,19 +221,18 @@
           </div>
           <div>
             <label>Valor do aluguel Base</label>
-            <!-- Alterado para type="text" para suportar formatação de Moeda Brasileira (R$ 1.000,00) -->
-            <input type="text" id="aluguelBase" placeholder="0,00" onkeyup="formatarMoedaInput(this); sincronizarCampos()">
+            <input type="text" id="aluguelBase" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this); sincronizarCampos()">
           </div>
         </div>
 
         <div class="grid-3" style="margin-top:14px;">
           <div>
             <label>Condomínio Base</label>
-            <input type="text" id="condominioBase" placeholder="0,00" onkeyup="formatarMoedaInput(this)">
+            <input type="text" id="condominioBase" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)">
           </div>
           <div>
             <label>Taxa Adm Fixo (R$)</label>
-            <input type="text" id="valorTaxaAdm" placeholder="0,00" onkeyup="formatarMoedaInput(this)">
+            <input type="text" id="valorTaxaAdm" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)">
           </div>
           <div>
             <label>Repassa Condomínio?</label>
@@ -248,6 +247,7 @@
     </div>
   </div>
 
+  <!-- ABA 2: IMÓVEIS ADMINISTRADOS -->
   <div id="tab-imoveis" class="tab-content">
     <div class="card" style="padding: 10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 8px;">
@@ -279,6 +279,7 @@
     </div>
   </div>
 
+  <!-- ABA 3: CÁLCULO E REPASSE -->
   <div id="tab-calculo" class="tab-content">
     <div class="card">
       <div class="card-title">1. Dados de Cobrança & Mês de Referência</div>
@@ -353,25 +354,19 @@
   let selectedPdfFile = null;
 
   /* =========================================
-     MÓDULO 1: FORMATAÇÃO DE MOEDA (PORTUGUÊS-BR) E PARSER
+     MÓDULO 1: FORMATAÇÃO DE MOEDA (PORTUGUÊS-BR)
   ========================================= */
-  // Formata o número (ex: 1500.5) para String (ex: 1.500,50)
   const formatadorStr = val => {
     if(!val) return '';
     return parseFloat(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
   const fmtMoeda = val => parseFloat(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  
-  // Converte a string do Input text formatada "R$ 1.000,00" ou "1.000,00" de volta para Float numérico
   const parseMoedaToFloat = str => {
     if (!str) return 0;
     if (typeof str === 'number') return str;
-    let s = String(str).replace(/[^\d,-]/g, '');
-    s = s.replace(',', '.');
+    let s = String(str).replace(/[^\d,-]/g, '').replace(',', '.');
     return parseFloat(s) || 0;
   };
-
-  // Máscara real-time para campos de moeda no HTML
   function formatarMoedaInput(i) {
     let v = i.value.replace(/\D/g,'');
     if(v === '') { i.value = ''; return; }
@@ -398,9 +393,9 @@
 
   function cleanName(raw) {
     if (!raw) return "";
-    let s = raw.trim();
-    s = s.replace(/^(?:Nome|Signat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '').replace(/\s+CPF.*$/i, '').replace(/\s+assinou.*$/i, '');
-    return s.split(',')[0].trim();
+    let s = raw.trim().split(',')[0];
+    s = s.replace(/^(?:Nome|Signat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '');
+    return normalizarTextoBrasil(s.trim());
   }
 
   function extractAddressAfterSituado(text) {
@@ -431,7 +426,6 @@
     } catch (e) {}
   }
 
-  // Lógica principal de extração de arquivo anexado
   async function processarContratoPDF(event) {
     const file = event.target.files[0];
     if (!file || file.type !== 'application/pdf') return;
@@ -465,26 +459,28 @@
         }
       }
 
-      const page1Text = page1RawLines.join(" ");
+      const page1Text = page1RawLines.join(" ").replace(/\s+/g, " ");
       let ext = { locador: '', telLocador: '', locatario: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '' };
 
       // 1. Locador e Telefone
-      const blocoLocador = page1Text.match(/LOCADOR(?:A)?\s*\([\s\w]*\)?\s*[:\-–]?\s*(.*?)(?=LOCAT[AÁ]RIO|IM[OÓ]VEL)/is);
+      const blocoLocador = page1Text.match(/LOCADOR(?:\(A\))?\s*[:\-]?\s*(.*?)(?=LOCAT[AÁ]RIO|IM[OÓ]VEL)/is);
       if(blocoLocador) {
         const txt = blocoLocador[1];
-        ext.locador = cleanName(txt.split(',')[0]);
+        ext.locador = cleanName(txt);
         const mTel = txt.match(/Tel(?:efone|\.)?\s*[:\-]?\s*([\d\s\-\(\)]{9,20})/i);
         if(mTel) ext.telLocador = mTel[1].trim();
+        const mPixLoc = txt.match(/chave PIX\s+([\w\.\-\@\+]+)\s+em nome/i);
+        if(mPixLoc) ext.pix = mPixLoc[1].trim();
       }
 
       // 2. Locatário, E-mail e Telefone
-      const blocoLocatario = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\([\s\w]*\)?\s*[:\-–]?\s*(.*?)(?=IM[OÓ]VEL|As partes)/is);
+      const blocoLocatario = page1Text.match(/LOCAT[AÁ]RIO(?:\(A\))?\s*[:\-]?\s*(.*?)(?=IM[OÓ]VEL|As partes)/is);
       if(blocoLocatario) {
         const txt = blocoLocatario[1];
-        ext.locatario = cleanName(txt.split(',')[0]);
-        const mEmail = txt.match(/Email\.?\s*[:\-]?\s*([a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+        ext.locatario = cleanName(txt);
+        const mEmail = txt.match(/Email[\.\s:]*([a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
         if(mEmail) ext.emailLocatario = mEmail[1].trim();
-        const mTel = txt.match(/Telefone\s*[:\-]?\s*([\d\s\-\(\)]{9,20})/i);
+        const mTel = txt.match(/Tel(?:efone|\.)?\s*[:\-]?\s*([\d\s\-\(\)]{9,20})/i);
         if(mTel) ext.telLocatario = mTel[1].trim();
       }
 
@@ -502,13 +498,16 @@
       let mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
       if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
-      // 6. PIX Proprietário (Cláusula Segunda)
-      let mPix = fullText.match(/chave PIX para transfer[êe]ncia [ée] o [a-zA-Z]*\s*([\w\.\-\@\+]+)\s*em nome de/i);
-      if(!mPix) mPix = fullText.match(/chave PIX.*?:\s*([\w\.\-\@\+]+)\s*em nome/i);
-      if(!mPix) mPix = fullText.match(/chave PIX\s*([\w\.\-\@]+)/i);
-      if(mPix) ext.pix = mPix[1].trim();
+      // 6. PIX Fallback
+      if(!ext.pix) {
+        let mPix = fullText.match(/chave PIX.*?celular\s+([\d]+)\s+em nome/i);
+        if(!mPix) mPix = fullText.match(/chave PIX.*?email\s+([\w\.\-\@]+)\s+em nome/i);
+        if(!mPix) mPix = fullText.match(/chave PIX.*?cpf\s+([\d\.\-]+)\s+em nome/i);
+        if(!mPix) mPix = fullText.match(/chave PIX\s+(?!para\b)([\w\.\-\@\+]+)\s+em nome/i);
+        if(mPix) ext.pix = mPix[1].trim();
+      }
 
-      // FUNÇÃO DE AVISO VISUAL DOS CAMPOS (FLASH VERDE)
+      // FUNÇÃO FLASH (Feedback Verde)
       function flash(id, val) { 
         if(val) { 
           const el = document.getElementById(id); 
@@ -527,8 +526,6 @@
       flash('endereco', decodeAddressOnly(ext.endereco));
       flash('dataInicio', ext.dataIn);
       flash('dataFim', ext.dataFim);
-      
-      // Formata o valor de Extração para String BR
       flash('aluguelBase', formatadorStr(ext.valor));
       
       sincronizarCampos();
@@ -537,7 +534,6 @@
       console.error(err); alert('Erro ao processar contrato: ' + err.message);
     } finally { loader.style.display = 'none'; }
   }
-
 
   /* =========================================
      MÓDULO 3: GESTÃO DO SISTEMA E LOGIN
