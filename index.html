@@ -282,23 +282,24 @@
       </div>
       
       <div class="table-linear-container">
-        <table class="table-linear" style="min-width: 1300px;">
+        <table class="table-linear" style="min-width: 1400px;">
           <thead>
             <tr>
               <th style="min-width:180px;">Inquilino</th>
               <th style="min-width:250px;">Endereço do Imóvel</th>
-              <th class="fit">Alug. Prop</th>
-              <th class="fit">Cond. Prop</th>
+              <th class="fit" title="Aluguel Proporcional">Alug. Prop</th>
+              <th class="fit" title="Condomínio Proporcional">Cond. Prop</th>
               <th class="fit">Cond. mês</th>
               <th class="fit">IPTU</th>
               <th class="fit">Bombeiro</th>
               <th class="fit">Seguro</th>
               <th class="fit">Outras</th>
               <th class="fit">Desconto</th>
+              <th class="fit" style="background-color: var(--primary);">Valor da Cobrança</th>
             </tr>
           </thead>
           <tbody id="tabela-taxas-body">
-            <tr><td colspan="10" style="text-align: center; padding: 20px; color: #64748b;">Nenhum imóvel Ativo marcado na aba anterior.</td></tr>
+            <tr><td colspan="11" style="text-align: center; padding: 20px; color: #64748b;">Nenhum imóvel Ativo marcado na aba anterior.</td></tr>
           </tbody>
         </table>
       </div>
@@ -309,7 +310,7 @@
   <div id="tab-taxas_extras" class="tab-content">
     <div class="card">
       <div class="card-title">Lançamento de Taxas Extras (IPTU, Bombeiro, Seguros, Multas)</div>
-      <p style="font-size: 0.85rem; color: #64748b;">As opções de IPTU, Bombeiro, Seguro e Outras foram unificadas na aba "Taxas Condominiais" para facilitar o lançamento mensal.</p>
+      <p style="font-size: 0.85rem; color: #64748b;">Campos adicionados na tabela da aba Taxas Condominiais para gestão consolidada.</p>
     </div>
   </div>
 
@@ -317,7 +318,7 @@
   <div id="tab-descontos" class="tab-content">
     <div class="card">
       <div class="card-title">Controle de Descontos Concedidos</div>
-      <p style="font-size: 0.85rem; color: #64748b;">A opção de descontos foi unificada na aba "Taxas Condominiais" para centralizar o lançamento.</p>
+      <p style="font-size: 0.85rem; color: #64748b;">Campos adicionados na tabela da aba Taxas Condominiais para gestão consolidada.</p>
     </div>
   </div>
 
@@ -344,7 +345,7 @@
     return parseFloat(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
   const parseMoedaToFloat = str => {
-    if (!str) return 0;
+    if (!str || str === 'Não') return 0;
     if (typeof str === 'number') return str;
     let s = String(str).replace(/[^\d,-]/g, '').replace(',', '.');
     return parseFloat(s) || 0;
@@ -688,8 +689,12 @@ ${fullText.substring(0, 8000)}`;
     document.getElementById('btn-register').addEventListener('click', doRegister);
     document.getElementById('btn-logout-action').addEventListener('click', doLogout);
     
+    // O Mês de Referência é sempre o PRÓXIMO MÊS.
     const hoje = new Date();
-    document.getElementById('filtro-mes').value = `${hoje.getFullYear()}-${(hoje.getMonth()+1).toString().padStart(2, '0')}`;
+    let proxMes = hoje.getMonth() + 2; 
+    let anoVenc = hoje.getFullYear();
+    if(proxMes > 12) { proxMes = 1; anoVenc++; }
+    document.getElementById('filtro-mes').value = `${anoVenc}-${proxMes.toString().padStart(2, '0')}`;
     
     document.querySelectorAll('.card input').forEach(input => {
       input.addEventListener('input', () => { input.classList.remove('field-ok'); });
@@ -716,7 +721,6 @@ ${fullText.substring(0, 8000)}`;
       if (canvas.dataset.loaded === "true") continue;
       const url = canvas.dataset.pdfUrl;
       if (!url) continue;
-      
       try {
         const loadingTask = pdfjsLib.getDocument(url);
         const pdf = await loadingTask.promise;
@@ -880,7 +884,6 @@ ${fullText.substring(0, 8000)}`;
       } catch(e) { console.warn("Aviso PDF: O bucket 'contratos' pode não existir ou não ter permissão RLS.", e); }
     }
 
-    // RESOLVE O ERRO NOT-NULL (Garante que há um e-mail válido no payload)
     const s = getLocalSession();
     let emailUser = 'chalfouncorretor@gmail.com';
     if (s && s.user && s.user.email) {
@@ -975,11 +978,11 @@ ${fullText.substring(0, 8000)}`;
 
 
   // =======================================================
-  // ABA: TAXAS CONDOMINIAIS & EXTRAS
+  // ABA: TAXAS CONDOMINIAIS & EXTRAS (Com cálculo e totalizador final)
   // =======================================================
   function editarProporcional(el) {
     if (el.readOnly) {
-      if (confirm('Deseja editar manualmente o valor proporcional?\n\n(Aviso: Ao editar manualmente, o cálculo automático deixa de gerir esta célula)')) {
+      if (confirm('Deseja editar manualmente este campo?\n\n(Aviso: Ao editar manualmente, o cálculo automático deixará de agir sobre esta célula)')) {
         el.readOnly = false;
         el.style.backgroundColor = '#fff';
         el.focus();
@@ -989,19 +992,44 @@ ${fullText.substring(0, 8000)}`;
 
   function calcularProp(valorBase, dataInicio, mesRef) {
     if (!valorBase || !dataInicio || !mesRef) return 'Não';
-    const [anoRef, mesRefStr] = mesRef.split('-');
+    const [anoRefStr, mesRefStr] = mesRef.split('-');
+    let anoRef = parseInt(anoRefStr);
+    let mesRefInt = parseInt(mesRefStr);
+    
+    // A competência de cálculo é o mês ANTERIOR ao Mês de Referência (Mês de Pagamento)
+    let mesCompInt = mesRefInt - 1;
+    let anoComp = anoRef;
+    if (mesCompInt === 0) {
+      mesCompInt = 12;
+      anoComp -= 1;
+    }
+
     const [anoIn, mesIn, diaIn] = dataInicio.split('-');
     
-    if (anoRef === anoIn && mesRefStr === mesIn) {
+    if (anoComp === parseInt(anoIn) && mesCompInt === parseInt(mesIn)) {
       const dia = parseInt(diaIn);
       if (dia <= 1) return 'Não'; 
-      const daysInMonth = new Date(anoRef, mesRefStr, 0).getDate();
+      const daysInMonth = new Date(anoComp, mesCompInt, 0).getDate();
       const usedDays = daysInMonth - dia + 1;
       const valNum = typeof valorBase === 'number' ? valorBase : parseFloat(String(valorBase).replace(/\./g,'').replace(',','.'));
       const calc = (valNum / daysInMonth) * usedDays;
       return formatadorStr(calc);
     }
     return 'Não';
+  }
+
+  function calcularTotalCobrancaLinha(c, alugPropVal, condPropVal) {
+    let vAlugProp = (alugPropVal === 'Não' || alugPropVal === '') ? parseMoedaToFloat(c.aluguel_base) : parseMoedaToFloat(alugPropVal);
+    let vCondProp = (condPropVal === 'Não' || condPropVal === '') ? 0 : parseMoedaToFloat(condPropVal);
+    let vCondMes = parseMoedaToFloat(c.cond_mes);
+    let vIptu = parseMoedaToFloat(c.iptu);
+    let vBombeiro = parseMoedaToFloat(c.bombeiro);
+    let vSeguro = parseMoedaToFloat(c.seguro);
+    let vOutras = parseMoedaToFloat(c.outras_taxas);
+    let vDesconto = parseMoedaToFloat(c.desconto);
+
+    let total = vAlugProp + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+    return fmtMoeda(total);
   }
 
   function renderizarTaxasCondominiais() {
@@ -1011,7 +1039,7 @@ ${fullText.substring(0, 8000)}`;
     const marcados = contratosDB.filter(c => c.marcado && c.ativo === 'SIM');
 
     if (marcados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel Ativo marcado na aba anterior.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel Ativo marcado na aba anterior.</td></tr>';
       return;
     }
 
@@ -1023,6 +1051,8 @@ ${fullText.substring(0, 8000)}`;
       
       let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
       let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
+
+      const totalCalculado = calcularTotalCobrancaLinha(c, alugProp, condProp);
 
       tbody.innerHTML += `
         <tr>
@@ -1036,6 +1066,7 @@ ${fullText.substring(0, 8000)}`;
           <td class="fit"><input type="text" value="${c.seguro || ''}" onchange="updateDbLinear(${i}, 'seguro', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"></td>
           <td class="fit"><input type="text" value="${c.outras_taxas || ''}" onchange="updateDbLinear(${i}, 'outras_taxas', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"></td>
           <td class="fit"><input type="text" value="${c.desconto || ''}" onchange="updateDbLinear(${i}, 'desconto', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"></td>
+          <td class="fit" style="background-color:#f8fafc; text-align:center;"><strong style="color:var(--danger); font-size:0.95rem;">${totalCalculado}</strong></td>
         </tr>
       `;
     });
