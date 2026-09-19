@@ -51,7 +51,6 @@
   input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; transition: 0.2s; }
   input:focus, select:focus { border-color: var(--accent); }
   
-  /* Destaque Verde na extração - Fixo */
   .field-ok { background-color: #f0fdf4 !important; border-color: #22c55e !important; color: #047857; font-weight: bold; }
 
   .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; transition: 0.15s; font-size: 0.92rem; }
@@ -59,7 +58,6 @@
   .btn-gold:hover { opacity: 0.95; }
   .btn-dark { background: var(--secondary); color: #fff; }
   .btn-danger { background: var(--danger); color: #fff; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; }
-  .btn-whatsapp { background: #25D366; color: #fff; }
 
   /* TABELA LINEAR DE IMOVEIS ADMINISTRADOS */
   .table-linear-container { width: 100%; max-height: 75vh; overflow: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
@@ -67,6 +65,7 @@
   table.table-linear th { background: #000; color: #fff; padding: 12px 10px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: bold; }
   table.table-linear td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; }
   table.table-linear tr:hover { background: #f8fafc; }
+  .checkbox-marcar { width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent); }
 
   /* LAYOUT ABA RESUMO */
   .resumo-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
@@ -139,7 +138,7 @@
   </div>
 
   <!-- ======================================================= -->
-  <!-- ABA: RESUMO DO CONTRATO — NÃO ALTERAR (Mantido Intacto) -->
+  <!-- ABA: RESUMO DO CONTRATO — NÃO ALTERAR -->
   <!-- ======================================================= -->
   <div id="tab-resumo" class="tab-content active">
     <div class="resumo-layout">
@@ -167,7 +166,7 @@
         <div class="grid-3">
           <div>
             <label>Proprietário (Locador)</label>
-            <input type="text" id="proprietario" placeholder="Nome do locador" oninput="sincronizarCampos()">
+            <input type="text" id="proprietario" placeholder="Nome do locador">
           </div>
           <div>
             <label>Telefone do Proprietário</label>
@@ -182,7 +181,7 @@
         <div class="grid-3" style="margin-top:14px;">
           <div>
             <label>Inquilino (Locatário)</label>
-            <input type="text" id="inquilino" placeholder="Nome do locatário" oninput="sincronizarCampos()">
+            <input type="text" id="inquilino" placeholder="Nome do locatário">
           </div>
           <div>
             <label>Email Inquilino</label>
@@ -202,7 +201,7 @@
         <div class="grid-3" style="margin-top:14px;">
           <div>
             <label>Data de Início</label>
-            <input type="date" id="dataInicio" onchange="sincronizarCampos()">
+            <input type="date" id="dataInicio">
           </div>
           <div>
             <label>Data de fim</label>
@@ -210,7 +209,7 @@
           </div>
           <div>
             <label>Valor do aluguel Base</label>
-            <input type="text" id="aluguelBase" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this); sincronizarCampos()">
+            <input type="text" id="aluguelBase" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)">
           </div>
         </div>
 
@@ -237,7 +236,7 @@
   </div>
 
   <!-- ======================================================= -->
-  <!-- ABA: IMÓVEIS ADMINISTRADOS (ESTRUTURA LINEAR COM 4 COLUNAS) -->
+  <!-- ABA: IMÓVEIS ADMINISTRADOS -->
   <!-- ======================================================= -->
   <div id="tab-imoveis" class="tab-content">
     <div class="card" style="padding: 10px;">
@@ -250,14 +249,16 @@
         <table class="table-linear">
           <thead>
             <tr>
-              <th style="width: 15%;">Ações (Excluir)</th>
-              <th style="width: 15%;">Status / Marcar</th>
-              <th style="width: 30%;">Inquilino</th>
-              <th style="width: 40%;">Endereço do Imóvel</th>
+              <th style="width: 10%;">Ações (Excluir)</th>
+              <th style="width: 5%; text-align: center;">Marcar</th>
+              <th style="width: 15%;">Status</th>
+              <th style="width: 25%;">Inquilino</th>
+              <th style="width: 35%;">Endereço do Imóvel</th>
+              <th style="width: 10%; text-align: center;">Contrato</th>
             </tr>
           </thead>
           <tbody id="tabela-imoveis-linear-body">
-            <tr><td colspan="4" style="text-align: center; padding: 20px; color: #64748b;">Carregando imóveis administrados...</td></tr>
+            <tr><td colspan="6" style="text-align: center; padding: 20px; color: #64748b;">Carregando imóveis administrados...</td></tr>
           </tbody>
         </table>
       </div>
@@ -451,7 +452,7 @@
       let ext = { locador: '', telLocador: '', locatario: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '' };
       let page1Text = page1RawLines.join(" ");
 
-      // LÓGICA LOCAL PARA OS NOMES (GARANTIDA)
+      // LÓGICA LOCAL PARA OS NOMES E DATAS (INTOCÁVEL E GARANTIDA)
       let mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
       if (mLoc1 && isValidPersonName(mLoc1[1])) ext.locador = cleanName(mLoc1[1]);
       if (!ext.locador) {
@@ -484,7 +485,7 @@
       if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
 
-      // IA PARA CONTATOS E PIX
+      // IA PARA CONTATOS E PIX (INTOCÁVEL)
       loader.innerHTML = '🤖 IA extraindo telefones, e-mail e PIX...';
       try {
         const promptIA = `Você é um perito de extração de dados. Analise o texto do contrato abaixo e retorne APENAS um objeto JSON.
@@ -518,7 +519,7 @@ ${fullText.substring(0, 8000)}`;
         }
       } catch(eIA) {}
 
-      // PREENCHIMENTO NA TELA COM FLASH VERDE
+      // PREENCHIMENTO NA TELA COM FLASH VERDE FIXO
       function flash(id, val) { 
         if(val && val.trim() !== '') { 
           const el = document.getElementById(id); 
@@ -630,7 +631,7 @@ ${fullText.substring(0, 8000)}`;
 
 
   // =======================================================
-  // TABELA DE IMOVEIS ADMINISTRADOS (LINEAR 4 COLUNAS)
+  // TABELA DE IMOVEIS ADMINISTRADOS (LINEAR 6 COLUNAS COMPLETO)
   // =======================================================
   function renderizarTabelaLinear() {
     const tbody = document.getElementById('tabela-imoveis-linear-body');
@@ -638,18 +639,25 @@ ${fullText.substring(0, 8000)}`;
     tbody.innerHTML = '';
     
     if (contratosDB.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #64748b;">Nenhum imóvel administrado registado.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: #64748b;">Nenhum imóvel administrado registado.</td></tr>';
       return;
     }
 
     contratosDB.forEach((c, i) => {
-      const idReg = c.id;
+      const idReg = c.id || c._tempId;
       const statusVal = c.ativo || 'SIM';
       
+      const btnPdf = c.contrato_url 
+        ? `<button class="btn btn-dark" style="font-size:0.75rem; padding:4px 8px;" onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')">📄 Ver Contrato</button>` 
+        : '<span style="font-size:0.75rem; color:#94a3b8;">Sem anexo</span>';
+
       tbody.innerHTML += `
         <tr>
           <td>
             <button class="btn btn-danger" onclick="excluirImovel('${idReg}')">🗑️ Excluir</button>
+          </td>
+          <td style="text-align: center;">
+            <input type="checkbox" class="checkbox-marcar" value="${idReg}">
           </td>
           <td>
             <select onchange="updateDbLinear(${i}, 'ativo', this.value)" style="padding: 6px; font-size: 0.82rem; width: 100%; border: 1px solid #ccc; border-radius: 4px;">
@@ -664,6 +672,9 @@ ${fullText.substring(0, 8000)}`;
           <td style="font-size: 0.85rem;">
             ${c.endereco || 'Endereço não informado'}
           </td>
+          <td style="text-align: center;">
+            ${btnPdf}
+          </td>
         </tr>
       `;
     });
@@ -672,7 +683,7 @@ ${fullText.substring(0, 8000)}`;
   async function carregarImoveis() {
     const s = getLocalSession(); if (!s) return;
     const tbody = document.getElementById('tabela-imoveis-linear-body');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #64748b;">Carregando dados do banco de dados...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: #64748b;">Carregando dados do banco de dados...</td></tr>';
     
     try {
       const resp = await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?select=*&order=created_at.desc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}` } });
@@ -713,11 +724,14 @@ ${fullText.substring(0, 8000)}`;
     if (!confirm2) return;
 
     // Remove localmente para a UI atualizar logo
-    contratosDB = contratosDB.filter(item => item.id != idReg);
+    contratosDB = contratosDB.filter(item => (item.id || item._tempId) != idReg);
     renderizarTabelaLinear();
 
     const s = getLocalSession();
-    if (!s || !idReg) return;
+    if (!s || typeof idReg === 'number') {
+      alert("✓ Registo removido temporário com sucesso.");
+      return;
+    }
 
     try {
       const resp = await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
@@ -742,13 +756,8 @@ ${fullText.substring(0, 8000)}`;
 
 
   // =======================================================
-  // SALVAR NOVO CONTRATO NO SUPABASE DE FORMA SEGURA
+  // SALVAR NOVO CONTRATO NO SUPABASE DE FORMA SEGURA E LIMPAR FORMULÁRIO
   // =======================================================
-  function sincronizarCampos() {
-      // Deixado vazio de propósito para não gerar erros no console.
-      // Futuramente servirá para conectar o resumo com o motor de cálculos mestre das outras abas.
-  }
-
   async function gravarNovoContrato() {
     const btn = document.getElementById('btn-gravar-novo'); 
     btn.disabled = true; 
@@ -758,7 +767,9 @@ ${fullText.substring(0, 8000)}`;
     let urlPdf = null;
     
     if (selectedPdfFile) {
-      const filePath = `contratos/${Date.now()}_contrato.pdf`;
+      const safeInq = (document.getElementById('inquilino').value || 'inquilino').replace(/[^a-zA-Z0-9]/g, '_');
+      // Indexação individual do PDF no Storage com Nome + Data de Criação Exclusiva
+      const filePath = `contratos/${Date.now()}_${safeInq}.pdf`;
       try {
         const uRes = await fetch(`${SUPABASE_BASE_URL}/storage/v1/object/contratos/${filePath}`, { 
           method: 'POST', 
@@ -807,24 +818,44 @@ ${fullText.substring(0, 8000)}`;
         // Pega o ID gerado pelo banco para colocar na tabela visual
         if (dadosGravados && dadosGravados.length > 0) {
             payload.id = dadosGravados[0].id;
+        } else {
+            payload._tempId = Date.now();
         }
 
-        // Insere na lista e recarrega
+        // Insere na lista e recarrega a tabela de Imóveis
         contratosDB.unshift(payload);
         renderizarTabelaLinear();
 
         alert('✓ Dados e contrato gravados com sucesso na base de dados!');
         
-        // Limpar todos os campos APENAS se houver sucesso
-        document.querySelectorAll('#tab-resumo input').forEach(el => { el.value = ''; el.classList.remove('field-ok'); });
+        // ----------------------------------------------------
+        // LIMPEZA TOTAL DA ABA "RESUMO DO CONTRATO" PARA NOVO LANÇAMENTO
+        // ----------------------------------------------------
+        document.querySelectorAll('#tab-resumo input, #tab-resumo select').forEach(el => { 
+          if(el.type !== 'file') {
+            el.value = ''; 
+          }
+          el.classList.remove('field-ok'); 
+        });
+
+        // Limpar Miniatura do PDF e Input de Arquivo
+        document.getElementById('contratoFile').value = '';
         selectedPdfFile = null; 
         document.getElementById('file-name-pill').style.display = 'none';
         
-        // Mudar para a aba de Imóveis
+        const canvas = document.getElementById('pdf-thumb-canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.style.display = 'none';
+        document.getElementById('thumb-placeholder').style.display = 'block';
+        // ----------------------------------------------------
+        
+        // Mudar automaticamente para a aba de Imóveis
         setTab('imoveis', document.querySelectorAll('.tab-btn')[1]);
 
       } else {
         const errData = await r.json();
+        // Deteta erro de Token Expirado silenciosamente enviado pelo Supabase
         if (errData.message && errData.message.includes("JWT expired")) {
             alert("A sua sessão expirou por segurança. Faça login novamente.\n\nFique tranquilo, os dados não foram apagados da tela.");
             doLogout();
