@@ -383,7 +383,7 @@
   }
 
   /* =========================================
-     MÓDULO 2: O MOTOR EXATO DE VISTORIA FÁCIL
+     MÓDULO 2: EXTRATOR LOCAL CIRÚRGICO CLICKSIGN
   ========================================= */
 
   function cleanSearch(text) {
@@ -474,6 +474,7 @@
     } catch (e) {}
   }
 
+  // --- MOTOR PRINCIPAL COM INTEGRAÇÃO DA IA GEMINI PARA OS CONTATOS E PIX ---
   async function processarContratoPDF(event) {
     const file = event.target.files[0];
     if (!file || file.type !== 'application/pdf') return;
@@ -510,7 +511,7 @@
       let ext = { locador: '', telLocador: '', locatario: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '' };
       let page1Text = page1RawLines.join(" ");
 
-      /* --- MESMA LÓGICA DO VISTORIA FÁCIL PARA OS NOMES ---[cite: 20] */
+      // LÓGICA LOCAL PARA OS NOMES (A MESMA QUE FUNCIONA NO APP VISTORIA)
       let mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
       if (mLoc1 && isValidPersonName(mLoc1[1])) ext.locador = cleanName(mLoc1[1]);
       if (!ext.locador) {
@@ -531,6 +532,7 @@
         }
       }
 
+      // ENDEREÇO E DATAS
       ext.endereco = extractAddressAfterSituado(page1Text);
 
       let dateMatches = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
@@ -539,31 +541,49 @@
         ext.dataFim = dateMatches[1].split('/').reverse().join('-');
       }
 
+      // VALOR ALUGUEL
       let mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
       if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
-      /* --- NOVA LÓGICA PARA TELEFONES E EMAIL VARRENDO OS BLOCOS --- */
-      let blocoLocador = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*(.*?)(?=LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?|IM[OÓ]VEL)/is);
-      if (blocoLocador) {
-        let mTel = blocoLocador[1].match(/\b(?:Tel|Telefone|Celular)\.?\s*[:\-]?\s*([\d\s\-\(\)]{9,20})\b/i);
-        if(mTel) ext.telLocador = mTel[1].trim();
+
+      /* --- USO EXCLUSIVO DA IA (GEMINI VIA /api/chat) PARA EXTRAIR TELEFONES, EMAIL E PIX --- */
+      document.getElementById('ai-extract-loader').innerText = "⏳ Extraindo contatos com IA Gemini...";
+      try {
+        const iaPrompt = `Analise o texto deste contrato e retorne EXCLUSIVAMENTE um objeto JSON válido, sem qualquer formatação markdown (sem \`\`\`json).
+Regras de extração:
+1. telLocador: Busque o Telefone na qualificação do "LOCADOR(A):".
+2. emailLocatario: Busque o Email na qualificação do "LOCATÁRIO(A):".
+3. telLocatario: Busque o Telefone na qualificação do "LOCATÁRIO(A):".
+4. pixLocador: Busque a chave PIX na "CLÁUSULA SEGUNDA" após a frase "A chave PIX para transferência é". ATENÇÃO: NÃO extraia a palavra "para" ou outras palavras soltas como se fossem o PIX. O PIX será um email, telefone, CPF ou chave aleatória.
+
+Retorne APENAS o JSON neste exato formato (se não achar algum, deixe a string vazia ""):
+{"telLocador": "", "emailLocatario": "", "telLocatario": "", "pixLocador": ""}
+
+Texto do Contrato (Preâmbulo e Cláusulas Iniciais):
+${fullText.substring(0, 10000)}`;
+
+        const resIA = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: iaPrompt })
+        });
+
+        if (resIA.ok) {
+          const iaData = await resIA.json();
+          const cleanJson = iaData.reply.replace(/```json/gi, '').replace(/```/g, '').trim();
+          const extIA = JSON.parse(cleanJson);
+          
+          if (extIA.telLocador) ext.telLocador = extIA.telLocador;
+          if (extIA.emailLocatario) ext.emailLocatario = extIA.emailLocatario;
+          if (extIA.telLocatario) ext.telLocatario = extIA.telLocatario;
+          if (extIA.pixLocador && String(extIA.pixLocador).toLowerCase() !== "para") ext.pix = extIA.pixLocador;
+        }
+      } catch (errIA) {
+        console.warn("IA para contatos não retornou JSON válido:", errIA);
       }
+      /* --------------------------------------------------------------------------------------- */
 
-      let blocoLocatario = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*(.*?)(?=IM[OÓ]VEL|As partes)/is);
-      if (blocoLocatario) {
-        let mEmail = blocoLocatario[1].match(/\bEmail\.?\s*[:\-]?\s*([a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
-        if(mEmail) ext.emailLocatario = mEmail[1].trim();
-        let mTel = blocoLocatario[1].match(/\b(?:Tel|Telefone|Celular)\.?\s*[:\-]?\s*([\d\s\-\(\)]{9,20})\b/i);
-        if(mTel) ext.telLocatario = mTel[1].trim();
-      }
-
-      /* --- NOVA LÓGICA PIX (Ignorando a palavra "para") --- */
-      let mPix = fullText.match(/chave PIX para transfer[êe]ncia [ée]\s*(?:o\s+)?(?:celular\s+|email\s+|cpf\s+)?([\w\.\-\@]+)/i);
-      if(!mPix) mPix = fullText.match(/chave PIX.*?:\s*([\w\.\-\@]+)/i);
-      if(!mPix) mPix = fullText.match(/chave PIX\s+(?!para\b)([\w\.\-\@]+)/i);
-      if(mPix) ext.pix = mPix[1].trim();
-
-      // FUNÇÃO FLASH PARA O VISUAL (PISCA VERDE)
+      // PREENCHIMENTO DOS CAMPOS NA TELA COM EFEITO VERDE (FLASH)
       function flash(id, val) { 
         if(val) { 
           const el = document.getElementById(id); 
@@ -588,7 +608,10 @@
 
     } catch (err) { 
       console.error(err); alert('Erro ao processar contrato: ' + err.message);
-    } finally { loader.style.display = 'none'; }
+    } finally { 
+      loader.style.display = 'none'; 
+      document.getElementById('ai-extract-loader').innerText = "⏳ Extraindo dados contratuais..."; // Reseta texto
+    }
   }
 
 
@@ -827,6 +850,30 @@
     document.getElementById('pdf-modal-title').innerText = 'Contrato - ' + inq;
     document.getElementById('pdf-iframe').src = url + '#toolbar=0';
     document.getElementById('pdf-modal').style.display = 'flex';
+  }
+
+  async function sendChat() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const chatArea = document.getElementById('chatArea');
+    chatArea.innerHTML += `<div class="chat-msg user" style="text-align:right; margin: 4px 0; background:#e0e7ff; padding:8px; border-radius:8px; display:inline-block; float:right; clear:both;">${msg}</div>`;
+    input.value = '';
+    chatArea.scrollTop = chatArea.scrollHeight;
+
+    const botMsgEl = document.createElement('div');
+    botMsgEl.style = "background:#fff; border:1px solid #ddd; padding:8px; border-radius:8px; margin: 4px 0; max-width:80%; clear:both;";
+    botMsgEl.innerText = 'Pensando...';
+    chatArea.appendChild(botMsgEl);
+    chatArea.scrollTop = chatArea.scrollHeight;
+
+    try {
+      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg }) });
+      const json = await res.json();
+      botMsgEl.innerText = json.reply || json.error || 'Sem resposta do modelo.';
+    } catch (e) { botMsgEl.innerText = 'Erro ao consultar IA: ' + e.message; }
+    chatArea.scrollTop = chatArea.scrollHeight;
   }
 </script>
 </body>
