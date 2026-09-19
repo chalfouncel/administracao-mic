@@ -51,19 +51,14 @@
   input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; transition: 0.2s; }
   input:focus, select:focus { border-color: var(--accent); }
   
-  /* Destaque Verde na extração - Mantido Fixo */
+  /* Destaque Verde na extração - Fixo */
   .field-ok { background-color: #f0fdf4 !important; border-color: #22c55e !important; color: #047857; font-weight: bold; }
-
-  .summary-box { background: #0f172a; border: 1px solid var(--accent); color: #fff; border-radius: 10px; padding: 16px; margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; text-align: center; }
-  .summary-item .label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
-  .summary-item .val { font-size: 1.35rem; font-weight: 800; color: var(--gold); }
-  .summary-item .val.green { color: #4ade80; }
 
   .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; transition: 0.15s; font-size: 0.92rem; }
   .btn-gold { background: linear-gradient(135deg, #c59b27, #dfba48); color: #121315; }
   .btn-gold:hover { opacity: 0.95; }
   .btn-dark { background: var(--secondary); color: #fff; }
-  .btn-danger { background: var(--danger); color: #fff; padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; }
+  .btn-danger { background: var(--danger); color: #fff; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; }
   .btn-whatsapp { background: #25D366; color: #fff; }
 
   /* TABELA LINEAR DE IMOVEIS ADMINISTRADOS */
@@ -242,7 +237,7 @@
   </div>
 
   <!-- ======================================================= -->
-  <!-- ABA: IMÓVEIS ADMINISTRADOS (ESTRUTURA LINEAR) -->
+  <!-- ABA: IMÓVEIS ADMINISTRADOS (ESTRUTURA LINEAR COM 4 COLUNAS) -->
   <!-- ======================================================= -->
   <div id="tab-imoveis" class="tab-content">
     <div class="card" style="padding: 10px;">
@@ -315,7 +310,6 @@
     if(!val) return '';
     return parseFloat(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
-  const fmtMoeda = val => parseFloat(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const parseMoedaToFloat = str => {
     if (!str) return 0;
     if (typeof str === 'number') return str;
@@ -649,7 +643,7 @@ ${fullText.substring(0, 8000)}`;
     }
 
     contratosDB.forEach((c, i) => {
-      const idReg = c.id || c._tempId;
+      const idReg = c.id;
       const statusVal = c.ativo || 'SIM';
       
       tbody.innerHTML += `
@@ -719,14 +713,11 @@ ${fullText.substring(0, 8000)}`;
     if (!confirm2) return;
 
     // Remove localmente para a UI atualizar logo
-    contratosDB = contratosDB.filter(item => (item.id || item._tempId) != idReg);
+    contratosDB = contratosDB.filter(item => item.id != idReg);
     renderizarTabelaLinear();
 
     const s = getLocalSession();
-    if (!s || typeof idReg === 'number') {
-      alert("✓ Registo removido temporário com sucesso.");
-      return;
-    }
+    if (!s || !idReg) return;
 
     try {
       const resp = await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
@@ -751,7 +742,7 @@ ${fullText.substring(0, 8000)}`;
 
 
   // =======================================================
-  // SALVAR NOVO CONTRATO NO SUPABASE DE FORMA SEGURA (Com tratamento JWT)
+  // SALVAR NOVO CONTRATO NO SUPABASE DE FORMA SEGURA
   // =======================================================
   function sincronizarCampos() {
       // Deixado vazio de propósito para não gerar erros no console.
@@ -816,8 +807,6 @@ ${fullText.substring(0, 8000)}`;
         // Pega o ID gerado pelo banco para colocar na tabela visual
         if (dadosGravados && dadosGravados.length > 0) {
             payload.id = dadosGravados[0].id;
-        } else {
-            payload._tempId = Date.now();
         }
 
         // Insere na lista e recarrega
@@ -836,7 +825,6 @@ ${fullText.substring(0, 8000)}`;
 
       } else {
         const errData = await r.json();
-        // Deteta erro de Token Expirado silenciosamente enviado pelo Supabase
         if (errData.message && errData.message.includes("JWT expired")) {
             alert("A sua sessão expirou por segurança. Faça login novamente.\n\nFique tranquilo, os dados não foram apagados da tela.");
             doLogout();
