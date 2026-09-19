@@ -242,7 +242,7 @@
   </div>
 
   <!-- ======================================================= -->
-  <!-- ABA: IMÓVEIS ADMINISTRADOS (LINEAR 6 COLUNAS) -->
+  <!-- ABA: IMÓVEIS ADMINISTRADOS (ESTRUTURA LINEAR COM 6 COLUNAS) -->
   <!-- ======================================================= -->
   <div id="tab-imoveis" class="tab-content">
     <div class="card" style="padding: 10px;">
@@ -490,7 +490,6 @@
       let mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
       if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
-
       // IA PARA CONTATOS E PIX
       loader.innerHTML = '🤖 IA extraindo telefones, e-mail e PIX...';
       try {
@@ -619,7 +618,6 @@ ${fullText.substring(0, 8000)}`;
     document.getElementById('btn-register').addEventListener('click', doRegister);
     document.getElementById('btn-logout-action').addEventListener('click', doLogout);
     
-    // Remove o verde se o utilizador escrever manualmente nos campos
     document.querySelectorAll('.card input').forEach(input => {
       input.addEventListener('input', () => { input.classList.remove('field-ok'); });
     });
@@ -640,7 +638,6 @@ ${fullText.substring(0, 8000)}`;
   // TABELA DE IMOVEIS ADMINISTRADOS (COM MINIATURA DE PDF)
   // =======================================================
   
-  // Função que desenha a miniatura assincronamente a partir da URL
   async function loadTableThumbnails() {
     const canvases = document.querySelectorAll('.table-pdf-thumb');
     for (let canvas of canvases) {
@@ -660,7 +657,7 @@ ${fullText.substring(0, 8000)}`;
         
         canvas.dataset.loaded = "true";
         canvas.nextElementSibling.style.display = 'none'; // Esconde o ícone de fallback
-        canvas.style.display = 'block'; // Mostra a capa do PDF gerada
+        canvas.style.display = 'block'; // Mostra a capa do PDF
       } catch (e) {
         console.warn("Erro ao carregar miniatura do PDF para a linha", e);
       }
@@ -681,7 +678,6 @@ ${fullText.substring(0, 8000)}`;
       const idReg = c.id || c._tempId;
       const statusVal = c.ativo || 'SIM';
       
-      // Monta a estrutura da Thumbnail para a coluna "Contrato"
       const btnPdf = c.contrato_url 
         ? `<div onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')" class="row-pdf-btn" title="Visualizar Contrato">
              <canvas class="table-pdf-thumb" data-pdf-url="${c.contrato_url}" style="width:100%; height:100%; display:none; object-fit:cover;"></canvas>
@@ -720,7 +716,6 @@ ${fullText.substring(0, 8000)}`;
       `;
     });
 
-    // Chama a função que desenha as capas na tabela assim que a tabela for montada
     setTimeout(() => { loadTableThumbnails(); }, 300);
   }
 
@@ -767,7 +762,6 @@ ${fullText.substring(0, 8000)}`;
     const confirm2 = confirm("⚠️ ATENÇÃO: Esta exclusão apagará o registo do banco de dados permanentemente. Deseja mesmo prosseguir?");
     if (!confirm2) return;
 
-    // Remove localmente para a UI atualizar logo
     contratosDB = contratosDB.filter(item => (item.id || item._tempId) != idReg);
     renderizarTabelaLinear();
 
@@ -800,7 +794,7 @@ ${fullText.substring(0, 8000)}`;
 
 
   // =======================================================
-  // SALVAR NOVO CONTRATO NO SUPABASE DE FORMA SEGURA E LIMPAR FORMULÁRIO
+  // SALVAR NOVO CONTRATO NO SUPABASE DE FORMA SEGURA
   // =======================================================
   function sincronizarCampos() { }
 
@@ -821,8 +815,15 @@ ${fullText.substring(0, 8000)}`;
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}`, 'Content-Type': 'application/pdf' }, 
           body: selectedPdfFile 
         });
-        if (uRes.ok) urlPdf = `${SUPABASE_BASE_URL}/storage/v1/object/public/contratos/${filePath}`;
-      } catch(e) {}
+        if (uRes.ok) {
+            urlPdf = `${SUPABASE_BASE_URL}/storage/v1/object/public/contratos/${filePath}`;
+        } else {
+            const errD = await uRes.text();
+            alert("Aviso: O Supabase bloqueou o envio do PDF. O contrato será salvo, mas ficará 'Sem anexo'. Certifique-se que o bucket 'contratos' existe no Supabase Storage e permite uploads. Detalhe: " + errD);
+        }
+      } catch(e) {
+          alert("Erro de ligação ao tentar enviar o PDF: " + e.message);
+      }
     }
 
     const payload = {
@@ -871,9 +872,7 @@ ${fullText.substring(0, 8000)}`;
 
         alert('✓ Dados e contrato gravados com sucesso na base de dados!');
         
-        // ----------------------------------------------------
         // LIMPEZA TOTAL DA ABA "RESUMO DO CONTRATO" PARA NOVO LANÇAMENTO
-        // ----------------------------------------------------
         document.querySelectorAll('#tab-resumo input, #tab-resumo select').forEach(el => { 
           if(el.type !== 'file') { el.value = ''; }
           el.classList.remove('field-ok'); 
@@ -888,7 +887,6 @@ ${fullText.substring(0, 8000)}`;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         canvas.style.display = 'none';
         document.getElementById('thumb-placeholder').style.display = 'block';
-        // ----------------------------------------------------
         
         setTab('imoveis', document.querySelectorAll('.tab-btn')[1]);
 
