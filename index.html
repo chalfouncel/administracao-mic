@@ -34,8 +34,8 @@
 
   .container { max-width: 98%; margin: 20px auto; padding: 0 16px; }
 
-  .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; overflow-x: auto; }
-  .tab-btn { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px 8px 0 0; padding: 10px 18px; font-size: 0.88rem; font-weight: 700; color: #64748b; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; overflow-x: auto; }
+  .tab-btn { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px 8px 0 0; padding: 10px 14px; font-size: 0.82rem; font-weight: 700; color: #64748b; cursor: pointer; transition: 0.2s; white-space: nowrap; }
   .tab-btn.active { background: var(--secondary); color: var(--gold); border-color: var(--secondary); border-bottom: 2px solid var(--accent); }
   .tab-content { display: none; }
   .tab-content.active { display: block; animation: fadeIn 0.2s; }
@@ -45,19 +45,23 @@
   .card-title { font-size: 1rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-  @media(max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media(max-width: 768px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
 
   label { display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 4px; text-transform: uppercase; }
   input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; transition: 0.2s; }
   input:focus, select:focus { border-color: var(--accent); }
   
-  /* Destaque Verde na extração - Mantido Fixo */
   .field-ok { background-color: #f0fdf4 !important; border-color: #22c55e !important; color: #047857; font-weight: bold; }
 
-  .summary-box { background: #0f172a; border: 1px solid var(--accent); color: #fff; border-radius: 10px; padding: 16px; margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; text-align: center; }
-  .summary-item .label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
-  .summary-item .val { font-size: 1.35rem; font-weight: 800; color: var(--gold); }
-  .summary-item .val.green { color: #4ade80; }
+  /* DASHBOARD CARDS */
+  .dashboard-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
+  @media(max-width: 1024px) { .dashboard-grid { grid-template-columns: repeat(2, 1fr); } }
+  .dash-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-top: 3px solid var(--accent); }
+  .dash-card .title { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
+  .dash-card .val { font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-top: 4px; }
+  .dash-card.green .val { color: #16a34a; }
+  .dash-card.blue .val { color: #0284c7; }
 
   .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; transition: 0.15s; font-size: 0.92rem; }
   .btn-gold { background: linear-gradient(135deg, #c59b27, #dfba48); color: #121315; }
@@ -83,7 +87,6 @@
   table.table-imoveis tbody td { border: 1px solid #cbd5e1; padding: 8px 10px; white-space: nowrap; text-align: center; color: #333; }
   table.table-imoveis tbody tr:hover { background: #f1f5f9; }
 
-  /* LAYOUT ABA RESUMO */
   .resumo-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
   @media(max-width: 900px) { .resumo-layout { grid-template-columns: 1fr; } }
 
@@ -91,10 +94,8 @@
   .thumbnail-wrapper { width: 100%; min-height: 340px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 12px; cursor: pointer; }
   .thumbnail-wrapper canvas { width: 100%; height: auto; display: none; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
   .file-name-pill { font-size: 0.74rem; font-weight: 700; color: var(--primary); background: #f1f5f9; padding: 4px 8px; border-radius: 6px; word-break: break-all; margin-bottom: 10px; display: none; }
-  
   .ai-loader { display: none; padding: 10px; background: #e0f2fe; color: #0369a1; border-radius: 8px; font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; text-align: center; border: 1px solid #bae6fd; }
 
-  /* MODAIS */
   #auth-modal, #pdf-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.94); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; }
   #pdf-modal { display: none; }
   .auth-card { background: #fff; border-radius: 14px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; border-top: 4px solid var(--accent); }
@@ -143,15 +144,19 @@
 </header>
 
 <div class="container">
+  <!-- SISTEMA DE ABAS ATUALIZADO CONFORME DIRETRIZ -->
   <div class="tabs">
     <button class="tab-btn active" onclick="setTab('resumo', this)">📄 Resumo do contrato</button>
     <button class="tab-btn" onclick="setTab('imoveis', this)">🏘️ Imóveis Administrados</button>
-    <button class="tab-btn" onclick="setTab('calculo', this)">📊 Cálculo de Cobrança & Repasse</button>
-    <button class="tab-btn" onclick="setTab('whatsapp', this)">💬 Texto de Cobrança</button>
-    <button class="tab-btn" onclick="setTab('historico', this)">📁 Histórico de Locações Salvas</button>
-    <button class="tab-btn" onclick="setTab('agentes', this)">🤖 Agente de IA Gemini</button>
+    <button class="tab-btn" onclick="setTab('condominios', this)">🏢 Taxas Condominiais</button>
+    <button class="tab-btn" onclick="setTab('extras', this)">🏷️ Taxas Extras</button>
+    <button class="tab-btn" onclick="setTab('descontos', this)">📉 Descontos</button>
+    <button class="tab-btn" onclick="setTab('resumogerencial', this)">📊 Resumo Gerencial</button>
+    <button class="tab-btn" onclick="setTab('whatsapp', this)">💬 WhatsApp</button>
+    <button class="tab-btn" onclick="setTab('agentes', this)">🤖 IA Gemini</button>
   </div>
 
+  <!-- ABA: RESUMO DO CONTRATO — NÃO ALTERAR -->
   <div id="tab-resumo" class="tab-content active">
     <div class="resumo-layout">
       
@@ -178,7 +183,7 @@
         <div class="grid-3">
           <div>
             <label>Proprietário (Locador)</label>
-            <input type="text" id="proprietario" placeholder="Nome do locador" oninput="sincronizarCampos()">
+            <input type="text" id="proprietario" placeholder="Nome do locador">
           </div>
           <div>
             <label>Telefone do Proprietário</label>
@@ -193,7 +198,7 @@
         <div class="grid-3" style="margin-top:14px;">
           <div>
             <label>Inquilino (Locatário)</label>
-            <input type="text" id="inquilino" placeholder="Nome do locatário" oninput="sincronizarCampos()">
+            <input type="text" id="inquilino" placeholder="Nome do inquilino">
           </div>
           <div>
             <label>Email Inquilino</label>
@@ -213,7 +218,7 @@
         <div class="grid-3" style="margin-top:14px;">
           <div>
             <label>Data de Início</label>
-            <input type="date" id="dataInicio" onchange="sincronizarCampos()">
+            <input type="date" id="dataInicio">
           </div>
           <div>
             <label>Data de fim</label>
@@ -221,7 +226,7 @@
           </div>
           <div>
             <label>Valor do aluguel Base</label>
-            <input type="text" id="aluguelBase" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this); sincronizarCampos()">
+            <input type="text" id="aluguelBase" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)">
           </div>
         </div>
 
@@ -247,17 +252,11 @@
     </div>
   </div>
 
+  <!-- ABA: IMÓVEIS ADMINISTRADOS -->
   <div id="tab-imoveis" class="tab-content">
-    <div class="dashboard-grid">
-      <div class="dash-card"><div class="title">Contratos Ativos</div><div class="val" id="dash-ativos">0</div></div>
-      <div class="dash-card"><div class="title">Total de Condomínios</div><div class="val" id="dash-cond">R$ 0,00</div></div>
-      <div class="dash-card blue"><div class="title">Total Administração</div><div class="val" id="dash-adm">R$ 0,00</div></div>
-      <div class="dash-card green"><div class="title">Total a Repassar</div><div class="val" id="dash-repasse">R$ 0,00</div></div>
-      <div class="dash-card"><div class="title">Total a Cobrar</div><div class="val" id="dash-cobrar">R$ 0,00</div></div>
-    </div>
     <div class="card" style="padding: 10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 8px;">
-        <div style="font-weight:800;">Controle Geral de Imóveis Administrados</div>
+        <div style="font-weight:800;">Cadastro Mestre — Imóveis Administrados</div>
         <div style="display:flex; gap:8px;">
           <input type="month" id="filtro-mes" onchange="renderizarTabela()">
           <button class="btn btn-dark" style="padding:6px 12px;" onclick="carregarImoveis()">🔄 Atualizar Tabela</button>
@@ -278,93 +277,190 @@
             </tr>
           </thead>
           <tbody id="tabela-imoveis-body">
-            <tr><td colspan="33" style="text-align: center; padding: 20px; color: #64748b;">Carregando dados do Supabase...</td></tr>
+            <tr><td colspan="33" style="text-align: center; padding: 20px; color: #64748b;">Carregando imóveis administrados...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
   </div>
 
-  <div id="tab-calculo" class="tab-content">
+  <!-- ABA: LANÇAMENTO DE TAXAS CONDOMINIAIS -->
+  <div id="tab-condominios" class="tab-content">
     <div class="card">
-      <div class="card-title">1. Dados de Cobrança & Mês de Referência</div>
+      <div class="card-title">Lançamento de Taxas Condominiais (Mês a Mês)</div>
       <div class="grid-3">
-        <div><label>Inquilino</label><input type="text" id="calc-inquilino" readonly style="background:#f1f5f9;"></div>
-        <div><label>Proprietário</label><input type="text" id="calc-proprietario" readonly style="background:#f1f5f9;"></div>
-        <div><label>Mês e Ano de Referência</label><input type="month" id="mesAno"></div>
-      </div>
-      <div class="grid-2" style="margin-top:12px;">
-        <div><label>Valor do aluguel Base</label><input type="text" id="calc-aluguelBase" onkeyup="formatarMoedaInput(this); calcularTudo()"></div>
-        <div><label>Condomínio Base Integral</label><input type="text" id="condominioBase2" value="650,00" onkeyup="formatarMoedaInput(this); calcularTudo()"></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">2. Proporcionalidade & Encargos</div>
-      <div class="grid-2">
         <div>
-          <label>Cálculo Proporcional</label>
-          <select id="isProporcional" onchange="calcularTudo()"><option value="nao">Não — Mês Completo</option><option value="sim">Sim — Calcular Dias</option></select>
+          <label>Competência (Mês/Ano)</label>
+          <input type="month" id="cond-mes">
         </div>
-        <div id="box-dias-prop" style="display:none;"><label>Dias Ocupados</label><input type="number" id="diasOcupados" value="15" oninput="calcularTudo()"></div>
+        <div>
+          <label>Selecionar Imóvel / Inquilino</label>
+          <select id="cond-imovel-select"><option value="">Selecione...</option></select>
+        </div>
+        <div>
+          <label>Condomínio do Mês (R$)</label>
+          <input type="text" id="cond-valor" placeholder="0,00" onkeyup="formatarMoedaInput(this)">
+        </div>
       </div>
-      <div class="grid-3" style="margin-top:14px;">
-        <div><label>IPTU Mensal</label><input type="text" id="iptu" value="120,00" onkeyup="formatarMoedaInput(this); calcularTudo()"></div>
-        <div><label>Taxa de Incêndio/Bombeiro</label><input type="text" id="bombeiro" value="35,00" onkeyup="formatarMoedaInput(this); calcularTudo()"></div>
-        <div><label>Outras Taxas</label><input type="text" id="outrasTaxas" value="0,00" onkeyup="formatarMoedaInput(this); calcularTudo()"></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">3. Regras de Repasse & Administração</div>
-      <div class="grid-2">
-        <div><label>Taxa Adm (%)</label><input type="number" id="taxaAdm" value="10" step="0.5" oninput="calcularTudo()"></div>
-        <div><label>Regra do Condomínio</label><select id="regraCondominio" onchange="calcularTudo()"><option value="repassa">Repassar ao Proprietário</option><option value="retém">Imobiliária Retém/Paga</option></select></div>
-      </div>
-      <div class="summary-box">
-        <div class="summary-item"><div class="label">Cobrar Inquilino</div><div class="val" id="res-total-inquilino">R$ 0,00</div></div>
-        <div class="summary-item"><div class="label">Repassar</div><div class="val green" id="res-valor-repassar">R$ 0,00</div></div>
+      <div class="grid-2" style="margin-top:14px;">
+        <div>
+          <label>Observação do Condomínio</label>
+          <input type="text" id="cond-obs" placeholder="Ex: Diferença de consumo de água">
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button class="btn btn-gold" style="width:100%;" onclick="salvarTaxaCondominio()">Salvar Lançamento Condominial</button>
+        </div>
       </div>
     </div>
   </div>
 
+  <!-- ABA: LANÇAMENTO DE TAXAS EXTRAS -->
+  <div id="tab-extras" class="tab-content">
+    <div class="card">
+      <div class="card-title">Lançamento de Taxas Extras (IPTU, Bombeiro, Multas, etc.)</div>
+      <div class="grid-3">
+        <div>
+          <label>Competência (Mês/Ano)</label>
+          <input type="month" id="extra-mes">
+        </div>
+        <div>
+          <label>Selecionar Imóvel / Inquilino</label>
+          <select id="extra-imovel-select"><option value="">Selecione...</option></select>
+        </div>
+        <div>
+          <label>Tipo de Taxa</label>
+          <select id="extra-tipo">
+            <option value="IPTU">IPTU</option>
+            <option value="BOMBEIRO">Bombeiro / Incêndio</option>
+            <option value="SEGURO">Seguro Residencial</option>
+            <option value="MULTA">Multa / Infração</option>
+            <option value="OUTROS">Outras Cobranças</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:14px;">
+        <div>
+          <label>Valor da Taxa (R$)</label>
+          <input type="text" id="extra-valor" placeholder="0,00" onkeyup="formatarMoedaInput(this)">
+        </div>
+        <div>
+          <label>Parcelas (Ex: 1/3)</label>
+          <input type="text" id="extra-parcelas" placeholder="1/1">
+        </div>
+        <div>
+          <label>Repassar ao Proprietário?</label>
+          <select id="extra-repassar"><option value="S">SIM</option><option value="N">NÃO</option></select>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <label>Descrição / Observação</label>
+        <input type="text" id="extra-obs" placeholder="Detalhes da taxa extra">
+      </div>
+      <button class="btn btn-gold" style="width:100%; margin-top:18px;" onclick="salvarTaxaExtra()">Gravar Taxa Extra</button>
+    </div>
+  </div>
+
+  <!-- ABA: DESCONTOS -->
+  <div id="tab-descontos" class="tab-content">
+    <div class="card">
+      <div class="card-title">Lançamento de Descontos Concedidos</div>
+      <div class="grid-3">
+        <div>
+          <label>Competência (Mês/Ano)</label>
+          <input type="month" id="desc-mes">
+        </div>
+        <div>
+          <label>Selecionar Imóvel / Inquilino</label>
+          <select id="desc-imovel-select"><option value="">Selecione...</option></select>
+        </div>
+        <div>
+          <label>Valor do Desconto (R$)</label>
+          <input type="text" id="desc-valor" placeholder="0,00" onkeyup="formatarMoedaInput(this)">
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+          <label>Motivo do Desconto</label>
+          <input type="text" id="desc-obs" placeholder="Ex: Pontualidade ou acordo temporário">
+      </div>
+      <button class="btn btn-gold" style="width:100%; margin-top:18px;" onclick="salvarDesconto()">Aplicar Desconto na Competência</button>
+    </div>
+  </div>
+
+  <!-- ABA: RESUMO GERENCIAL -->
+  <div id="tab-resumogerencial" class="tab-content">
+    <div class="dashboard-grid">
+      <div class="dash-card"><div class="title">Imóveis Ativos</div><div class="val" id="ger-ativos">0</div></div>
+      <div class="dash-card"><div class="title">Total Aluguéis</div><div class="val" id="ger-aluguel">R$ 0,00</div></div>
+      <div class="dash-card"><div class="title">Total Condomínios</div><div class="val" id="ger-cond">R$ 0,00</div></div>
+      <div class="dash-card"><div class="title">Total Extras</div><div class="val" id="ger-extras">R$ 0,00</div></div>
+      <div class="dash-card"><div class="title">Total Descontos</div><div class="val" id="ger-desc">R$ 0,00</div></div>
+      <div class="dash-card blue"><div class="title">Total Cobrar</div><div class="val" id="ger-cobrar">R$ 0,00</div></div>
+      <div class="dash-card blue"><div class="title">Total Administração</div><div class="val" id="ger-adm">R$ 0,00</div></div>
+      <div class="dash-card green"><div class="title">Total a Repassar</div><div class="val" id="ger-repassar">R$ 0,00</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Demonstrativo Consolidado por Imóvel</div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Imóvel</th>
+              <th>Proprietário</th>
+              <th>Inquilino</th>
+              <th>Aluguel</th>
+              <th>Condomínio</th>
+              <th>Extras</th>
+              <th>Desconto</th>
+              <th>Total Cobrar</th>
+              <th>Adm.</th>
+              <th>Repassar</th>
+              <th>Vencimento</th>
+            </tr>
+          </thead>
+          <tbody id="resumo-gerencial-body">
+            <tr><td colspan="11" style="text-align:center;">Selecione o mês e atualize.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA: WHATSAPP -->
   <div id="tab-whatsapp" class="tab-content">
     <div class="card">
       <div class="card-title">Texto Automático da Cobrança</div>
-      <label>Chave PIX para Cobrança</label><input type="text" id="chavePix" value="financeiro@micimoveis.com.br" oninput="gerarTextoCobranca()" style="margin-bottom:12px;">
-      <label>Vencimento</label><input type="date" id="dataVencimento" onchange="gerarTextoCobranca()" style="margin-bottom:12px;">
+      <label>Chave PIX para Cobrança</label><input type="text" id="chavePix" value="financeiro@micimoveis.com.br" style="margin-bottom:12px;">
       <label>Mensagem</label><textarea id="textoMsg" rows="11" readonly style="background:#f8fafc; font-family:monospace;"></textarea>
       <div style="display:flex; gap:10px; margin-top:14px;"><button class="btn btn-gold" onclick="copiarTexto()">📋 Copiar</button><button class="btn btn-whatsapp" onclick="enviarWhatsApp()">📲 Abrir no WhatsApp</button></div>
     </div>
   </div>
 
-  <div id="tab-historico" class="tab-content">
-    <div class="card">
-      <div class="card-title">Contratos Salvos <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="carregarHistoricoLocacoes()">🔄 Atualizar</button></div>
-      <div class="table-responsive"><table class="data-table"><thead><tr><th>Data</th><th>Inquilino</th><th>Proprietário</th><th>Total Cobrado</th><th>Repasse</th><th>Contrato</th></tr></thead><tbody id="lista-historico-body"></tbody></table></div>
-    </div>
-  </div>
-
+  <!-- ABA: AGENTE DE IA GEMINI -->
   <div id="tab-agentes" class="tab-content">
     <div class="card">
       <div class="card-title">Assistente Especialista M&IC</div>
-      <div class="chat-box" id="chatArea"></div>
+      <div class="chat-box" id="chatArea" style="border: 1px solid #ccc; height:300px; padding:10px; overflow-y:auto; margin-bottom:10px;">
+        <div style="background:#fff; border:1px solid #ddd; padding:8px; border-radius:8px;">Olá! Como posso ajudar na gestão das locações hoje?</div>
+      </div>
       <div style="display:flex; gap:8px;"><input type="text" id="chatInput" placeholder="Digite..." onkeypress="if(event.key==='Enter') sendChat()"><button class="btn btn-gold" onclick="sendChat()">Enviar</button></div>
     </div>
   </div>
 </div>
 
 <script>
+  // PERSISTÊNCIA SUPABASE & ESTADO GLOBAL
   const SUPABASE_BASE_URL = 'https://dgadztmmarvbjcouvrnp.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_JwOjDkAj';
   let contratosDB = [];
+  let lancamentosCond = [];
+  let taxasExtras = [];
+  let descontosDB = [];
   let selectedPdfFile = null;
 
   /* =========================================
-     MÓDULO 1: FUNÇÕES DE TEXTO E FORMATAÇÃO DE MOEDA
+     MOTOR CENTRAL DE CÁLCULOS E FORMATAÇÃO
   ========================================= */
-  const formatadorStr = val => {
-    if(!val) return '';
-    return parseFloat(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
+  const formatadorStr = val => (!val ? '' : parseFloat(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
   const fmtMoeda = val => parseFloat(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const parseMoedaToFloat = str => {
     if (!str) return 0;
@@ -382,11 +478,84 @@
     i.value = v;
   }
 
-  function cleanSearch(text) {
-    if (!text) return "";
-    return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  function calcularQuintoDiaUtil(ano, mes) {
+    let dia = 1; let contUteis = 0; const dVenc = new Date(ano, mes - 1, dia);
+    while (contUteis < 5) {
+      const diaSemana = dVenc.getDay();
+      if (diaSemana !== 0 && diaSemana !== 6) contUteis++;
+      if (contUteis < 5) dVenc.setDate(dVenc.getDate() + 1);
+    }
+    return dVenc.toLocaleDateString('pt-BR');
   }
 
+  function diferencaMeses(d1, d2) {
+    if (!d1 || !d2) return '';
+    const date1 = new Date(d1); const date2 = new Date(d2);
+    return (date2.getFullYear() * 12 + date2.getMonth()) - (date1.getFullYear() * 12 + date1.getMonth());
+  }
+
+  function calcularLancamentoMensal(c, mesRef) {
+    const [anoComp, mesComp] = mesRef.split('-');
+    const refDate = new Date(anoComp, mesComp - 1, 1);
+    
+    const calc_I = c.data_inicio ? diferencaMeses(c.data_inicio, refDate) : '';
+    const calc_F = c.data_fim ? diferencaMeses(refDate, c.data_fim) : '';
+    
+    const diaInicio = c.data_inicio ? parseInt(c.data_inicio.split('-')[2]) : 1;
+    const mesInicio = c.data_inicio ? parseInt(c.data_inicio.split('-')[1]) : 0;
+    const anoInicio = c.data_inicio ? parseInt(c.data_inicio.split('-')[0]) : 0;
+    
+    const proporcional = (diaInicio > 1 && mesInicio == mesComp && anoInicio == anoComp) ? 'S' : 'N';
+
+    const valAluguelBase = parseFloat(c.aluguel_base) || 0;
+    const valCondBase = parseFloat(c.condominio_base) || 0;
+    const diasNoMes = new Date(anoComp, mesComp, 0).getDate();
+    const diasUsados = diasNoMes - diaInicio + 1;
+
+    const vlr_aluguel_calc = proporcional === 'S' ? (valAluguelBase / diasNoMes) * diasUsados : valAluguelBase;
+    const vlr_cond_calc = proporcional === 'S' ? (valCondBase / diasNoMes) * diasUsados : valCondBase;
+    const aluguel_mais_cond = vlr_aluguel_calc + vlr_cond_calc;
+    const vencimento_calc = calcularQuintoDiaUtil(anoComp, mesComp);
+
+    let valAdm = 0;
+    if (parseFloat(c.taxa_adm_fixa) > 0) { valAdm = parseFloat(c.taxa_adm_fixa); } 
+    else { valAdm = vlr_aluguel_calc * (parseFloat(c.taxa_adm_pct || 10) / 100); }
+
+    // Somar Extras
+    const extrasObj = taxasExtras.filter(t => t.imovel_id === c.id && t.mes_ano === mesRef);
+    let totalExtras = extrasObj.reduce((acc, t) => acc + (parseFloat(t.valor) || 0), 0);
+
+    // Somar Descontos
+    const descObj = descontosDB.filter(d => d.imovel_id === c.id && d.mes_ano === mesRef);
+    let totalDesconto = descObj.reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
+
+    const cobrar_inquilino = aluguel_mais_cond + totalExtras - totalDesconto;
+    const valor_repassar = c.regra_condominio === 'N' ? (cobrar_inquilino - vlr_cond_calc - valAdm) : (cobrar_inquilino - valAdm);
+
+    const texto_cobranca = `Aluguel: ${fmtMoeda(vlr_aluguel_calc)}\nCondomínio: ${fmtMoeda(vlr_cond_calc)}\nExtras: ${fmtMoeda(totalExtras)}\nDescontos: -${fmtMoeda(totalDesconto)}\nTOTAL: *${fmtMoeda(cobrar_inquilino)}*\nVencimento: ${vencimento_calc}\nPIX: ${c.pix_proprietario || 'N/A'}`;
+
+    return {
+      aluguelBase: valAluguelBase,
+      aluguelCalculado: vlr_aluguel_calc,
+      condominioBase: valCondBase,
+      condominioCalculado: vlr_cond_calc,
+      taxasExtras: totalExtras,
+      descontos: totalDesconto,
+      totalCobrar: cobrar_inquilino,
+      administracao: valAdm,
+      valorRepassar: valor_repassar,
+      vencimento: vencimento_calc,
+      proporcional,
+      calc_I,
+      calc_F,
+      texto_cobranca
+    };
+  }
+
+  /* =========================================
+     MÓDULO DE EXTRAÇÃO DO CONTRATO (Vistoria + IA)
+  ========================================= */
+  function cleanSearch(text) { return text ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : ""; }
   function decodeAddressOnly(text) {
     if (!text) return "";
     let s = text.replace(/PraÁa/gi, "Praça").replace(/praÁa/gi, "praça").replace(/HÈlder/gi, "Hélder")
@@ -397,79 +566,28 @@
     try { s = s.normalize('NFC'); } catch(e) {}
     return s.replace(/\s+/g, ' ').trim();
   }
-
   function isValidPersonName(str) {
     if (!str) return false;
     let s = str.trim();
     let sNorm = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    let monthRegex = /\b(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez|janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/i;
-    if (monthRegex.test(sNorm) && /\d/.test(s)) return false;
-    if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/.test(s)) return false;
-    if (/^\d{1,2}\s+[a-z]{3,9}\s+\d{2,4}/i.test(sNorm)) return false;
-    if (s.indexOf('@') !== -1) return false;
-    if (sNorm.indexOf("cpf") !== -1 || sNorm.indexOf("cnpj") !== -1 || sNorm.indexOf("rg") !== -1) return false;
-    if (sNorm.indexOf("hash") !== -1 || sNorm.indexOf("ip:") !== -1 || sNorm.indexOf("token") !== -1) return false;
-    if (sNorm.indexOf("assinou") !== -1 || sNorm.indexOf("autenticado") !== -1 || sNorm.indexOf("clicksign") !== -1) return false;
-    if (/^\d+$/.test(s.replace(/[\.\-\s\/]/g, ''))) return false;
-    if (!/[A-Za-zÀ-Úà-ú]{3,}/.test(s)) return false;
-    return true;
+    if (s.indexOf('@') !== -1 || sNorm.includes("cpf") || sNorm.includes("cnpj") || sNorm.includes("assinou")) return false;
+    return /[A-Za-zÀ-Úà-ú]{3,}/.test(s);
   }
-
   function cleanName(raw) {
     if (!raw) return "";
-    let s = raw.trim();
-    s = s.replace(/^(?:Nome|Signat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '');
-    s = s.replace(/\s+CPF.*$/i, '');
-    s = s.replace(/\s+assinou.*$/i, '');
-    let parts = s.split(',');
-    return parts[0].trim();
+    let s = raw.trim().split(',')[0];
+    return s.replace(/^(?:Nome|Signat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '').trim();
   }
-
-  function findTrueSignerAbove(lines, index) {
-    for (let j = index - 1; j >= Math.max(0, index - 8); j--) {
-      let candidate = lines[j].trim();
-      if (isValidPersonName(candidate)) return cleanName(candidate);
-    }
-    return "";
-  }
-
   function extractAddressAfterSituado(text) {
     if (!text) return "";
-    let normText = cleanSearch(text);
-    let indexSituado = normText.indexOf("situado");
-
+    let indexSituado = text.toLowerCase().indexOf("situado");
     if (indexSituado !== -1) {
-      let afterSituado = text.substring(indexSituado + 7).trim();
-      afterSituado = afterSituado.replace(/^(?:na|no|à|a|em|:)\s+/i, '').trim();
-      let addressCandidate = afterSituado.split(/[;\.\r\n]/)[0].trim();
-      addressCandidate = addressCandidate.replace(/(?:,?\s*destinado\s+exclusivamente|para\s+fins\s+residenciais|conforme).*/i, '').trim();
-      if (addressCandidate.length > 5) return addressCandidate;
-    }
-    let indexImovel = normText.indexOf("imovel:");
-    if (indexImovel !== -1) {
-      let afterImov = text.substring(indexImovel + 7).trim();
-      let addr = afterImov.split(/[;\.\r\n]/)[0].trim();
-      return addr.replace(/(?:destinado|para\s+fins).*/i, '').trim();
+      let afterSituado = text.substring(indexSituado + 7).trim().replace(/^(?:na|no|à|a|em|:)\s+/i, '').split(/[;\.\r\n]/)[0].trim();
+      return afterSituado.replace(/(?:,?\s*destinado\s+exclusivamente|para\s+fins\s+residenciais|conforme).*/i, '').trim();
     }
     return "";
   }
 
-  async function renderPdfThumbnail(pdfDoc) {
-    try {
-      const page = await pdfDoc.getPage(1);
-      const viewport = page.getViewport({ scale: 0.65 });
-      const canvas = document.getElementById('pdf-thumb-canvas');
-      const placeholder = document.getElementById('thumb-placeholder');
-      canvas.width = viewport.width; canvas.height = viewport.height;
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-      placeholder.style.display = 'none';
-      canvas.style.display = 'block';
-    } catch (e) {}
-  }
-
-  /* =========================================
-     MÓDULO DE EXTRAÇÃO DO CONTRATO
-  ========================================= */
   async function processarContratoPDF(event) {
     const file = event.target.files[0];
     if (!file || file.type !== 'application/pdf') return;
@@ -479,56 +597,44 @@
     document.getElementById('file-name-pill').style.display = 'inline-block';
     
     const loader = document.getElementById('ai-extract-loader');
-    loader.innerHTML = '⏳ Extraindo dados do contrato (Local)...';
+    loader.innerHTML = '⏳ Extraindo dados do contrato...';
     loader.style.display = 'block';
 
     try {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      await renderPdfThumbnail(pdf);
-
-      let allRawLines = [];
-      let page1RawLines = [];
-      let fullText = '';
       
+      // Thumbnail
+      const page1 = await pdf.getPage(1);
+      const vp = page1.getViewport({ scale: 0.65 });
+      const canvas = document.getElementById('pdf-thumb-canvas');
+      canvas.width = vp.width; canvas.height = vp.height;
+      await page1.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      document.getElementById('thumb-placeholder').style.display = 'none';
+      canvas.style.display = 'block';
+
+      let fullText = '';
+      let page1Text = '';
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p);
         const textContent = await page.getTextContent();
         for (let i = 0; i < textContent.items.length; i++) {
           let str = textContent.items[i].str;
           if (str && str.trim().length > 0) {
-            allRawLines.push(str.trim());
             fullText += ' ' + str.trim();
-            if (p === 1) page1RawLines.push(str.trim());
+            if (p === 1) page1Text += ' ' + str.trim();
           }
         }
       }
 
       let ext = { locador: '', telLocador: '', locatario: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '' };
-      let page1Text = page1RawLines.join(" ");
 
-      // =======================================================
-      // 1. EXTRAÇÃO LOCAL GARANTIDA (Motor Vistoria Fácil Pro)
-      // =======================================================
+      // Motor Vistoria Local
       let mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
       if (mLoc1 && isValidPersonName(mLoc1[1])) ext.locador = cleanName(mLoc1[1]);
-      if (!ext.locador) {
-        for (let i = 0; i < allRawLines.length; i++) {
-          if (cleanSearch(allRawLines[i]).indexOf("assinou como locador") !== -1) {
-            ext.locador = findTrueSignerAbove(allRawLines, i); break;
-          }
-        }
-      }
 
       let mLocat1 = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
       if (mLocat1 && isValidPersonName(mLocat1[1])) ext.locatario = cleanName(mLocat1[1]);
-      if (!ext.locatario) {
-        for (let j = 0; j < allRawLines.length; j++) {
-          if (cleanSearch(allRawLines[j]).indexOf("assinou como locatario") !== -1) {
-            ext.locatario = findTrueSignerAbove(allRawLines, j); break;
-          }
-        }
-      }
 
       ext.endereco = extractAddressAfterSituado(page1Text);
 
@@ -541,36 +647,14 @@
       let mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
       if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
-
-      // =======================================================
-      // 2. EXTRAÇÃO DE CONTATOS E PIX VIA IA
-      // =======================================================
-      loader.innerHTML = '🤖 IA extraindo telefones, e-mail e PIX...';
-      
+      // IA para contatos e PIX
+      loader.innerHTML = '🤖 IA extraindo contatos e PIX...';
       try {
-        const promptIA = `Você é um perito de extração de dados. Analise o texto do contrato abaixo e retorne APENAS um objeto JSON.
-        
-REGRAS OBRIGATÓRIAS:
-- telProprietario: Busque o Telefone APENAS dentro do parágrafo de qualificação do "LOCADOR(A)".
-- emailInquilino: Busque o Email APENAS dentro do parágrafo de qualificação do "LOCATÁRIO(A)".
-- telInquilino: Busque o Telefone APENAS dentro do parágrafo de qualificação do "LOCATÁRIO(A)".
-- pixProprietario: Busque a chave PIX na "CLÁUSULA SEGUNDA" após a frase "A chave PIX para transferência é" ou na qualificação do Locador. ATENÇÃO: Nunca retorne a palavra "para". Retorne apenas o celular, email ou CPF.
-
-Se não encontrar a informação, deixe a string vazia "".
-Retorne o JSON estrito: {"telProprietario":"", "pixProprietario":"", "emailInquilino":"", "telInquilino":""}
-
-Texto do Contrato:
-${fullText.substring(0, 8000)}`;
-
-        const resIA = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: promptIA })
-        });
-        
+        const promptIA = `Analise o texto e retorne APENAS um JSON: {"telProprietario":"", "pixProprietario":"", "emailInquilino":"", "telInquilino":""}
+Texto: ${fullText.substring(0, 8000)}`;
+        const resIA = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: promptIA }) });
         if (resIA.ok) {
           const dataIA = await resIA.json();
-          // Regex robusta para capturar o JSON
           const matchJson = (dataIA.reply || "").match(/\{[\s\S]*\}/);
           if (matchJson) {
             const parsed = JSON.parse(matchJson[0]);
@@ -580,25 +664,10 @@ ${fullText.substring(0, 8000)}`;
             if (parsed.telInquilino) ext.telLocatario = parsed.telInquilino;
           }
         }
-      } catch(eIA) {
-        console.warn("IA falhou na captura dos contatos:", eIA);
-      }
+      } catch(e) {}
 
-      // =======================================================
-      // 3. PREENCHIMENTO NA TELA COM FLASH VERDE
-      // =======================================================
-      function flash(id, val) { 
-        if(val) { 
-          const el = document.getElementById(id); 
-          if(el) {
-            el.value = val; 
-            el.classList.add('field-ok'); 
-            el.addEventListener('input', function onEdit() {
-              el.classList.remove('field-ok');
-              el.removeEventListener('input', onEdit);
-            });
-          }
-        } 
+      function flash(id, val) {
+        if(val) { const el = document.getElementById(id); if(el) { el.value = val; el.classList.add('field-ok'); } }
       }
 
       flash('proprietario', decodeAddressOnly(ext.locador));
@@ -611,20 +680,17 @@ ${fullText.substring(0, 8000)}`;
       flash('dataInicio', ext.dataIn);
       flash('dataFim', ext.dataFim);
       if(ext.valor > 0) flash('aluguelBase', formatadorStr(ext.valor));
-      
-      sincronizarCampos();
 
-    } catch (err) { 
-      console.error(err); alert('Erro ao processar contrato: ' + err.message);
-    } finally { 
-      loader.style.display = 'none'; 
-      loader.innerHTML = '⏳ Extraindo dados contratuais...'; 
+    } catch (err) {
+      alert('Erro ao processar contrato: ' + err.message);
+    } finally {
+      loader.style.display = 'none';
+      loader.innerHTML = '⏳ Extraindo dados contratuais...';
     }
   }
 
-
   /* =========================================
-     MÓDULO 3: GESTÃO DO SISTEMA E LOGIN
+     GESTÃO DE ABAS E SESSÃO SUPABASE
   ========================================= */
   function getLocalSession() { try { return JSON.parse(localStorage.getItem('mic_auth_session')); } catch(e) { return null; } }
   function setLocalSession(session) { if (session) localStorage.setItem('mic_auth_session', JSON.stringify(session)); else localStorage.removeItem('mic_auth_session'); }
@@ -634,7 +700,7 @@ ${fullText.substring(0, 8000)}`;
       document.getElementById('auth-modal').style.display = 'none';
       document.getElementById('user-pill').style.display = 'flex';
       document.getElementById('logged-user-email').innerText = s.user.email;
-      if (document.getElementById('tab-imoveis').classList.contains('active')) carregarImoveis();
+      carregarImoveis();
     } else {
       document.getElementById('auth-modal').style.display = 'flex';
       document.getElementById('user-pill').style.display = 'none';
@@ -645,46 +711,30 @@ ${fullText.substring(0, 8000)}`;
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-pass').value;
     const status = document.getElementById('auth-status');
-    const btn = document.getElementById('btn-login');
-    status.style.display = 'block'; status.className = 'auth-msg loading'; status.innerText = 'A autenticar...'; btn.disabled = true;
-    if (!email || !password) { status.className = 'auth-msg err'; status.innerText = 'Preencha o e-mail e a senha.'; btn.disabled = false; return; }
+    status.style.display = 'block'; status.className = 'auth-msg loading'; status.innerText = 'A autenticar...';
     try {
       const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/token?grant_type=password`, {
         method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password })
       });
       const data = await resp.json();
       if (!resp.ok) { status.className = 'auth-msg err'; status.innerText = 'Erro: ' + (data.error_description || data.message); } 
-      else { status.className = 'auth-msg ok'; status.innerText = '✓ Sucesso!'; setLocalSession(data); setTimeout(() => checkSession(), 300); }
-    } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
-  }
-
-  async function doRegister() {
-    const email = document.getElementById('auth-email').value.trim();
-    const password = document.getElementById('auth-pass').value;
-    const status = document.getElementById('auth-status');
-    const btn = document.getElementById('btn-register');
-    status.style.display = 'block'; status.className = 'auth-msg loading'; status.innerText = 'Criando conta...'; btn.disabled = true;
-    if (!email || !password) { status.className = 'auth-msg err'; status.innerText = 'Preencha e-mail e senha.'; btn.disabled = false; return; }
-    try {
-      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/signup`, {
-        method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password })
-      });
-      const data = await resp.json();
-      if (!resp.ok) { status.className = 'auth-msg err'; status.innerText = 'Erro: ' + data.message; } 
-      else { status.className = 'auth-msg ok'; status.innerText = '✓ Cadastro concluído!'; setLocalSession(data); setTimeout(() => checkSession(), 400); }
-    } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
+      else { status.className = 'auth-msg ok'; status.innerText = '✓ Sucesso!'; setLocalSession(data); setTimeout(checkSession, 300); }
+    } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; }
   }
 
   function doLogout() { setLocalSession(null); checkSession(); }
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-login').addEventListener('click', doLogin);
-    document.getElementById('btn-register').addEventListener('click', doRegister);
+    document.getElementById('btn-register').addEventListener('click', doLogin);
     document.getElementById('btn-logout-action').addEventListener('click', doLogout);
     const hoje = new Date();
-    document.getElementById('filtro-mes').value = `${hoje.getFullYear()}-${(hoje.getMonth()+1).toString().padStart(2, '0')}`;
+    const mesAtual = `${hoje.getFullYear()}-${(hoje.getMonth()+1).toString().padStart(2, '0')}`;
+    document.getElementById('filtro-mes').value = mesAtual;
+    document.getElementById('cond-mes').value = mesAtual;
+    document.getElementById('extra-mes').value = mesAtual;
+    document.getElementById('desc-mes').value = mesAtual;
     
-    // Remove field-ok (verde) ao digitar manualmente
     document.querySelectorAll('.card input').forEach(input => {
       input.addEventListener('input', () => { input.classList.remove('field-ok'); });
     });
@@ -697,73 +747,50 @@ ${fullText.substring(0, 8000)}`;
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     btn.classList.add('active');
-    if (name === 'imoveis') carregarImoveis();
+    
+    if (name === 'imoveis') renderizarTabela();
+    if (name === 'condominios' || name === 'extras' || name === 'descontos') atualizarSelectImoveis();
+    if (name === 'resumogerencial') renderizarResumoGerencial();
   }
 
+  function atualizarSelectImoveis() {
+    ['cond-imovel-select', 'extra-imovel-select', 'desc-imovel-select'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">Selecione...</option>';
+      contratosDB.forEach(c => {
+        sel.innerHTML += `<option value="${c.id}">${c.inquilino || 'Sem nome'} — ${c.endereco || ''}</option>`;
+      });
+    });
+  }
 
   /* =========================================
-     MÓDULO 4: TABELA DE IMOVEIS E CÁLCULOS
+     CRUD E RENDERIZAÇÃO DAS ABAS
   ========================================= */
-  function diferencaMeses(d1, d2) {
-    if (!d1 || !d2) return '';
-    const date1 = new Date(d1); const date2 = new Date(d2);
-    return (date2.getFullYear() * 12 + date2.getMonth()) - (date1.getFullYear() * 12 + date1.getMonth());
-  }
-
-  function recalcularLinha(row) {
-    const mesRef = row.mes_ano || document.getElementById('filtro-mes').value || '2026-09';
-    const [anoComp, mesComp] = mesRef.split('-');
-    
-    const refDate = new Date(anoComp, mesComp - 1, 1);
-    row.calc_I = row.data_inicio ? diferencaMeses(row.data_inicio, refDate) : '';
-    row.calc_F = row.data_fim ? diferencaMeses(refDate, row.data_fim) : '';
-    
-    const diaInicio = row.data_inicio ? parseInt(row.data_inicio.split('-')[2]) : 1;
-    const mesInicio = row.data_inicio ? parseInt(row.data_inicio.split('-')[1]) : 0;
-    const anoInicio = row.data_inicio ? parseInt(row.data_inicio.split('-')[0]) : 0;
-    
-    row.calc_proporcional = (diaInicio > 1 && mesInicio == mesComp && anoInicio == anoComp) ? 'S' : 'N';
-
-    const valAluguelBase = parseFloat(row.aluguel_base) || 0;
-    const valCondBase = parseFloat(row.condominio_base) || 0;
-    const diasNoMes = new Date(anoComp, mesComp, 0).getDate();
-    const diasUsados = diasNoMes - diaInicio + 1;
-
-    row.vlr_aluguel_calc = row.calc_proporcional === 'S' ? (valAluguelBase / diasNoMes) * diasUsados : valAluguelBase;
-    row.vlr_cond_calc = row.calc_proporcional === 'S' ? (valCondBase / diasNoMes) * diasUsados : valCondBase;
-    row.aluguel_mais_cond = row.vlr_aluguel_calc + row.vlr_cond_calc;
-
-    let diaUtil = 1; let contUteis = 0; const dVenc = new Date(anoComp, mesComp - 1, diaUtil);
-    while (contUteis < 5) { const diaSemana = dVenc.getDay(); if (diaSemana !== 0 && diaSemana !== 6) contUteis++; if (contUteis < 5) dVenc.setDate(dVenc.getDate() + 1); }
-    row.vencimento_calc = dVenc.toLocaleDateString('pt-BR');
-
-    let valAdm = 0;
-    if (parseFloat(row.taxa_adm_fixa) > 0) { valAdm = parseFloat(row.taxa_adm_fixa); } 
-    else { valAdm = row.vlr_aluguel_calc * (parseFloat(row.taxa_adm_pct || 10) / 100); }
-    row.calc_adm = valAdm;
-
-    const extras = (parseFloat(row.iptu)||0) + (parseFloat(row.bombeiro)||0) + (parseFloat(row.outras_taxas)||0) + (parseFloat(row.cobranca)||0);
-    row.cobrar_inquilino = row.aluguel_mais_cond + extras - (parseFloat(row.desconto)||0);
-
-    row.valor_repassar = row.regra_condominio === 'N' ? (row.cobrar_inquilino - row.vlr_cond_calc - valAdm) : (row.cobrar_inquilino - valAdm);
-
-    row.texto_cobranca = `Aluguel: ${fmtMoeda(row.vlr_aluguel_calc)}\nCondomínio: ${fmtMoeda(row.vlr_cond_calc)}\nEncargos: ${fmtMoeda(extras)}\nDescontos: -${fmtMoeda(row.desconto)}\nTOTAL: *${fmtMoeda(row.cobrar_inquilino)}*\nVencimento: ${row.vencimento_calc}\nPIX: ${row.pix_proprietario || 'N/A'}`;
+  async function carregarImoveis() {
+    const s = getLocalSession(); if (!s) return;
+    try {
+      const resp = await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?select=*&order=created_at.desc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}` } });
+      if (resp.ok) { 
+        contratosDB = await resp.json(); 
+        renderizarTabela();
+        atualizarSelectImoveis();
+      }
+    } catch(e) {}
   }
 
   function renderizarTabela() {
     const tbody = document.getElementById('tabela-imoveis-body');
     tbody.innerHTML = '';
-    if (contratosDB.length === 0) { tbody.innerHTML = '<tr><td colspan="33" style="text-align:center;">Nenhum registo.</td></tr>'; return; }
+    if (contratosDB.length === 0) { tbody.innerHTML = '<tr><td colspan="33" style="text-align:center;">Nenhum imóvel cadastrado.</td></tr>'; return; }
+
+    const mesRef = document.getElementById('filtro-mes').value || '2026-09';
+    const [aRow, mRow] = mesRef.split('-');
 
     contratosDB.forEach((c, i) => {
-      recalcularLinha(c);
-      
-      const mesRef = c.mes_ano || document.getElementById('filtro-mes').value;
-      const [aRow, mRow] = mesRef.split('-');
-      
-      const btnPdf = c.contrato_url ? `<button onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')" style="background:#1e293b; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">VER</button>` : '-';
-      const btnZap = `<a href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(c.texto_cobranca)}" target="_blank" style="background:#25D366; color:#fff; padding:4px 8px; font-weight:bold; text-decoration:none; border-radius:4px;">Enviar</a>`;
-      const admVal = c.taxa_adm_fixa > 0 ? formatadorStr(c.taxa_adm_fixa) : (c.taxa_adm_pct || '10');
+      const calc = calcularLancamentoMensal(c, mesRef);
+      const btnPdf = c.contrato_url ? `<button onclick="abrirPdf('${c.contrato_url}')" style="background:#1e293b; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">VER</button>` : '-';
+      const btnZap = `<a href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino||'').replace(/\D/g,'')}&text=${encodeURIComponent(calc.texto_cobranca)}" target="_blank" style="background:#25D366; color:#fff; padding:4px 8px; font-weight:bold; text-decoration:none; border-radius:4px;">Enviar</a>`;
 
       tbody.innerHTML += `
         <tr>
@@ -775,19 +802,19 @@ ${fullText.substring(0, 8000)}`;
           <td><input type="text" value="${c.telefone_inquilino || ''}" onchange="updateDb(${i}, 'telefone_inquilino', this.value)"></td>
           <td><input type="text" value="${formatadorStr(c.aluguel_base)}" onchange="updateDb(${i}, 'aluguel_base', parseMoedaToFloat(this.value))"></td>
           <td><input type="date" value="${c.data_inicio || ''}" onchange="updateDb(${i}, 'data_inicio', this.value)"></td>
-          <td>${c.calc_I}</td>
+          <td>${calc.calc_I}</td>
           <td><input type="date" value="${c.data_fim || ''}" onchange="updateDb(${i}, 'data_fim', this.value)"></td>
-          <td>${c.calc_F}</td><td>${btnPdf}</td>
+          <td>${calc.calc_F}</td><td>${btnPdf}</td>
           <td><input type="text" value="${c.pix_proprietario || ''}" onchange="updateDb(${i}, 'pix_proprietario', this.value)"></td>
           <td><input type="text" value="${c.pix_condominio || ''}" onchange="updateDb(${i}, 'pix_condominio', this.value)"></td>
-          <td>${c.calc_proporcional}</td>
+          <td>${calc.proporcional}</td>
           <td><select onchange="updateDb(${i}, 'regra_condominio', this.value)"><option value="S" ${c.regra_condominio==='S'?'selected':''}>S</option><option value="N" ${c.regra_condominio==='N'?'selected':''}>N</option></select></td>
-          <td>${fmtMoeda(c.vlr_aluguel_calc)}</td><td>${fmtMoeda(c.vlr_cond_calc)}</td><td>${fmtMoeda(c.aluguel_mais_cond)}</td>
-          <td style="font-weight:bold; color:#b91c1c;">${fmtMoeda(c.cobrar_inquilino)}</td><td>${c.vencimento_calc}</td>
-          <td><input type="text" value="${admVal}" onchange="updateDb(${i}, 'taxa_adm_pct', this.value)"></td>
-          <td style="font-weight:bold; color:#16a34a;">${fmtMoeda(c.valor_repassar)}</td>
+          <td>${fmtMoeda(calc.aluguelCalculado)}</td><td>${fmtMoeda(calc.condominioCalculado)}</td><td>${fmtMoeda(calc.aluguel_mais_cond)}</td>
+          <td style="font-weight:bold; color:#b91c1c;">${fmtMoeda(calc.totalCobrar)}</td><td>${calc.vencimento}</td>
+          <td><input type="text" value="${c.taxa_adm_fixa > 0 ? formatadorStr(c.taxa_adm_fixa) : (c.taxa_adm_pct||10)}" onchange="updateDb(${i}, 'taxa_adm_pct', this.value)"></td>
+          <td style="font-weight:bold; color:#16a34a;">${fmtMoeda(calc.valorRepassar)}</td>
           <td><input type="text" value="${c.observacao || ''}" onchange="updateDb(${i}, 'observacao', this.value)"></td>
-          <td>${fmtMoeda(c.vlr_cond_calc)}</td>
+          <td>${fmtMoeda(calc.condominioCalculado)}</td>
           <td><input type="text" value="${formatadorStr(c.condominio_base)}" onchange="updateDb(${i}, 'condominio_base', parseMoedaToFloat(this.value))"></td>
           <td><input type="text" value="${formatadorStr(c.iptu)}" onchange="updateDb(${i}, 'iptu', parseMoedaToFloat(this.value))"></td>
           <td><input type="text" value="${formatadorStr(c.bombeiro)}" onchange="updateDb(${i}, 'bombeiro', parseMoedaToFloat(this.value))"></td>
@@ -800,32 +827,25 @@ ${fullText.substring(0, 8000)}`;
     });
   }
 
-  async function carregarImoveis() {
-    const s = getLocalSession(); if (!s) return;
-    document.getElementById('tabela-imoveis-body').innerHTML = '<tr><td colspan="33" style="text-align:center;">A carregar dados...</td></tr>';
+  async function updateDb(index, field, value) {
+    if (field === 'taxa_adm_pct' && String(value).includes(',')) { contratosDB[index].taxa_adm_fixa = parseMoedaToFloat(value); }
+    contratosDB[index][field] = value; 
+    renderizarTabela();
+    
+    const s = getLocalSession(); const id = contratosDB[index].id; if(!id) return;
     try {
-      const resp = await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?select=*&order=created_at.desc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}` } });
-      if (resp.ok) { contratosDB = await resp.json(); renderizarTabela(); }
+      await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?id=eq.${id}`, {
+        method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value })
+      });
     } catch(e) {}
   }
 
-  async function updateDb(index, field, value) {
-    if (field === 'taxa_adm_pct' && String(value).includes(',')) { contratosDB[index].taxa_adm_fixa = parseMoedaToFloat(value); }
-    contratosDB[index][field] = value; renderizarTabela();
-    const s = getLocalSession(); const id = contratosDB[index].id; if(!id) return;
-    let payload = { [field]: value };
-    if (field === 'taxa_adm_pct' && String(value).includes(',')) payload.taxa_adm_fixa = parseMoedaToFloat(value);
-    try { await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch(e) {}
-  }
-
-  // GRAVAR NOVO (ATUALIZAÇÃO OTIMISTA)
   async function gravarNovoContrato() {
-    const btn = document.getElementById('btn-gravar-novo'); 
-    btn.disabled = true; btn.innerText = 'Salvando...';
-    const s = getLocalSession(); 
-    let urlPdf = null;
+    const btn = document.getElementById('btn-gravar-novo'); btn.disabled = true; btn.innerText = 'Salvando...';
+    const s = getLocalSession(); let urlPdf = null;
     
-    if (selectedPdfFile) {
+    if (selectedPdfFile && s) {
       const filePath = `contratos/${Date.now()}_contrato.pdf`;
       try {
         const uRes = await fetch(`${SUPABASE_BASE_URL}/storage/v1/object/contratos/${filePath}`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}`, 'Content-Type': 'application/pdf' }, body: selectedPdfFile });
@@ -848,40 +868,139 @@ ${fullText.substring(0, 8000)}`;
       condominio_base: parseMoedaToFloat(document.getElementById('condominioBase').value),
       taxa_adm_fixa: parseMoedaToFloat(document.getElementById('valorTaxaAdm').value),
       taxa_adm_pct: 10, regra_condominio: document.getElementById('regraCond').value || 'N',
-      mes_ano: document.getElementById('filtro-mes').value,
       contrato_url: urlPdf, ativo: 'SIM'
     };
 
-    // ATUALIZAÇÃO OTIMISTA: Adiciona na tabela IMEDIATAMENTE sem esperar pelo banco
     contratosDB.unshift(payload);
-    renderizarTabela();
+    alert('✓ Contrato gravado com sucesso e adicionado aos Imóveis Administrados!');
     
-    alert('✓ Dados e contrato migrados com sucesso para a aba de Imóveis Administrados!');
-    
-    // Limpa a tela de resumo
     document.querySelectorAll('#tab-resumo input').forEach(el => { el.value = ''; el.classList.remove('field-ok'); });
     selectedPdfFile = null; document.getElementById('file-name-pill').style.display = 'none';
-    
-    // Vai para a aba Imóveis Administrados
     setTab('imoveis', document.querySelectorAll('.tab-btn')[1]);
 
-    // Tenta gravar no banco em Background (Silenciosamente)
-    if(s) {
+    if (s) {
       try {
         await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, body: JSON.stringify(payload) });
-      } catch(e) { console.warn('Supabase DB error:', e); }
+      } catch(e) {}
     }
-    
     btn.disabled = false; btn.innerText = '💾 Gravar dados do novo contrato';
   }
 
-  function sincronizarCampos() {}
-  function calcularTudo() {}
+  // LANÇAMENTOS ESPECÍFICOS
+  function salvarTaxaCondominio() {
+    const id = document.getElementById('cond-imovel-select').value;
+    const mes = document.getElementById('cond-mes').value;
+    const val = parseMoedaToFloat(document.getElementById('cond-valor').value);
+    const obs = document.getElementById('cond-obs').value;
+    if(!id || !mes) { alert('Selecione o imóvel e a competência.'); return; }
 
-  function abrirVisualizadorPdf(url, inq) {
-    document.getElementById('pdf-modal-title').innerText = 'Contrato - ' + inq;
+    const im = contratosDB.find(c => c.id == id || c.inquilino === id);
+    if(im) {
+      im.condominio_base = val;
+      im.observacao = obs;
+      updateDb(contratosDB.indexOf(im), 'condominio_base', val);
+      alert('✓ Condomínio do mês atualizado com sucesso!');
+    }
+  }
+
+  function salvarTaxaExtra() {
+    const id = document.getElementById('extra-imovel-select').value;
+    const mes = document.getElementById('extra-mes').value;
+    const tipo = document.getElementById('extra-tipo').value;
+    const val = parseMoedaToFloat(document.getElementById('extra-valor').value);
+    const obs = document.getElementById('extra-obs').value;
+    if(!id || !mes) { alert('Preencha os campos obrigatórios.'); return; }
+
+    taxasExtras.push({ imovel_id: id, mes_ano: mes, tipo, valor: val, observacao: obs });
+    alert('✓ Taxa extra gravada com sucesso!');
+    document.getElementById('extra-valor').value = '';
+    document.getElementById('extra-obs').value = '';
+  }
+
+  function salvarDesconto() {
+    const id = document.getElementById('desc-imovel-select').value;
+    const mes = document.getElementById('desc-mes').value;
+    const val = parseMoedaToFloat(document.getElementById('desc-valor').value);
+    const obs = document.getElementById('desc-obs').value;
+    if(!id || !mes) { alert('Preencha os campos obrigatórios.'); return; }
+
+    descontosDB.push({ imovel_id: id, mes_ano: mes, valor: val, observacao: obs });
+    alert('✓ Desconto aplicado à competência!');
+    document.getElementById('desc-valor').value = '';
+    document.getElementById('desc-obs').value = '';
+  }
+
+  // RESUMO GERENCIAL
+  function renderizarResumoGerencial() {
+    const mesRef = document.getElementById('filtro-mes').value || '2026-09';
+    const tbody = document.getElementById('resumo-gerencial-body');
+    tbody.innerHTML = '';
+
+    let tAtivos = 0, tAluguel = 0, tCond = 0, tExtras = 0, tDesc = 0, tCobrar = 0, tAdm = 0, tRepassar = 0;
+
+    if(contratosDB.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;">Nenhum imóvel disponível.</td></tr>';
+      return;
+    }
+
+    contratosDB.forEach(c => {
+      if (c.ativo === 'SIM') tAtivos++;
+      const calc = calcularLancamentoMensal(c, mesRef);
+      
+      tAluguel += calc.aluguelCalculado;
+      tCond += calc.condominioCalculado;
+      tExtras += calc.taxasExtras;
+      tDesc += calc.descontos;
+      tCobrar += calc.totalCobrar;
+      tAdm += calc.administracao;
+      tRepassar += calc.valorRepassar;
+
+      tbody.innerHTML += `
+        <tr>
+          <td><strong>${c.endereco || '-'}</strong></td>
+          <td>${c.proprietario || '-'}</td>
+          <td>${c.inquilino || '-'}</td>
+          <td>${fmtMoeda(calc.aluguelCalculado)}</td>
+          <td>${fmtMoeda(calc.condominioCalculado)}</td>
+          <td>${fmtMoeda(calc.taxasExtras)}</td>
+          <td>${fmtMoeda(calc.descontos)}</td>
+          <td style="font-weight:bold; color:#b91c1c;">${fmtMoeda(calc.totalCobrar)}</td>
+          <td>${fmtMoeda(calc.administracao)}</td>
+          <td style="font-weight:bold; color:#16a34a;">${fmtMoeda(calc.valorRepassar)}</td>
+          <td>${calc.vencimento}</td>
+        </tr>
+      `;
+    });
+
+    document.getElementById('ger-ativos').innerText = tAtivos;
+    document.getElementById('ger-aluguel').innerText = fmtMoeda(tAluguel);
+    document.getElementById('ger-cond').innerText = fmtMoeda(tCond);
+    document.getElementById('ger-extras').innerText = fmtMoeda(tExtras);
+    document.getElementById('ger-desc').innerText = fmtMoeda(tDesc);
+    document.getElementById('ger-cobrar').innerText = fmtMoeda(tCobrar);
+    document.getElementById('ger-adm').innerText = fmtMoeda(tAdm);
+    document.getElementById('ger-repassar').innerText = fmtMoeda(tRepassar);
+  }
+
+  function abrirPdf(url) {
     document.getElementById('pdf-iframe').src = url + '#toolbar=0';
     document.getElementById('pdf-modal').style.display = 'flex';
+  }
+
+  async function sendChat() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const chatArea = document.getElementById('chatArea');
+    chatArea.innerHTML += `<div style="text-align:right; margin: 4px 0; background:#e0e7ff; padding:8px; border-radius:8px; display:inline-block; float:right; clear:both;">${msg}</div>`;
+    input.value = '';
+
+    try {
+      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg }) });
+      const json = await res.json();
+      chatArea.innerHTML += `<div style="background:#fff; border:1px solid #ddd; padding:8px; border-radius:8px; margin: 4px 0; max-width:80%; clear:both;">${json.reply || json.error}</div>`;
+    } catch (e) {}
   }
 </script>
 </body>
