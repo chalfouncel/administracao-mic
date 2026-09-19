@@ -51,8 +51,8 @@
   input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; transition: 0.2s; }
   input:focus, select:focus { border-color: var(--accent); }
   
-  /* Animação visual ao preencher automático */
-  .field-ok { background-color: #f0fdf4 !important; border-color: #22c55e !important; }
+  /* Destaque Verde na extração */
+  .field-ok { background-color: #f0fdf4 !important; border-color: #22c55e !important; color: #047857; font-weight: bold; }
 
   .summary-box { background: #0f172a; border: 1px solid var(--accent); color: #fff; border-radius: 10px; padding: 16px; margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; text-align: center; }
   .summary-item .label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
@@ -92,7 +92,7 @@
   .thumbnail-wrapper canvas { width: 100%; height: auto; display: none; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
   .file-name-pill { font-size: 0.74rem; font-weight: 700; color: var(--primary); background: #f1f5f9; padding: 4px 8px; border-radius: 6px; word-break: break-all; margin-bottom: 10px; display: none; }
   
-  .ai-loader { display: none; padding: 10px; background: #e0f2fe; color: #0369a1; border-radius: 8px; font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; text-align: center; }
+  .ai-loader { display: none; padding: 10px; background: #e0f2fe; color: #0369a1; border-radius: 8px; font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; text-align: center; border: 1px solid #bae6fd; }
 
   /* MODAIS */
   #auth-modal, #pdf-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.94); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -106,7 +106,6 @@
 </head>
 <body>
 
-<!-- MODAL DE LOGIN -->
 <div id="auth-modal">
   <div class="auth-card">
     <img src="/Loga%20marca%20nova.png" alt="M&IC Corretores" style="max-height:56px; margin-bottom:12px;" onerror="this.src='/Loga marca nova.png'">
@@ -153,7 +152,6 @@
     <button class="tab-btn" onclick="setTab('agentes', this)">🤖 Agente de IA Gemini</button>
   </div>
 
-  <!-- ABA 1: RESUMO DO CONTRATO -->
   <div id="tab-resumo" class="tab-content active">
     <div class="resumo-layout">
       
@@ -166,7 +164,7 @@
           </div>
         </div>
         <div class="file-name-pill" id="file-name-pill"></div>
-        <div id="ai-extract-loader" class="ai-loader">⏳ Extraindo dados contratuais...</div>
+        <div id="ai-extract-loader" class="ai-loader">⏳ Extraindo dados do contrato...</div>
         
         <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="processarContratoPDF(event)">
         <button type="button" class="btn btn-gold" style="width:100%; font-size:0.85rem; padding:10px;" onclick="document.getElementById('contratoFile').click()">
@@ -223,14 +221,23 @@
           </div>
           <div>
             <label>Valor do aluguel Base</label>
-            <input type="number" id="aluguelBase" placeholder="R$ 0,00" step="0.01" oninput="sincronizarCampos()">
+            <!-- Alterado para type="text" para suportar formatação de Moeda Brasileira (R$ 1.000,00) -->
+            <input type="text" id="aluguelBase" placeholder="0,00" onkeyup="formatarMoedaInput(this); sincronizarCampos()">
           </div>
         </div>
 
         <div class="grid-3" style="margin-top:14px;">
           <div>
-            <label>Valor da Taxa de Administração (R$)</label>
-            <input type="number" id="valorTaxaAdm" placeholder="R$ 0,00" step="0.01" oninput="sincronizarCampos()">
+            <label>Condomínio Base</label>
+            <input type="text" id="condominioBase" placeholder="0,00" onkeyup="formatarMoedaInput(this)">
+          </div>
+          <div>
+            <label>Taxa Adm Fixo (R$)</label>
+            <input type="text" id="valorTaxaAdm" placeholder="0,00" onkeyup="formatarMoedaInput(this)">
+          </div>
+          <div>
+            <label>Repassa Condomínio?</label>
+            <select id="regraCond"><option value="S">SIM</option><option value="N">NÃO</option></select>
           </div>
         </div>
 
@@ -241,7 +248,6 @@
     </div>
   </div>
 
-  <!-- ABA 2: IMÓVEIS ADMINISTRADOS -->
   <div id="tab-imoveis" class="tab-content">
     <div class="card" style="padding: 10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 8px;">
@@ -273,7 +279,6 @@
     </div>
   </div>
 
-  <!-- ABA 3: CÁLCULO E REPASSE -->
   <div id="tab-calculo" class="tab-content">
     <div class="card">
       <div class="card-title">1. Dados de Cobrança & Mês de Referência</div>
@@ -283,8 +288,8 @@
         <div><label>Mês e Ano de Referência</label><input type="month" id="mesAno"></div>
       </div>
       <div class="grid-2" style="margin-top:12px;">
-        <div><label>Valor do aluguel Base</label><input type="number" id="calc-aluguelBase" oninput="calcularTudo()"></div>
-        <div><label>Condomínio Base Integral</label><input type="number" id="condominioBase" value="650" oninput="calcularTudo()"></div>
+        <div><label>Valor do aluguel Base</label><input type="text" id="calc-aluguelBase" onkeyup="formatarMoedaInput(this); calcularTudo()"></div>
+        <div><label>Condomínio Base Integral</label><input type="text" id="condominioBase2" value="650,00" onkeyup="formatarMoedaInput(this); calcularTudo()"></div>
       </div>
     </div>
     <div class="card">
@@ -297,9 +302,9 @@
         <div id="box-dias-prop" style="display:none;"><label>Dias Ocupados</label><input type="number" id="diasOcupados" value="15" oninput="calcularTudo()"></div>
       </div>
       <div class="grid-3" style="margin-top:14px;">
-        <div><label>IPTU Mensal</label><input type="number" id="iptu" value="120" oninput="calcularTudo()"></div>
-        <div><label>Taxa de Incêndio/Bombeiro</label><input type="number" id="bombeiro" value="35" oninput="calcularTudo()"></div>
-        <div><label>Outras Taxas</label><input type="number" id="outrasTaxas" value="0" oninput="calcularTudo()"></div>
+        <div><label>IPTU Mensal</label><input type="text" id="iptu" value="120,00" onkeyup="formatarMoedaInput(this); calcularTudo()"></div>
+        <div><label>Taxa de Incêndio/Bombeiro</label><input type="text" id="bombeiro" value="35,00" onkeyup="formatarMoedaInput(this); calcularTudo()"></div>
+        <div><label>Outras Taxas</label><input type="text" id="outrasTaxas" value="0,00" onkeyup="formatarMoedaInput(this); calcularTudo()"></div>
       </div>
     </div>
     <div class="card">
@@ -315,18 +320,16 @@
     </div>
   </div>
 
-  <!-- ABA WHATSAPP -->
   <div id="tab-whatsapp" class="tab-content">
     <div class="card">
       <div class="card-title">Texto Automático da Cobrança</div>
-      <label>Chave PIX</label><input type="text" id="chavePix" value="financeiro@micimoveis.com.br" oninput="gerarTextoCobranca()" style="margin-bottom:12px;">
+      <label>Chave PIX para Cobrança</label><input type="text" id="chavePix" value="financeiro@micimoveis.com.br" oninput="gerarTextoCobranca()" style="margin-bottom:12px;">
       <label>Vencimento</label><input type="date" id="dataVencimento" onchange="gerarTextoCobranca()" style="margin-bottom:12px;">
       <label>Mensagem</label><textarea id="textoMsg" rows="11" readonly style="background:#f8fafc; font-family:monospace;"></textarea>
-      <div style="display:flex; gap:10px; margin-top:14px;"><button class="btn btn-gold" onclick="copiarTexto()">📋 Copiar</button><button class="btn btn-whatsapp" onclick="enviarWhatsApp()">📲 WhatsApp</button></div>
+      <div style="display:flex; gap:10px; margin-top:14px;"><button class="btn btn-gold" onclick="copiarTexto()">📋 Copiar</button><button class="btn btn-whatsapp" onclick="enviarWhatsApp()">📲 Abrir no WhatsApp</button></div>
     </div>
   </div>
 
-  <!-- ABA HISTÓRICO -->
   <div id="tab-historico" class="tab-content">
     <div class="card">
       <div class="card-title">Contratos Salvos <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="carregarHistoricoLocacoes()">🔄 Atualizar</button></div>
@@ -334,10 +337,9 @@
     </div>
   </div>
 
-  <!-- ABA IA -->
   <div id="tab-agentes" class="tab-content">
     <div class="card">
-      <div class="card-title">Assistente IA Gemini</div>
+      <div class="card-title">Assistente Especialista M&IC</div>
       <div class="chat-box" id="chatArea"></div>
       <div style="display:flex; gap:8px;"><input type="text" id="chatInput" placeholder="Digite..." onkeypress="if(event.key==='Enter') sendChat()"><button class="btn btn-gold" onclick="sendChat()">Enviar</button></div>
     </div>
@@ -350,10 +352,38 @@
   let contratosDB = [];
   let selectedPdfFile = null;
 
+  /* =========================================
+     MÓDULO 1: FORMATAÇÃO DE MOEDA (PORTUGUÊS-BR) E PARSER
+  ========================================= */
+  // Formata o número (ex: 1500.5) para String (ex: 1.500,50)
+  const formatadorStr = val => {
+    if(!val) return '';
+    return parseFloat(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
   const fmtMoeda = val => parseFloat(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  
+  // Converte a string do Input text formatada "R$ 1.000,00" ou "1.000,00" de volta para Float numérico
+  const parseMoedaToFloat = str => {
+    if (!str) return 0;
+    if (typeof str === 'number') return str;
+    let s = String(str).replace(/[^\d,-]/g, '');
+    s = s.replace(',', '.');
+    return parseFloat(s) || 0;
+  };
+
+  // Máscara real-time para campos de moeda no HTML
+  function formatarMoedaInput(i) {
+    let v = i.value.replace(/\D/g,'');
+    if(v === '') { i.value = ''; return; }
+    v = (v/100).toFixed(2) + '';
+    v = v.replace(".", ",");
+    v = v.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,");
+    v = v.replace(/(\d)(\d{3}),/g, "$1.$2,");
+    i.value = v;
+  }
 
   /* =========================================
-     MÓDULO 1: EXTRATOR LOCAL VISTORIA FÁCIL
+     MÓDULO 2: EXTRATOR LOCAL CIRÚRGICO CLICKSIGN
   ========================================= */
   function decodeAddressOnly(text) {
     if (!text) return "";
@@ -371,22 +401,6 @@
     let s = raw.trim();
     s = s.replace(/^(?:Nome|Signat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '').replace(/\s+CPF.*$/i, '').replace(/\s+assinou.*$/i, '');
     return s.split(',')[0].trim();
-  }
-
-  function isValidPersonName(str) {
-    if (!str) return false;
-    let s = str.trim();
-    let sNorm = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    if (s.indexOf('@') !== -1 || sNorm.includes("cpf") || sNorm.includes("assinou") || sNorm.includes("clicksign")) return false;
-    return /[A-Za-zÀ-Úà-ú]{3,}/.test(s);
-  }
-
-  function findTrueSignerAbove(lines, index) {
-    for (let j = index - 1; j >= Math.max(0, index - 8); j--) {
-      let candidate = lines[j].trim();
-      if (isValidPersonName(candidate)) return cleanName(candidate);
-    }
-    return "";
   }
 
   function extractAddressAfterSituado(text) {
@@ -417,7 +431,7 @@
     } catch (e) {}
   }
 
-  // PROCESSAMENTO DO CONTRATO VIA EXTRATOR VISTORIA
+  // Lógica principal de extração de arquivo anexado
   async function processarContratoPDF(event) {
     const file = event.target.files[0];
     if (!file || file.type !== 'application/pdf') return;
@@ -437,6 +451,7 @@
       let allRawLines = [];
       let page1RawLines = [];
       let fullText = '';
+      
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p);
         const textContent = await page.getTextContent();
@@ -451,62 +466,81 @@
       }
 
       const page1Text = page1RawLines.join(" ");
-      let ext = { locador: '', locatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0 };
+      let ext = { locador: '', telLocador: '', locatario: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '' };
 
-      // Motor Local Vistoria Fácil
-      let mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
-      if (mLoc1 && isValidPersonName(mLoc1[1])) ext.locador = cleanName(mLoc1[1]);
-      if (!ext.locador) {
-        for (let i = 0; i < allRawLines.length; i++) {
-          if (allRawLines[i].toLowerCase().includes("assinou como locador")) { ext.locador = findTrueSignerAbove(allRawLines, i); break; }
-        }
+      // 1. Locador e Telefone
+      const blocoLocador = page1Text.match(/LOCADOR(?:A)?\s*\([\s\w]*\)?\s*[:\-–]?\s*(.*?)(?=LOCAT[AÁ]RIO|IM[OÓ]VEL)/is);
+      if(blocoLocador) {
+        const txt = blocoLocador[1];
+        ext.locador = cleanName(txt.split(',')[0]);
+        const mTel = txt.match(/Tel(?:efone|\.)?\s*[:\-]?\s*([\d\s\-\(\)]{9,20})/i);
+        if(mTel) ext.telLocador = mTel[1].trim();
       }
 
-      let mLocat1 = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
-      if (mLocat1 && isValidPersonName(mLocat1[1])) ext.locatario = cleanName(mLocat1[1]);
-      if (!ext.locatario) {
-        for (let j = 0; j < allRawLines.length; j++) {
-          if (allRawLines[j].toLowerCase().includes("assinou como locatario")) { ext.locatario = findTrueSignerAbove(allRawLines, j); break; }
-        }
+      // 2. Locatário, E-mail e Telefone
+      const blocoLocatario = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\([\s\w]*\)?\s*[:\-–]?\s*(.*?)(?=IM[OÓ]VEL|As partes)/is);
+      if(blocoLocatario) {
+        const txt = blocoLocatario[1];
+        ext.locatario = cleanName(txt.split(',')[0]);
+        const mEmail = txt.match(/Email\.?\s*[:\-]?\s*([a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+        if(mEmail) ext.emailLocatario = mEmail[1].trim();
+        const mTel = txt.match(/Telefone\s*[:\-]?\s*([\d\s\-\(\)]{9,20})/i);
+        if(mTel) ext.telLocatario = mTel[1].trim();
       }
 
+      // 3. Endereço
       ext.endereco = extractAddressAfterSituado(page1Text);
 
+      // 4. Datas (Cláusula Primeira)
       let dateMatches = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
       if (dateMatches && dateMatches.length >= 2) {
         ext.dataIn = dateMatches[0].split('/').reverse().join('-');
         ext.dataFim = dateMatches[1].split('/').reverse().join('-');
       }
 
+      // 5. Aluguel Base
       let mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
       if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
-      // Função de visual flash para os preenchidos
+      // 6. PIX Proprietário (Cláusula Segunda)
+      let mPix = fullText.match(/chave PIX para transfer[êe]ncia [ée] o [a-zA-Z]*\s*([\w\.\-\@\+]+)\s*em nome de/i);
+      if(!mPix) mPix = fullText.match(/chave PIX.*?:\s*([\w\.\-\@\+]+)\s*em nome/i);
+      if(!mPix) mPix = fullText.match(/chave PIX\s*([\w\.\-\@]+)/i);
+      if(mPix) ext.pix = mPix[1].trim();
+
+      // FUNÇÃO DE AVISO VISUAL DOS CAMPOS (FLASH VERDE)
       function flash(id, val) { 
         if(val) { 
           const el = document.getElementById(id); 
-          el.value = val; el.classList.add('field-ok'); setTimeout(()=>el.classList.remove('field-ok'), 2000); 
+          el.value = val; 
+          el.classList.add('field-ok'); 
+          setTimeout(() => el.classList.remove('field-ok'), 2500); 
         } 
       }
 
       flash('proprietario', decodeAddressOnly(ext.locador));
+      flash('telProprietario', ext.telLocador);
+      flash('pixProprietario', ext.pix);
       flash('inquilino', decodeAddressOnly(ext.locatario));
+      flash('emailInquilino', ext.emailLocatario);
+      flash('telInquilino', ext.telLocatario);
       flash('endereco', decodeAddressOnly(ext.endereco));
       flash('dataInicio', ext.dataIn);
       flash('dataFim', ext.dataFim);
-      flash('aluguelBase', ext.valor);
+      
+      // Formata o valor de Extração para String BR
+      flash('aluguelBase', formatadorStr(ext.valor));
       
       sincronizarCampos();
 
     } catch (err) { 
-      console.error(err); 
-      alert('Erro ao processar contrato: ' + err.message);
+      console.error(err); alert('Erro ao processar contrato: ' + err.message);
     } finally { loader.style.display = 'none'; }
   }
 
 
   /* =========================================
-     MÓDULO 2: GESTÃO DO SISTEMA E LOGIN
+     MÓDULO 3: GESTÃO DO SISTEMA E LOGIN
   ========================================= */
   function getLocalSession() { try { return JSON.parse(localStorage.getItem('mic_auth_session')); } catch(e) { return null; } }
   function setLocalSession(session) { if (session) localStorage.setItem('mic_auth_session', JSON.stringify(session)); else localStorage.removeItem('mic_auth_session'); }
@@ -528,10 +562,8 @@
     const password = document.getElementById('auth-pass').value;
     const status = document.getElementById('auth-status');
     const btn = document.getElementById('btn-login');
-
     status.style.display = 'block'; status.className = 'auth-msg loading'; status.innerText = 'A autenticar...'; btn.disabled = true;
     if (!email || !password) { status.className = 'auth-msg err'; status.innerText = 'Preencha o e-mail e a senha.'; btn.disabled = false; return; }
-
     try {
       const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/token?grant_type=password`, {
         method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password })
@@ -547,10 +579,8 @@
     const password = document.getElementById('auth-pass').value;
     const status = document.getElementById('auth-status');
     const btn = document.getElementById('btn-register');
-
     status.style.display = 'block'; status.className = 'auth-msg loading'; status.innerText = 'Criando conta...'; btn.disabled = true;
     if (!email || !password) { status.className = 'auth-msg err'; status.innerText = 'Preencha e-mail e senha.'; btn.disabled = false; return; }
-
     try {
       const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/signup`, {
         method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password })
@@ -567,7 +597,6 @@
     document.getElementById('btn-login').addEventListener('click', doLogin);
     document.getElementById('btn-register').addEventListener('click', doRegister);
     document.getElementById('btn-logout-action').addEventListener('click', doLogout);
-    
     const hoje = new Date();
     document.getElementById('filtro-mes').value = `${hoje.getFullYear()}-${(hoje.getMonth()+1).toString().padStart(2, '0')}`;
     checkSession();
@@ -583,7 +612,7 @@
 
 
   /* =========================================
-     MÓDULO 3: TABELA DE IMOVEIS E CÁLCULOS
+     MÓDULO 4: TABELA DE IMOVEIS E CÁLCULOS
   ========================================= */
   function diferencaMeses(d1, d2) {
     if (!d1 || !d2) return '';
@@ -633,7 +662,6 @@
   function renderizarTabela() {
     const tbody = document.getElementById('tabela-imoveis-body');
     tbody.innerHTML = '';
-    
     if (contratosDB.length === 0) { tbody.innerHTML = '<tr><td colspan="33" style="text-align:center;">Nenhum registo.</td></tr>'; return; }
 
     const [aFiltro, mFiltro] = document.getElementById('filtro-mes').value.split('-');
@@ -652,7 +680,7 @@
           <td><input type="text" value="${c.endereco || ''}" onchange="updateDb(${i}, 'endereco', this.value)"></td>
           <td><input type="text" value="${c.inquilino || ''}" onchange="updateDb(${i}, 'inquilino', this.value)"></td>
           <td><input type="text" value="${c.telefone_inquilino || ''}" onchange="updateDb(${i}, 'telefone_inquilino', this.value)"></td>
-          <td><input type="number" value="${c.aluguel_base}" onchange="updateDb(${i}, 'aluguel_base', this.value)"></td>
+          <td><input type="text" value="${formatadorStr(c.aluguel_base)}" onchange="updateDb(${i}, 'aluguel_base', parseMoedaToFloat(this.value))"></td>
           <td><input type="date" value="${c.data_inicio || ''}" onchange="updateDb(${i}, 'data_inicio', this.value)"></td>
           <td>${c.calc_I}</td>
           <td><input type="date" value="${c.data_fim || ''}" onchange="updateDb(${i}, 'data_fim', this.value)"></td>
@@ -667,12 +695,12 @@
           <td style="font-weight:bold; color:#16a34a;">${fmtMoeda(c.valor_repassar)}</td>
           <td><input type="text" value="${c.observacao || ''}" onchange="updateDb(${i}, 'observacao', this.value)"></td>
           <td>${fmtMoeda(c.vlr_cond_calc)}</td>
-          <td><input type="number" value="${c.condominio_base}" onchange="updateDb(${i}, 'condominio_base', this.value)"></td>
-          <td><input type="number" value="${c.iptu}" onchange="updateDb(${i}, 'iptu', this.value)"></td>
-          <td><input type="number" value="${c.bombeiro}" onchange="updateDb(${i}, 'bombeiro', this.value)"></td>
-          <td><input type="number" value="${c.outras_taxas}" onchange="updateDb(${i}, 'outras_taxas', this.value)"></td>
-          <td><input type="number" value="${c.cobranca}" onchange="updateDb(${i}, 'cobranca', this.value)"></td>
-          <td style="background:#f1f8e9;"><input type="number" value="${c.desconto}" onchange="updateDb(${i}, 'desconto', this.value)"></td>
+          <td><input type="text" value="${formatadorStr(c.condominio_base)}" onchange="updateDb(${i}, 'condominio_base', parseMoedaToFloat(this.value))"></td>
+          <td><input type="text" value="${formatadorStr(c.iptu)}" onchange="updateDb(${i}, 'iptu', parseMoedaToFloat(this.value))"></td>
+          <td><input type="text" value="${formatadorStr(c.bombeiro)}" onchange="updateDb(${i}, 'bombeiro', parseMoedaToFloat(this.value))"></td>
+          <td><input type="text" value="${formatadorStr(c.outras_taxas)}" onchange="updateDb(${i}, 'outras_taxas', parseMoedaToFloat(this.value))"></td>
+          <td><input type="text" value="${formatadorStr(c.cobranca)}" onchange="updateDb(${i}, 'cobranca', parseMoedaToFloat(this.value))"></td>
+          <td style="background:#f1f8e9;"><input type="text" value="${formatadorStr(c.desconto)}" onchange="updateDb(${i}, 'desconto', parseMoedaToFloat(this.value))"></td>
           <td>${btnZap}</td>
         </tr>
       `;
@@ -691,11 +719,9 @@
   async function updateDb(index, field, value) {
     if (field === 'taxa_adm_pct' && !String(value).includes('%')) { contratosDB[index].taxa_adm_fixa = value; }
     contratosDB[index][field] = value; renderizarTabela();
-    
     const s = getLocalSession(); const id = contratosDB[index].id; if(!id) return;
     let payload = { [field]: value };
     if (field === 'taxa_adm_pct' && !String(value).includes('%')) payload.taxa_adm_fixa = value;
-
     try { await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch(e) {}
   }
 
@@ -723,9 +749,9 @@
       endereco: document.getElementById('endereco').value,
       data_inicio: document.getElementById('dataInicio').value || null,
       data_fim: document.getElementById('dataFim').value || null,
-      aluguel_base: parseFloat(document.getElementById('aluguelBase').value) || 0,
-      condominio_base: parseFloat(document.getElementById('condominioBase').value) || 0,
-      taxa_adm_fixa: parseFloat(document.getElementById('valorTaxaAdm').value) || 0,
+      aluguel_base: parseMoedaToFloat(document.getElementById('aluguelBase').value),
+      condominio_base: parseMoedaToFloat(document.getElementById('condominioBase').value),
+      taxa_adm_fixa: parseMoedaToFloat(document.getElementById('valorTaxaAdm').value),
       taxa_adm_pct: 10, regra_condominio: document.getElementById('regraCond').value || 'N',
       contrato_url: urlPdf, ativo: 'SIM'
     };
