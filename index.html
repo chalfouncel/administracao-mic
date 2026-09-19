@@ -150,7 +150,7 @@
     <button class="tab-btn" onclick="setTab('resumo_gerencial', this)">📈 Resumo Gerencial</button>
   </div>
 
-  <!-- ABA: RESUMO DO CONTRATO — NÃO ALTERAR (Mantido Intacto) -->
+  <!-- ABA: RESUMO DO CONTRATO — NÃO ALTERAR -->
   <div id="tab-resumo" class="tab-content active">
     <div class="resumo-layout">
       
@@ -251,7 +251,7 @@
     <div class="card" style="padding: 10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 8px;">
         <div style="font-weight:800; font-size: 1.1rem; color: var(--primary);">Cadastro Mestre de Imóveis Administrados</div>
-        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="carregarImoveis()">🔄 Atualizar Lista</button>
+        <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="carregarImoveis(true)">🔄 Atualizar Lista</button>
       </div>
       
       <div class="table-linear-container">
@@ -310,7 +310,7 @@
   <div id="tab-taxas_extras" class="tab-content">
     <div class="card">
       <div class="card-title">Lançamento de Taxas Extras (IPTU, Bombeiro, Seguros, Multas)</div>
-      <p style="font-size: 0.85rem; color: #64748b;">Campos adicionados na tabela da aba Taxas Condominiais para gestão consolidada.</p>
+      <p style="font-size: 0.85rem; color: #64748b;">As opções de IPTU, Bombeiro, Seguro e Outras foram unificadas na aba "Taxas Condominiais" para facilitar o lançamento mensal.</p>
     </div>
   </div>
 
@@ -318,7 +318,7 @@
   <div id="tab-descontos" class="tab-content">
     <div class="card">
       <div class="card-title">Controle de Descontos Concedidos</div>
-      <p style="font-size: 0.85rem; color: #64748b;">Campos adicionados na tabela da aba Taxas Condominiais para gestão consolidada.</p>
+      <p style="font-size: 0.85rem; color: #64748b;">A opção de descontos foi unificada na aba "Taxas Condominiais" para centralizar o lançamento.</p>
     </div>
   </div>
 
@@ -641,7 +641,7 @@ ${fullText.substring(0, 8000)}`;
       document.getElementById('auth-modal').style.display = 'none';
       document.getElementById('user-pill').style.display = 'flex';
       document.getElementById('logged-user-email').innerText = s.user.email;
-      if (document.getElementById('tab-imoveis').classList.contains('active')) carregarImoveis();
+      carregarImoveis(); // Sempre carrega dados ao fazer login
     } else {
       document.getElementById('auth-modal').style.display = 'flex';
       document.getElementById('user-pill').style.display = 'none';
@@ -661,7 +661,11 @@ ${fullText.substring(0, 8000)}`;
       });
       const data = await resp.json();
       if (!resp.ok) { status.className = 'auth-msg err'; status.innerText = 'Erro: ' + (data.error_description || data.message); } 
-      else { status.className = 'auth-msg ok'; status.innerText = '✓ Sucesso!'; setLocalSession(data); setTimeout(() => checkSession(), 300); }
+      else { 
+        status.className = 'auth-msg ok'; status.innerText = '✓ Sucesso!'; 
+        setLocalSession(data); 
+        setTimeout(() => checkSession(), 300); 
+      }
     } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
   }
 
@@ -678,7 +682,10 @@ ${fullText.substring(0, 8000)}`;
       });
       const data = await resp.json();
       if (!resp.ok) { status.className = 'auth-msg err'; status.innerText = 'Erro: ' + data.message; } 
-      else { status.className = 'auth-msg ok'; status.innerText = '✓ Cadastro concluído!'; setLocalSession(data); setTimeout(() => checkSession(), 400); }
+      else { 
+        status.className = 'auth-msg ok'; status.innerText = '✓ Cadastro concluído!'; 
+        setLocalSession(data); setTimeout(() => checkSession(), 400); 
+      }
     } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
   }
 
@@ -689,7 +696,6 @@ ${fullText.substring(0, 8000)}`;
     document.getElementById('btn-register').addEventListener('click', doRegister);
     document.getElementById('btn-logout-action').addEventListener('click', doLogout);
     
-    // O Mês de Referência é sempre o PRÓXIMO MÊS.
     const hoje = new Date();
     let proxMes = hoje.getMonth() + 2; 
     let anoVenc = hoje.getFullYear();
@@ -699,6 +705,7 @@ ${fullText.substring(0, 8000)}`;
     document.querySelectorAll('.card input').forEach(input => {
       input.addEventListener('input', () => { input.classList.remove('field-ok'); });
     });
+    
     checkSession();
   });
 
@@ -708,7 +715,7 @@ ${fullText.substring(0, 8000)}`;
     document.getElementById('tab-' + name).classList.add('active');
     btn.classList.add('active');
     
-    if (name === 'imoveis') carregarImoveis();
+    if (name === 'imoveis') carregarImoveis(false);
     if (name === 'taxas_cond') renderizarTaxasCondominiais();
   }
 
@@ -805,18 +812,27 @@ ${fullText.substring(0, 8000)}`;
     setTimeout(() => { loadTableThumbnails(); }, 300);
   }
 
-  async function carregarImoveis() {
+  let isLoadingImoveis = false;
+  async function carregarImoveis(forceUI = true) {
+    if (isLoadingImoveis) return;
+    isLoadingImoveis = true;
+    
     const tbody = document.getElementById('tabela-imoveis-linear-body');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: #64748b;">Carregando dados do banco de dados...</td></tr>';
+    if (forceUI && tbody && contratosDB.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: #64748b;">Carregando dados do banco de dados...</td></tr>';
+    }
     
     try {
       const resp = await supabaseFetchWithRefresh('/rest/v1/locacoes?select=*&order=created_at.desc', { method: 'GET' });
       if (resp.ok) { 
         contratosDB = await resp.json(); 
         renderizarTabelaLinear(); 
+        renderizarTaxasCondominiais();
       }
     } catch(e) { 
       if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: red;">${e.message}</td></tr>`;
+    } finally {
+      isLoadingImoveis = false;
     }
   }
 
@@ -835,7 +851,7 @@ ${fullText.substring(0, 8000)}`;
   }
 
   async function excluirImovel(idReg) {
-    if (!confirm("Tem certeza que deseja remover este contrato da tela de imóveis administrados?\nEle continuará salvo no banco de dados, mas deixará de aparecer aqui e nas taxas.")) return;
+    if (!confirm("Tem certeza que deseja remover este contrato da tela de imóveis administrados?\nEle continuará salvo no banco de dados para segurança financeira.")) return;
 
     const idx = contratosDB.findIndex(x => (x.id || x._tempId) == idReg);
     if(idx > -1) {
@@ -858,7 +874,7 @@ ${fullText.substring(0, 8000)}`;
 
 
   // =======================================================
-  // SALVAR NOVO CONTRATO NO SUPABASE 
+  // SALVAR NOVO CONTRATO NO SUPABASE
   // =======================================================
   function sincronizarCampos() { }
 
@@ -881,7 +897,7 @@ ${fullText.substring(0, 8000)}`;
         if (uRes.ok) {
             urlPdf = `${SUPABASE_BASE_URL}/storage/v1/object/public/contratos/${filePath}`;
         }
-      } catch(e) { console.warn("Aviso PDF: O bucket 'contratos' pode não existir ou não ter permissão RLS.", e); }
+      } catch(e) { console.warn("Aviso PDF", e); }
     }
 
     const s = getLocalSession();
@@ -937,7 +953,6 @@ ${fullText.substring(0, 8000)}`;
 
         alert('✓ Dados e contrato gravados com sucesso na base de dados!');
         
-        // LIMPEZA TOTAL DA ABA
         document.querySelectorAll('#tab-resumo input, #tab-resumo select').forEach(el => { 
           if(el.type !== 'file') { el.value = ''; }
           el.classList.remove('field-ok'); 
@@ -959,11 +974,7 @@ ${fullText.substring(0, 8000)}`;
         alert('Erro ao gravar no banco de dados. A tabela "locacoes" ou algumas de suas colunas podem estar ausentes no Supabase. Detalhe: ' + JSON.stringify(errData));
       }
     } catch(e) {
-      if (e.message.includes('Sessão expirada')) {
-         alert("Sessão expirada. O sistema não guardou para evitar corrupção de dados. Faça login e clique em gravar novamente.");
-      } else {
          alert('Falha de conexão com o banco de dados: ' + e.message);
-      }
     } finally { 
       btn.disabled = false; 
       btn.innerText = '💾 Gravar dados do novo contrato'; 
@@ -978,7 +989,7 @@ ${fullText.substring(0, 8000)}`;
 
 
   // =======================================================
-  // ABA: TAXAS CONDOMINIAIS & EXTRAS (Com cálculo e totalizador final)
+  // ABA: TAXAS CONDOMINIAIS & EXTRAS
   // =======================================================
   function editarProporcional(el) {
     if (el.readOnly) {
