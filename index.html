@@ -248,6 +248,13 @@
   </div>
 
   <div id="tab-imoveis" class="tab-content">
+    <div class="dashboard-grid">
+      <div class="dash-card"><div class="title">Contratos Ativos</div><div class="val" id="dash-ativos">0</div></div>
+      <div class="dash-card"><div class="title">Total de Condomínios</div><div class="val" id="dash-cond">R$ 0,00</div></div>
+      <div class="dash-card blue"><div class="title">Total Administração</div><div class="val" id="dash-adm">R$ 0,00</div></div>
+      <div class="dash-card green"><div class="title">Total a Repassar</div><div class="val" id="dash-repasse">R$ 0,00</div></div>
+      <div class="dash-card"><div class="title">Total a Cobrar</div><div class="val" id="dash-cobrar">R$ 0,00</div></div>
+    </div>
     <div class="card" style="padding: 10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 8px;">
         <div style="font-weight:800;">Controle Geral de Imóveis Administrados</div>
@@ -352,7 +359,7 @@
   let selectedPdfFile = null;
 
   /* =========================================
-     MÓDULO 1: FORMATAÇÃO DE MOEDA (PORTUGUÊS-BR) E STRINGS
+     MÓDULO 1: FORMATAÇÃO DE MOEDA (PORTUGUÊS-BR)
   ========================================= */
   const formatadorStr = val => {
     if(!val) return '';
@@ -376,35 +383,80 @@
   }
 
   /* =========================================
-     MÓDULO 2: EXTRATOR LOCAL CIRÚRGICO CLICKSIGN
+     MÓDULO 2: O MOTOR EXATO DE VISTORIA FÁCIL
   ========================================= */
-  function normalizarTextoBrasil(text) {
-    if (!text) return '';
-    let s = text.replace(/PraÁa/gi, 'Praça').replace(/HÈlder/gi, 'Hélder').replace(/c‚mara/gi, 'câmara')
-                .replace(/C‚mara/gi, 'Câmara').replace(/n∫/gi, 'nº').replace(/N∫/gi, 'Nº').replace(/n\s*∫/gi, 'nº')
-                .replace(/∫/g, 'º').replace(/™/g, 'ª').replace(/‚/g, 'â').replace(/È/g, 'é').replace(/Á(?=[a-z])/g, 'ç');
+
+  function cleanSearch(text) {
+    if (!text) return "";
+    return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+
+  function decodeAddressOnly(text) {
+    if (!text) return "";
+    let s = text.replace(/PraÁa/gi, "Praça").replace(/praÁa/gi, "praça").replace(/HÈlder/gi, "Hélder")
+                .replace(/hÈlder/gi, "hélder").replace(/c‚mara/gi, "câmara").replace(/C‚mara/gi, "Câmara")
+                .replace(/n∫/gi, "nº").replace(/N∫/gi, "Nº").replace(/n\s*∫/gi, "nº")
+                .replace(/∫/g, "º").replace(/™/g, "ª").replace(/‚/g, "â").replace(/È/g, "é")
+                .replace(/Á(?=[a-z])/g, "ç");
     try { s = s.normalize('NFC'); } catch(e) {}
-    return s.trim();
+    return s.replace(/\s+/g, ' ').trim();
+  }
+
+  function isValidPersonName(str) {
+    if (!str) return false;
+    let s = str.trim();
+    let sNorm = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    
+    let monthRegex = /\b(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez|janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/i;
+    if (monthRegex.test(sNorm) && /\d/.test(s)) return false;
+    if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/.test(s)) return false;
+    if (/^\d{1,2}\s+[a-z]{3,9}\s+\d{2,4}/i.test(sNorm)) return false;
+
+    if (s.indexOf('@') !== -1) return false;
+    if (sNorm.indexOf("cpf") !== -1 || sNorm.indexOf("cnpj") !== -1 || sNorm.indexOf("rg") !== -1) return false;
+    if (sNorm.indexOf("hash") !== -1 || sNorm.indexOf("ip:") !== -1 || sNorm.indexOf("token") !== -1) return false;
+    if (sNorm.indexOf("assinou") !== -1 || sNorm.indexOf("autenticado") !== -1 || sNorm.indexOf("clicksign") !== -1) return false;
+    if (/^\d+$/.test(s.replace(/[\.\-\s\/]/g, ''))) return false;
+    if (!/[A-Za-zÀ-Úà-ú]{3,}/.test(s)) return false;
+    
+    return true;
   }
 
   function cleanName(raw) {
     if (!raw) return "";
     let s = raw.trim();
-    s = s.replace(/^(?:Nome|Signat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '').replace(/\s+CPF.*$/i, '').replace(/\s+assinou.*$/i, '');
-    return normalizarTextoBrasil(s.split(',')[0].trim());
+    s = s.replace(/^(?:Nome|Signat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '');
+    s = s.replace(/\s+CPF.*$/i, '');
+    s = s.replace(/\s+assinou.*$/i, '');
+    let parts = s.split(',');
+    return parts[0].trim();
+  }
+
+  function findTrueSignerAbove(lines, index) {
+    for (let j = index - 1; j >= Math.max(0, index - 8); j--) {
+      let candidate = lines[j].trim();
+      if (isValidPersonName(candidate)) return cleanName(candidate);
+    }
+    return "";
   }
 
   function extractAddressAfterSituado(text) {
     if (!text) return "";
-    let indexSituado = text.toLowerCase().indexOf("situado");
+    let normText = cleanSearch(text);
+    let indexSituado = normText.indexOf("situado");
+
     if (indexSituado !== -1) {
-      let afterSituado = text.substring(indexSituado + 7).trim().replace(/^(?:na|no|à|a|em|:)\s+/i, '').split(/[;\.\r\n]/)[0].trim();
-      return afterSituado.replace(/(?:,?\s*destinado\s+exclusivamente|para\s+fins\s+residenciais|conforme).*/i, '').trim();
+      let afterSituado = text.substring(indexSituado + 7).trim();
+      afterSituado = afterSituado.replace(/^(?:na|no|à|a|em|:)\s+/i, '').trim();
+      let addressCandidate = afterSituado.split(/[;\.\r\n]/)[0].trim();
+      addressCandidate = addressCandidate.replace(/(?:,?\s*destinado\s+exclusivamente|para\s+fins\s+residenciais|conforme).*/i, '').trim();
+      if (addressCandidate.length > 5) return addressCandidate;
     }
-    let indexImovel = text.toLowerCase().indexOf("imovel:");
+    let indexImovel = normText.indexOf("imovel:");
     if (indexImovel !== -1) {
-      let afterImov = text.substring(indexImovel + 7).trim().split(/[;\.\r\n]/)[0].trim();
-      return afterImov.replace(/(?:destinado|para\s+fins).*/i, '').trim();
+      let afterImov = text.substring(indexImovel + 7).trim();
+      let addr = afterImov.split(/[;\.\r\n]/)[0].trim();
+      return addr.replace(/(?:destinado|para\s+fins).*/i, '').trim();
     }
     return "";
   }
@@ -439,6 +491,7 @@
       await renderPdfThumbnail(pdf);
 
       let allRawLines = [];
+      let page1RawLines = [];
       let fullText = '';
       
       for (let p = 1; p <= pdf.numPages; p++) {
@@ -449,65 +502,68 @@
           if (str && str.trim().length > 0) {
             allRawLines.push(str.trim());
             fullText += ' ' + str.trim();
+            if (p === 1) page1RawLines.push(str.trim());
           }
         }
       }
 
-      // Converte tudo num texto linear corrido sem quebras de linha para busca infalível
-      let cleanT = fullText.replace(/\s+/g, ' '); 
       let ext = { locador: '', telLocador: '', locatario: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '' };
+      let page1Text = page1RawLines.join(" ");
 
-      // 1. ISOLAR BLOCOS EXATOS
-      let idxLocador = cleanT.indexOf('LOCADOR');
-      let idxLocatario = cleanT.indexOf('LOCATÁRIO');
-      if (idxLocatario === -1) idxLocatario = cleanT.indexOf('LOCATARIO');
-      let idxImovel = cleanT.indexOf('IMÓVEL');
-      if (idxImovel === -1) idxImovel = cleanT.indexOf('IMOVEL');
-
-      // 2. EXTRAÇÃO LOCADOR
-      if (idxLocador !== -1 && idxLocatario !== -1) {
-        let bloco1 = cleanT.substring(idxLocador, idxLocatario);
-        let n1 = bloco1.replace(/LOCADOR\s*(?:\(\s*A\s*\))?\s*[:\-]?\s*/i, '');
-        ext.locador = cleanName(n1);
-        
-        let tel1 = bloco1.match(/Tel[^0-9]*([0-9\s\-\(\)]{9,20})/i);
-        if(tel1) ext.telLocador = tel1[1].trim();
+      /* --- MESMA LÓGICA DO VISTORIA FÁCIL PARA OS NOMES ---[cite: 20] */
+      let mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
+      if (mLoc1 && isValidPersonName(mLoc1[1])) ext.locador = cleanName(mLoc1[1]);
+      if (!ext.locador) {
+        for (let i = 0; i < allRawLines.length; i++) {
+          if (cleanSearch(allRawLines[i]).indexOf("assinou como locador") !== -1) {
+            ext.locador = findTrueSignerAbove(allRawLines, i); break;
+          }
+        }
       }
 
-      // 3. EXTRAÇÃO LOCATÁRIO
-      if (idxLocatario !== -1 && idxImovel !== -1) {
-        let bloco2 = cleanT.substring(idxLocatario, idxImovel);
-        let n2 = bloco2.replace(/LOCAT[AÁ]RIO\s*(?:\(\s*A\s*\))?\s*[:\-]?\s*/i, '');
-        ext.locatario = cleanName(n2);
-
-        let em2 = bloco2.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
-        if(em2) ext.emailLocatario = em2[1].trim();
-
-        let tel2 = bloco2.match(/Tel[^0-9]*([0-9\s\-\(\)]{9,20})/i);
-        if(tel2) ext.telLocatario = tel2[1].trim();
+      let mLocat1 = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
+      if (mLocat1 && isValidPersonName(mLocat1[1])) ext.locatario = cleanName(mLocat1[1]);
+      if (!ext.locatario) {
+        for (let j = 0; j < allRawLines.length; j++) {
+          if (cleanSearch(allRawLines[j]).indexOf("assinou como locatario") !== -1) {
+            ext.locatario = findTrueSignerAbove(allRawLines, j); break;
+          }
+        }
       }
 
-      // 4. ENDEREÇO E DATAS
-      ext.endereco = extractAddressAfterSituado(cleanT);
+      ext.endereco = extractAddressAfterSituado(page1Text);
 
-      let dateMatches = cleanT.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
+      let dateMatches = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
       if (dateMatches && dateMatches.length >= 2) {
         ext.dataIn = dateMatches[0].split('/').reverse().join('-');
         ext.dataFim = dateMatches[1].split('/').reverse().join('-');
       }
 
-      // 5. ALUGUEL BASE
-      let mVal = cleanT.match(/R\$\s*([\d\.,]+)/i);
+      let mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
       if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
-      // 6. PIX PROPRIETÁRIO (Ignorando "para")
-      let mPix = cleanT.match(/chave PIX.*?celular\s+([\d]+)/i);
-      if(!mPix) mPix = cleanT.match(/chave PIX.*?email\s+([\w\.\-\@]+)/i);
-      if(!mPix) mPix = cleanT.match(/chave PIX.*?cpf\s+([\d\.\-]+)/i);
-      if(!mPix) mPix = cleanT.match(/chave PIX\s+(?!para\b)([\w\.\-\@\+]+)/i);
+      /* --- NOVA LÓGICA PARA TELEFONES E EMAIL VARRENDO OS BLOCOS --- */
+      let blocoLocador = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*(.*?)(?=LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?|IM[OÓ]VEL)/is);
+      if (blocoLocador) {
+        let mTel = blocoLocador[1].match(/\b(?:Tel|Telefone|Celular)\.?\s*[:\-]?\s*([\d\s\-\(\)]{9,20})\b/i);
+        if(mTel) ext.telLocador = mTel[1].trim();
+      }
+
+      let blocoLocatario = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*(.*?)(?=IM[OÓ]VEL|As partes)/is);
+      if (blocoLocatario) {
+        let mEmail = blocoLocatario[1].match(/\bEmail\.?\s*[:\-]?\s*([a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+        if(mEmail) ext.emailLocatario = mEmail[1].trim();
+        let mTel = blocoLocatario[1].match(/\b(?:Tel|Telefone|Celular)\.?\s*[:\-]?\s*([\d\s\-\(\)]{9,20})\b/i);
+        if(mTel) ext.telLocatario = mTel[1].trim();
+      }
+
+      /* --- NOVA LÓGICA PIX (Ignorando a palavra "para") --- */
+      let mPix = fullText.match(/chave PIX para transfer[êe]ncia [ée]\s*(?:o\s+)?(?:celular\s+|email\s+|cpf\s+)?([\w\.\-\@]+)/i);
+      if(!mPix) mPix = fullText.match(/chave PIX.*?:\s*([\w\.\-\@]+)/i);
+      if(!mPix) mPix = fullText.match(/chave PIX\s+(?!para\b)([\w\.\-\@]+)/i);
       if(mPix) ext.pix = mPix[1].trim();
 
-      // FUNÇÃO FLASH (Feedback Verde)
+      // FUNÇÃO FLASH PARA O VISUAL (PISCA VERDE)
       function flash(id, val) { 
         if(val) { 
           const el = document.getElementById(id); 
@@ -517,13 +573,13 @@
         } 
       }
 
-      flash('proprietario', ext.locador);
+      flash('proprietario', decodeAddressOnly(ext.locador));
       flash('telProprietario', ext.telLocador);
       flash('pixProprietario', ext.pix);
-      flash('inquilino', ext.locatario);
+      flash('inquilino', decodeAddressOnly(ext.locatario));
       flash('emailInquilino', ext.emailLocatario);
       flash('telInquilino', ext.telLocatario);
-      flash('endereco', normalizarTextoBrasil(ext.endereco));
+      flash('endereco', decodeAddressOnly(ext.endereco));
       flash('dataInicio', ext.dataIn);
       flash('dataFim', ext.dataFim);
       flash('aluguelBase', formatadorStr(ext.valor));
@@ -534,6 +590,7 @@
       console.error(err); alert('Erro ao processar contrato: ' + err.message);
     } finally { loader.style.display = 'none'; }
   }
+
 
   /* =========================================
      MÓDULO 3: GESTÃO DO SISTEMA E LOGIN
