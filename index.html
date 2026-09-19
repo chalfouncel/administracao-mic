@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gestão de Locação Imobiliária — M&IC</title>
-<!-- Leitor de PDF para extração e miniatura -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -51,7 +50,7 @@
   input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; transition: 0.2s; }
   input:focus, select:focus { border-color: var(--accent); }
   
-  /* Destaque Verde na extração - Mantido Fixo */
+  /* Destaque Verde para Extração Automática */
   .field-ok { background-color: #f0fdf4 !important; border-color: #22c55e !important; color: #047857; font-weight: bold; }
 
   .summary-box { background: #0f172a; border: 1px solid var(--accent); color: #fff; border-radius: 10px; padding: 16px; margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; text-align: center; }
@@ -152,6 +151,7 @@
     <button class="tab-btn" onclick="setTab('agentes', this)">🤖 Agente de IA Gemini</button>
   </div>
 
+  <!-- ABA 1: RESUMO DO CONTRATO -->
   <div id="tab-resumo" class="tab-content active">
     <div class="resumo-layout">
       
@@ -247,6 +247,7 @@
     </div>
   </div>
 
+  <!-- ABA IMOVEIS ADMINISTRADOS -->
   <div id="tab-imoveis" class="tab-content">
     <div class="dashboard-grid">
       <div class="dash-card"><div class="title">Contratos Ativos</div><div class="val" id="dash-ativos">0</div></div>
@@ -285,6 +286,7 @@
     </div>
   </div>
 
+  <!-- ABA CÁLCULO E REPASSE -->
   <div id="tab-calculo" class="tab-content">
     <div class="card">
       <div class="card-title">1. Dados de Cobrança & Mês de Referência</div>
@@ -326,6 +328,7 @@
     </div>
   </div>
 
+  <!-- ABA WHATSAPP -->
   <div id="tab-whatsapp" class="tab-content">
     <div class="card">
       <div class="card-title">Texto Automático da Cobrança</div>
@@ -336,6 +339,7 @@
     </div>
   </div>
 
+  <!-- ABA HISTÓRICO -->
   <div id="tab-historico" class="tab-content">
     <div class="card">
       <div class="card-title">Contratos Salvos <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="carregarHistoricoLocacoes()">🔄 Atualizar</button></div>
@@ -343,6 +347,7 @@
     </div>
   </div>
 
+  <!-- ABA AGENTES -->
   <div id="tab-agentes" class="tab-content">
     <div class="card">
       <div class="card-title">Assistente Especialista M&IC</div>
@@ -357,9 +362,10 @@
   const SUPABASE_KEY = 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_JwOjDkAj';
   let contratosDB = [];
   let selectedPdfFile = null;
+  let calcCache = {};
 
   /* =========================================
-     MÓDULO 1: FUNÇÕES DE TEXTO E FORMATAÇÃO DE MOEDA
+     MÓDULO 1: FUNÇÕES DE TEXTO E FORMATAÇÃO
   ========================================= */
   const formatadorStr = val => {
     if(!val) return '';
@@ -372,6 +378,7 @@
     let s = String(str).replace(/[^\d,-]/g, '').replace(',', '.');
     return parseFloat(s) || 0;
   };
+
   function formatarMoedaInput(i) {
     let v = i.value.replace(/\D/g,'');
     if(v === '') { i.value = ''; return; }
@@ -468,7 +475,7 @@
   }
 
   /* =========================================
-     MÓDULO DE EXTRAÇÃO DO CONTRATO
+     MÓDULO 2: PROCESSAMENTO DO CONTRATO
   ========================================= */
   async function processarContratoPDF(event) {
     const file = event.target.files[0];
@@ -479,7 +486,7 @@
     document.getElementById('file-name-pill').style.display = 'inline-block';
     
     const loader = document.getElementById('ai-extract-loader');
-    loader.innerHTML = '⏳ Extraindo dados do contrato (Local)...';
+    loader.innerHTML = '⏳ Extraindo dados do contrato...';
     loader.style.display = 'block';
 
     try {
@@ -507,9 +514,7 @@
       let ext = { locador: '', telLocador: '', locatario: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '' };
       let page1Text = page1RawLines.join(" ");
 
-      // =======================================================
-      // 1. EXTRAÇÃO LOCAL GARANTIDA (Motor Vistoria Fácil Pro)
-      // =======================================================
+      // LÓGICA LOCAL PARA OS NOMES (A MESMA QUE FUNCIONA)
       let mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
       if (mLoc1 && isValidPersonName(mLoc1[1])) ext.locador = cleanName(mLoc1[1]);
       if (!ext.locador) {
@@ -541,59 +546,46 @@
       let mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
       if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
-
-      // =======================================================
-      // 2. EXTRAÇÃO DE CONTATOS E PIX VIA IA
-      // =======================================================
+      // IA PARA CONTATOS E PIX
       loader.innerHTML = '🤖 IA extraindo telefones, e-mail e PIX...';
-      
       try {
-        const promptIA = `Você é um perito de extração de dados. Analise o texto do contrato abaixo e retorne APENAS um objeto JSON.
-        
-REGRAS OBRIGATÓRIAS:
-- telProprietario: Busque o Telefone APENAS dentro do parágrafo de qualificação do "LOCADOR(A)".
-- emailInquilino: Busque o Email APENAS dentro do parágrafo de qualificação do "LOCATÁRIO(A)".
-- telInquilino: Busque o Telefone APENAS dentro do parágrafo de qualificação do "LOCATÁRIO(A)".
-- pixProprietario: Busque a chave PIX na "CLÁUSULA SEGUNDA" após a frase "A chave PIX para transferência é" ou na qualificação do Locador. ATENÇÃO: Nunca retorne a palavra "para". Retorne apenas o celular, email ou CPF.
+        const promptIA = `Você é um extrator de dados. Analise o texto do contrato abaixo e retorne APENAS um objeto JSON.
+Regras:
+- telLocador: Telefone encontrado APENAS dentro da qualificação do LOCADOR(A).
+- emailLocatario: E-mail encontrado APENAS dentro da qualificação do LOCATÁRIO(A).
+- telLocatario: Telefone encontrado APENAS dentro da qualificação do LOCATÁRIO(A).
+- pixLocador: Chave PIX encontrada na CLÁUSULA SEGUNDA após a frase "A chave PIX para transferência é" ou na qualificação do Locador. ATENÇÃO: NÃO extraia a palavra "para" ou preposições. Retorne apenas o celular, e-mail ou CPF.
 
-Se não encontrar a informação, deixe a string vazia "".
-Retorne o JSON estrito: {"telProprietario":"", "pixProprietario":"", "emailInquilino":"", "telInquilino":""}
+Se não encontrar, deixe a string vazia "".
+Retorne o JSON estrito: {"telLocador":"", "emailLocatario":"", "telLocatario":"", "pixLocador":""}
 
 Texto do Contrato:
-${fullText.substring(0, 8000)}`;
+${fullText.substring(0, 10000)}`;
 
         const resIA = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: promptIA })
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: promptIA })
         });
         
-        if (resIA.ok) {
+        if(resIA.ok) {
           const dataIA = await resIA.json();
-          // Regex robusta para capturar o JSON
           const matchJson = (dataIA.reply || "").match(/\{[\s\S]*\}/);
           if (matchJson) {
             const parsed = JSON.parse(matchJson[0]);
-            if (parsed.telProprietario) ext.telLocador = parsed.telProprietario;
-            if (parsed.pixProprietario && String(parsed.pixProprietario).toLowerCase() !== "para") ext.pix = parsed.pixProprietario;
-            if (parsed.emailInquilino) ext.emailLocatario = parsed.emailInquilino;
-            if (parsed.telInquilino) ext.telLocatario = parsed.telInquilino;
+            if (parsed.telLocador) ext.telLocador = parsed.telLocador;
+            if (parsed.emailLocatario) ext.emailLocatario = parsed.emailLocatario;
+            if (parsed.telLocatario) ext.telLocatario = parsed.telLocatario;
+            if (parsed.pixLocador && String(parsed.pixLocador).toLowerCase() !== "para") ext.pix = parsed.pixLocador;
           }
         }
-      } catch(eIA) {
-        console.warn("IA falhou na captura dos contatos:", eIA);
-      }
+      } catch(eIA) { console.warn("IA falhou na captura de contatos", eIA); }
 
-      // =======================================================
-      // 3. PREENCHIMENTO NA TELA COM FLASH VERDE FIXO
-      // =======================================================
+      // PREENCHIMENTO NA TELA COM FLASH VERDE FIXO (REMOVÍVEL AO EDITAR)
       function flash(id, val) { 
         if(val) { 
           const el = document.getElementById(id); 
           if(el) {
             el.value = val; 
             el.classList.add('field-ok'); 
-            // Opcional: remover a cor verde caso o usuário edite o campo
             el.addEventListener('input', function onEdit() {
               el.classList.remove('field-ok');
               el.removeEventListener('input', onEdit);
@@ -693,6 +685,8 @@ ${fullText.substring(0, 8000)}`;
     document.getElementById('tab-' + name).classList.add('active');
     btn.classList.add('active');
     if (name === 'imoveis') carregarImoveis();
+    if (name === 'historico') carregarHistoricoLocacoes();
+    if (name === 'whatsapp') gerarTextoCobranca();
   }
 
 
@@ -790,6 +784,21 @@ ${fullText.substring(0, 8000)}`;
         </tr>
       `;
     });
+    atualizarDashboard();
+  }
+
+  function atualizarDashboard() {
+    let tAtivos = 0, tCond = 0, tAdm = 0, tRepasse = 0, tCobrar = 0;
+    contratosDB.forEach(c => {
+      if (c.ativo === 'SIM') {
+        tAtivos++; tCond += c.vlr_cond_calc; tAdm += c.calc_adm; tRepasse += c.valor_repassar; tCobrar += c.cobrar_inquilino;
+      }
+    });
+    document.getElementById('dash-ativos').innerText = tAtivos;
+    document.getElementById('dash-cond').innerText = fmtMoeda(tCond);
+    document.getElementById('dash-adm').innerText = fmtMoeda(tAdm);
+    document.getElementById('dash-repasse').innerText = fmtMoeda(tRepasse);
+    document.getElementById('dash-cobrar').innerText = fmtMoeda(tCobrar);
   }
 
   async function carregarImoveis() {
@@ -810,7 +819,57 @@ ${fullText.substring(0, 8000)}`;
     try { await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch(e) {}
   }
 
-  // GRAVAR NOVO
+  // GRAVAR NOVO E INTEGRAÇÃO CÁLCULOS
+  function sincronizarCampos() {
+    const prop = document.getElementById('proprietario').value;
+    const inq = document.getElementById('inquilino').value;
+    const aluguel = document.getElementById('aluguelBase').value;
+
+    const calcProp = document.getElementById('calc-proprietario'); if(calcProp) calcProp.value = prop;
+    const calcInq = document.getElementById('calc-inquilino'); if(calcInq) calcInq.value = inq;
+    const calcAluguel = document.getElementById('calc-aluguelBase'); if(calcAluguel) calcAluguel.value = aluguel;
+
+    calcularTudo();
+  }
+
+  function calcularTudo() {
+    const aluguelBase = parseMoedaToFloat(document.getElementById('calc-aluguelBase').value) || parseMoedaToFloat(document.getElementById('aluguelBase').value) || 0;
+    const condBase = parseMoedaToFloat(document.getElementById('condominioBase2').value) || parseMoedaToFloat(document.getElementById('condominioBase').value) || 0;
+    const isProp = document.getElementById('isProporcional').value === 'sim';
+    const dias = parseInt(document.getElementById('diasOcupados').value) || 30;
+
+    document.getElementById('box-dias-prop').style.display = isProp ? 'block' : 'none';
+
+    let aluguelEfetivo = isProp ? (aluguelBase / 30) * dias : aluguelBase;
+    let condEfetivo = isProp ? (condBase / 30) * dias : condBase;
+
+    const iptu = parseMoedaToFloat(document.getElementById('iptu').value) || 0;
+    const bombeiro = parseMoedaToFloat(document.getElementById('bombeiro').value) || 0;
+    const outras = parseMoedaToFloat(document.getElementById('outrasTaxas').value) || 0;
+    const totalEncargos = iptu + bombeiro + outras;
+
+    const totalInquilino = aluguelEfetivo + condEfetivo + totalEncargos;
+
+    const taxaAdmFixa = parseMoedaToFloat(document.getElementById('valorTaxaAdm').value) || 0;
+    const taxaAdmPct = parseFloat(document.getElementById('taxaAdm').value) || 0;
+    const valorTaxaAdm = taxaAdmFixa > 0 ? taxaAdmFixa : (aluguelEfetivo * (taxaAdmPct / 100));
+
+    const regraCond = document.getElementById('regraCondominio').value;
+    let valorRepassar = (regraCond === 'repassa')
+      ? (aluguelEfetivo - valorTaxaAdm) + condEfetivo + totalEncargos
+      : (aluguelEfetivo - valorTaxaAdm) + totalEncargos;
+
+    document.getElementById('res-total-inquilino').innerText = fmtMoeda(totalInquilino);
+    document.getElementById('res-valor-repassar').innerText = fmtMoeda(valorRepassar);
+    
+    calcCache = {
+      inquilino: document.getElementById('inquilino').value,
+      proprietario: document.getElementById('proprietario').value,
+      aluguel: aluguelEfetivo, cond: condEfetivo, iptu: iptu, bombeiro: bombeiro,
+      outras: outras, totalInquilino: totalInquilino, taxaAdm: valorTaxaAdm, repassar: valorRepassar
+    };
+  }
+
   async function gravarNovoContrato() {
     const btn = document.getElementById('btn-gravar-novo'); btn.disabled = true; btn.innerText = 'Salvando...';
     const s = getLocalSession(); let urlPdf = null;
@@ -845,15 +904,60 @@ ${fullText.substring(0, 8000)}`;
       const r = await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (r.ok) {
         alert('Contrato gravado com sucesso!');
-        document.querySelectorAll('#tab-resumo input').forEach(el => el.value = '');
+        document.querySelectorAll('#tab-resumo input').forEach(el => { el.value = ''; el.classList.remove('field-ok'); });
         selectedPdfFile = null; document.getElementById('file-name-pill').style.display = 'none';
         setTab('imoveis', document.querySelectorAll('.tab-btn')[1]);
       }
     } catch(e) {} finally { btn.disabled = false; btn.innerText = '💾 Gravar dados do novo contrato'; }
   }
 
-  function sincronizarCampos() {}
-  function calcularTudo() {}
+  // TABS SECUNDÁRIAS (Histórico, WhatsApp)
+  async function carregarHistoricoLocacoes() {
+    const tbody = document.getElementById('lista-historico-body');
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:16px;">Carregando histórico...</td></tr>';
+    const s = getLocalSession(); if (!s) return;
+    try {
+      const resp = await fetch(`${SUPABASE_BASE_URL}/rest/v1/locacoes?select=*&order=created_at.desc`, { method: 'GET', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}` } });
+      if (resp.ok) {
+        const list = await resp.json(); tbody.innerHTML = '';
+        if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhum contrato salvo.</td></tr>'; return; }
+        list.forEach(item => {
+          const d = item.created_at ? new Date(item.created_at).toLocaleDateString('pt-BR') : '-';
+          const linkPdf = item.contrato_url ? `<button class="btn btn-dark" style="font-size:0.75rem; padding:4px 8px;" onclick="abrirVisualizadorPdf('${item.contrato_url}', '${item.inquilino}')">📄 Ver Contrato</button>` : '-';
+          tbody.innerHTML += `<tr><td>${d}</td><td><strong>${item.inquilino}</strong></td><td>${item.proprietario}</td><td>${fmtMoeda(item.total_inquilino)}</td><td style="color:#16a34a; font-weight:700;">${fmtMoeda(item.valor_repassar)}</td><td>${linkPdf}</td></tr>`;
+        });
+      }
+    } catch(e) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">Erro: ${e.message}</td></tr>`; }
+  }
+
+  function gerarTextoCobranca() {
+    calcularTudo();
+    const pix = document.getElementById('chavePix').value;
+    const vencRaw = document.getElementById('dataVencimento').value;
+    const vencFmt = vencRaw ? vencRaw.split('-').reverse().join('/') : 'A combinar';
+
+    const txt = `Prezado(a) ${calcCache.inquilino || 'Inquilino'}, tudo bem?
+
+Segue o demonstrativo de aluguel e encargos com vencimento em *${vencFmt}*:
+
+🔹 *Aluguel:* ${fmtMoeda(calcCache.aluguel)}
+🔹 *Condomínio:* ${fmtMoeda(calcCache.cond)}
+🔹 *IPTU:* ${fmtMoeda(calcCache.iptu)}
+🔹 *Taxa de Incêndio:* ${fmtMoeda(calcCache.bombeiro)}
+${calcCache.outras > 0 ? `🔹 *Outras Taxas:* ${fmtMoeda(calcCache.outras)}\n` : ''}
+💰 *TOTAL A PAGAR: ${fmtMoeda(calcCache.totalInquilino)}*
+
+🔑 *Chave PIX:* ${pix}
+
+Favor enviar o comprovante assim que efetuar o pagamento.
+Qualquer dúvida, estamos à disposição!
+
+*M&IC Corretores de Imóveis*`;
+    document.getElementById('textoMsg').value = txt;
+  }
+
+  function copiarTexto() { const txt = document.getElementById('textoMsg'); txt.select(); navigator.clipboard.writeText(txt.value); alert('Texto copiado com sucesso!'); }
+  function enviarWhatsApp() { const txt = encodeURIComponent(document.getElementById('textoMsg').value); window.open(`https://api.whatsapp.com/send?text=${txt}`, '_blank'); }
 
   function abrirVisualizadorPdf(url, inq) {
     document.getElementById('pdf-modal-title').innerText = 'Contrato - ' + inq;
