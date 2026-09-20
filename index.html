@@ -57,6 +57,7 @@
   .btn-gold { background: linear-gradient(135deg, #c59b27, #dfba48); color: #121315; }
   .btn-gold:hover { opacity: 0.95; }
   .btn-dark { background: var(--secondary); color: #fff; }
+  .btn-dark:hover { background: #000; }
   .btn-danger { background: var(--danger); color: #fff; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; }
   .btn-whatsapp { background: #25D366; color: #fff; }
 
@@ -284,7 +285,7 @@
       </div>
       
       <div class="table-linear-container">
-        <table class="table-linear" style="min-width: 1500px;">
+        <table class="table-linear" style="min-width: 1400px;">
           <thead>
             <tr>
               <th style="min-width:180px;">Inquilino</th>
@@ -732,7 +733,7 @@ ${fullText.substring(0, 8000)}`;
   }
 
   // =======================================================
-  // TABELA DE IMOVEIS ADMINISTRADOS (Controle de Marcação Local)
+  // TABELA DE IMOVEIS ADMINISTRADOS
   // =======================================================
   
   function toggleMarcar(idString, isChecked) {
@@ -856,6 +857,9 @@ ${fullText.substring(0, 8000)}`;
     contratosDB[index][field] = value;
     renderizarTabelaLinear();
     renderizarTaxasCondominiais();
+    if (document.getElementById('tab-resumo_cobranca').classList.contains('active')) {
+        gerarTextosCobranca();
+    }
     const id = contratosDB[index].id; if(!id) return;
     try {
       await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, {
@@ -943,7 +947,8 @@ ${fullText.substring(0, 8000)}`;
       taxa_adm_pct: 10, 
       regra_condominio: document.getElementById('regraCond').value || 'N',
       contrato_url: urlPdf, 
-      ativo: 'SIM'
+      ativo: 'SIM',
+      status_cobranca: '{}'
     };
 
     try {
@@ -987,7 +992,7 @@ ${fullText.substring(0, 8000)}`;
         setTab('imoveis', document.querySelectorAll('.tab-btn')[1]);
       } else {
         const errData = await r.json();
-        alert('Erro ao gravar no banco de dados. A tabela "locacoes" ou algumas de suas colunas podem estar ausentes no Supabase. Detalhe: ' + JSON.stringify(errData));
+        alert('Erro ao gravar no banco de dados. Detalhe: ' + JSON.stringify(errData));
       }
     } catch(e) {
          alert('Falha de conexão com o banco de dados: ' + e.message);
@@ -1005,7 +1010,7 @@ ${fullText.substring(0, 8000)}`;
 
 
   // =======================================================
-  // ABA: TAXAS CONDOMINIAIS & EXTRAS (Com Aluguel e Exclusão Mútua)
+  // ABA: TAXAS CONDOMINIAIS & EXTRAS
   // =======================================================
   function editarProporcional(el) {
     if (el.readOnly) {
@@ -1080,7 +1085,6 @@ ${fullText.substring(0, 8000)}`;
       let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
       let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
 
-      // Exclusão mútua do Aluguel: Se há proporcional, aluguel mensal é "Não". Se não há, é o aluguel base.
       let alugMesDefault = (alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base);
       let alugMes = (c.aluguel_mes !== undefined && c.aluguel_mes !== null) ? c.aluguel_mes : alugMesDefault;
 
@@ -1119,13 +1123,33 @@ ${fullText.substring(0, 8000)}`;
   }
 
   // =======================================================
-  // ABA: RESUMO PARA COBRANÇA
+  // ABA: RESUMO PARA COBRANÇA (Controle de Status Enviado/Recebido)
   // =======================================================
   function copiarTextoCob(idTextArea) {
     const el = document.getElementById(idTextArea);
     el.select();
     document.execCommand('copy');
     alert('✓ Texto de cobrança copiado com sucesso!');
+  }
+
+  function avancarStatusCobranca(idReg, currentStatus) {
+    const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg));
+    if (idx === -1) return;
+    
+    const mesRef = document.getElementById('filtro-mes').value;
+    let c = contratosDB[idx];
+    
+    let statusObj = {};
+    try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
+    
+    if (currentStatus === 'pendente') {
+        statusObj[mesRef] = 'enviada';
+    } else if (currentStatus === 'enviada') {
+        statusObj[mesRef] = 'recebida';
+    }
+    
+    // Atualiza banco e re-renderiza a tela automaticamente
+    updateDbLinear(idx, 'status_cobranca', JSON.stringify(statusObj));
   }
 
   function gerarTextosCobranca() {
@@ -1142,7 +1166,6 @@ ${fullText.substring(0, 8000)}`;
     container.innerHTML = '';
     const mesRef = document.getElementById('filtro-mes').value;
     
-    // Calcula o 5º dia útil do mês de referência (Mês da cobrança)
     const [anoRef, mesRefStr] = mesRef.split('-');
     let dVenc = new Date(anoRef, parseInt(mesRefStr) - 1, 1);
     let contUteis = 0;
@@ -1154,6 +1177,9 @@ ${fullText.substring(0, 8000)}`;
     const dataVencStr = dVenc.toLocaleDateString('pt-BR');
 
     marcados.forEach(c => {
+      const idReg = c.id || c._tempId;
+
+      // Cálculo de Valores
       let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
       let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
       let alugMesDefault = (alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base);
@@ -1170,6 +1196,7 @@ ${fullText.substring(0, 8000)}`;
       let vDesconto = parseMoedaToFloat(c.desconto);
       let total = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
 
+      // Montagem do Texto Base
       let texto = `Prezado(a) ${c.inquilino}, tudo bem?\n\nSegue o demonstrativo de locação com vencimento em *${dataVencStr}*:\n\n`;
       
       if (vAlugProp > 0) texto += `🔹 Aluguel Proporcional: ${fmtMoeda(vAlugProp)}\n`;
@@ -1194,16 +1221,40 @@ ${fullText.substring(0, 8000)}`;
       texto += `\n💰 *TOTAL A PAGAR: ${fmtMoeda(total)}*\n`;
       texto += `\nFavor enviar o comprovante assim que efetuar o pagamento.\nQualquer dúvida, estamos à disposição!\n\n*M&IC Corretores de Imóveis*`;
 
-      const idTextArea = `txt-cob-${c.id || c._tempId}`;
+      // Gestão de Status de Cor e Botões para o Mês de Referência Atual
+      let statusObj = {};
+      try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
+      let statusAtual = statusObj[mesRef] || 'pendente';
+
+      let bgCard = '#f8fafc';
+      let bgTextarea = '#ffffff';
+      let acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusCobranca('${idReg}', 'pendente')">📤 Cobrança Enviada</button>`;
+      let msgFinal = '';
+
+      if (statusAtual === 'enviada') {
+          bgCard = '#fef08a'; // Fundo Amarelo
+          bgTextarea = '#fef9c3';
+          acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusCobranca('${idReg}', 'enviada')">📥 Cobrança Recebida</button>`;
+      } else if (statusAtual === 'recebida') {
+          bgCard = '#bbf7d0'; // Fundo Verde
+          bgTextarea = '#dcfce7';
+          acaoHtml = ''; // Remove o botão de envio
+          msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:900; color:#166534; font-size:0.9rem;">✅ Processo concluído com sucesso</div>`;
+      }
+
+      const idTextArea = `txt-cob-${idReg}`;
 
       container.innerHTML += `
-        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+        <div style="background: ${bgCard}; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.3s;">
            <h4 style="margin-bottom: 10px; color: var(--primary); font-size: 0.95rem;">Cobrança: ${c.inquilino}</h4>
-           <textarea id="${idTextArea}" rows="14" style="width: 100%; font-family: monospace; font-size: 0.8rem; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; resize: vertical; box-sizing:border-box;" readonly>${texto}</textarea>
+           <textarea id="${idTextArea}" rows="14" style="width: 100%; font-family: monospace; font-size: 0.8rem; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; resize: vertical; box-sizing:border-box; background: ${bgTextarea};" readonly>${texto}</textarea>
+           
            <div style="display: flex; gap: 8px; margin-top: 10px;">
               <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Copiar</button>
               <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.8rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WhatsApp</a>
+              ${acaoHtml}
            </div>
+           ${msgFinal}
         </div>
       `;
     });
