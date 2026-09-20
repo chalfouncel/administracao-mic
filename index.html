@@ -4,9 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gestão de Locação Imobiliária — M&IC</title>
+<!-- Leitor de PDF, Gerador de Imagens e Gerador de PDF Gerencial -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
 <style>
   :root {
     --primary: #121315;
@@ -97,8 +101,8 @@
   
   .ai-loader { display: none; padding: 10px; background: #e0f2fe; color: #0369a1; border-radius: 8px; font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; text-align: center; border: 1px solid #bae6fd; }
 
-  #auth-modal, #pdf-modal, #reajuste-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.94); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; }
-  #pdf-modal, #reajuste-modal { display: none; }
+  #auth-modal, #pdf-modal, #reajuste-modal, #relatorio-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.94); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  #pdf-modal, #reajuste-modal, #relatorio-modal { display: none; }
   .auth-card { background: #fff; border-radius: 14px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; border-top: 4px solid var(--accent); }
   .auth-msg { margin-top: 12px; font-size: 0.82rem; font-weight: 600; padding: 8px 10px; border-radius: 6px; display: none; }
   .auth-msg.err { background: #fee2e2; color: var(--danger); border: 1px solid #fca5a5; display: block; }
@@ -142,6 +146,19 @@
         <button class="btn btn-gold" onclick="aplicarReajuste('IGPM')" id="btn-igpm">IGP-M (FGV)</button>
         <button class="btn btn-gold" onclick="aplicarReajuste('IPCA')" id="btn-ipca">IPCA (IBGE)</button>
         <button class="btn btn-dark" onclick="fecharReajuste()">Não corrigir agora</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RELATÓRIO GERADO -->
+<div id="relatorio-modal">
+  <div class="auth-card" style="border-top: 4px solid #0284c7;">
+    <h3 style="color:var(--primary); margin-bottom:10px;">📊 Relatório Gerado!</h3>
+    <p style="font-size:0.85rem; color:#64748b; margin-bottom:20px;">O seu Relatório Gerencial Incrível foi gerado com sucesso em PDF. O que deseja fazer agora?</p>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+        <button class="btn btn-gold" id="btn-baixar-pdf">⬇️ Baixar PDF</button>
+        <button class="btn btn-whatsapp" id="btn-share-pdf">📲 Compartilhar no WhatsApp</button>
+        <button class="btn btn-dark" onclick="document.getElementById('relatorio-modal').style.display='none'">Fechar</button>
     </div>
   </div>
 </div>
@@ -242,6 +259,7 @@
         <div style="font-weight:800; font-size: 1.1rem; color: var(--primary);">Cadastro Mestre de Imóveis Administrados</div>
         <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="carregarImoveis(true)">🔄 Atualizar Lista</button>
       </div>
+      
       <div class="table-linear-container">
         <table class="table-linear">
           <thead>
@@ -291,7 +309,7 @@
     </div>
   </div>
 
-  <!-- ABA: COBRANÇA (Inquilino) -->
+  <!-- ABA: COBRANÇA -->
   <div id="tab-resumo_cobranca" class="tab-content">
     <div class="card" style="padding: 10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 8px;">
@@ -301,7 +319,7 @@
     </div>
   </div>
 
-  <!-- ABA: REPASSE (Proprietário) -->
+  <!-- ABA: REPASSE -->
   <div id="tab-repasse" class="tab-content">
     <div class="card" style="padding: 10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 8px;">
@@ -319,21 +337,21 @@
             <div class="value" id="ger-ativos">0</div>
         </div>
         <div class="gerencial-metric">
-            <h3>Faturamento Estimado (Taxa Adm)</h3>
+            <h3>Faturamento Mensal (Taxa Adm)</h3>
             <div class="value" style="color:var(--success);" id="ger-faturamento">R$ 0,00</div>
         </div>
         <div class="gerencial-metric">
-            <h3>Volume Total do Mês</h3>
+            <h3>Volume Total Arrecadado</h3>
             <div class="value" style="color:#0284c7;" id="ger-volume">R$ 0,00</div>
         </div>
     </div>
     
     <div class="card" style="margin-top:20px;">
-        <div class="card-title">Ferramentas de Segurança e Exportação</div>
-        <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">O ficheiro CSV contém o backup absoluto de todos os contratos e valores registados na base de dados para auditoria e recuperação de emergência.</p>
+        <div class="card-title">Ferramentas de Auditoria e Exportação</div>
+        <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">Use as opções abaixo para gerar o relatório gerencial visual (PDF Incrível) pronto para enviar, ou baixar o backup bruto de segurança (CSV).</p>
         <div style="display:flex; gap:10px;">
-            <button class="btn btn-gold" onclick="gerarBackupCSV()">📥 Baixar Backup Completo (CSV)</button>
-            <button class="btn btn-dark" onclick="enviarRelatorioEmail()">✉️ Enviar Relatório do Mês (E-mail)</button>
+            <button class="btn btn-dark" onclick="gerarRelatorioPDF()">📄 Gerar Relatório Mensal (PDF)</button>
+            <button class="btn btn-gold" onclick="gerarBackupCSV()">📥 Baixar Backup de Segurança (CSV)</button>
         </div>
     </div>
   </div>
@@ -876,8 +894,16 @@ Texto: ${fullText.substring(0, 8000)}`;
       let texto = `Prezado(a) ${c.proprietario}, tudo bem?\n\nSegue o demonstrativo de repasse referente ao imóvel locado por ${c.inquilino}, competência de *${repasseMesTexto}*:\n\n`; let linhasCard = '';
       if (vAlugProp > 0) { texto += `🔹 Aluguel Proporcional (${nomeMesAnterior}): ${fmtMoeda(vAlugProp)}\n`; linhasCard += `<div class="comp-line"><span>Aluguel Prop. (${nomeMesAnterior})</span> <span>${fmtMoeda(vAlugProp)}</span></div>`; }
       if (vAlugMes > 0) { texto += `🔹 Aluguel (${nomeMesAnterior}): ${fmtMoeda(vAlugMes)}\n`; linhasCard += `<div class="comp-line"><span>Aluguel (${nomeMesAnterior})</span> <span>${fmtMoeda(vAlugMes)}</span></div>`; }
-      if (vCondProp > 0) { texto += `🔹 Condomínio Proporcional (${nomeMesAtual}): ${fmtMoeda(vCondProp)} ${repassaCond ? '' : '(Direto ao síndico/condomínio)'}\n`; linhasCard += `<div class="comp-line"><span>Condomínio Prop. (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondProp)}</span></div>`; }
-      if (vCondMes > 0) { texto += `🔹 Condomínio Mensal (${nomeMesAtual}): ${fmtMoeda(vCondMes)} ${repassaCond ? '' : '(Direto ao síndico/condomínio)'}\n`; linhasCard += `<div class="comp-line"><span>Condomínio (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondMes)}</span></div>`; }
+      
+      if (vCondProp > 0) { 
+          texto += `🔹 Condomínio Proporcional (${nomeMesAtual}): ${fmtMoeda(vCondProp)} ${repassaCond ? '' : '(Direto ao síndico/condomínio)'}\n`; 
+          linhasCard += `<div class="comp-line"><span>Condomínio Prop. (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondProp)}</span></div>`; 
+      }
+      if (vCondMes > 0) { 
+          texto += `🔹 Condomínio Mensal (${nomeMesAtual}): ${fmtMoeda(vCondMes)} ${repassaCond ? '' : '(Direto ao síndico/condomínio)'}\n`; 
+          linhasCard += `<div class="comp-line"><span>Condomínio (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondMes)}</span></div>`; 
+      }
+      
       if (vIptu > 0) { texto += `🔹 IPTU: ${fmtMoeda(vIptu)}\n`; linhasCard += `<div class="comp-line"><span>IPTU</span> <span>${fmtMoeda(vIptu)}</span></div>`; }
       if (vBombeiro > 0) { texto += `🔹 Taxa de Incêndio/Bombeiro: ${fmtMoeda(vBombeiro)}\n`; linhasCard += `<div class="comp-line"><span>Taxa de Incêndio</span> <span>${fmtMoeda(vBombeiro)}</span></div>`; }
       if (vSeguro > 0) { texto += `🔹 Seguro: ${fmtMoeda(vSeguro)}\n`; linhasCard += `<div class="comp-line"><span>Seguro</span> <span>${fmtMoeda(vSeguro)}</span></div>`; }
@@ -911,7 +937,7 @@ Texto: ${fullText.substring(0, 8000)}`;
   }
 
   // =======================================================
-  // ABA: GERENCIAL E EXPORTAÇÃO
+  // ABA: GERENCIAL E EXPORTAÇÃO (NOVO PDF INCRÍVEL)
   // =======================================================
   function renderizarGerencial() {
       const mesRef = document.getElementById('filtro-mes').value;
@@ -948,20 +974,123 @@ Texto: ${fullText.substring(0, 8000)}`;
       a.download = `MIC_Backup_${new Date().toISOString().split('T')[0]}.csv`; a.click();
   }
 
-  function enviarRelatorioEmail() {
-      const mesRef = formatarMesAno(document.getElementById('filtro-mes').value);
+  let lastGeneratedPdfBlob = null;
+  let lastGeneratedPdfText = "";
+
+  function gerarRelatorioPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const mesRef = document.getElementById('filtro-mes').value;
+      const mesFormatado = formatarMesAno(mesRef);
+
+      // CABEÇALHO DO PDF
+      doc.setFillColor(26, 28, 32); 
+      doc.rect(0, 0, 210, 35, 'F');
+      doc.setTextColor(197, 155, 39); 
+      doc.setFontSize(20);
+      doc.setFont("helvetica", "bold");
+      doc.text("GESTÃO DE LOCAÇÃO - M&IC", 15, 18);
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text(`RELATÓRIO GERENCIAL • COMPETÊNCIA: ${mesFormatado.toUpperCase()}`, 15, 26);
+
+      // MÉTRICAS GERAIS
       const ativos = document.getElementById('ger-ativos').innerText;
       const fat = document.getElementById('ger-faturamento').innerText;
       const vol = document.getElementById('ger-volume').innerText;
 
-      let texto = `Prezado Mário Chalfoun Junior,\n\nSegue o resumo gerencial da M&IC Corretores referente ao mês de ${mesRef}:\n\n`;
-      texto += `📈 Imóveis Ativos: ${ativos}\n`;
-      texto += `💰 Faturamento Estimado (Taxa Adm): ${fat}\n`;
-      texto += `📊 Volume Total Transacionado: ${vol}\n\n`;
-      texto += `Este é um relatório automático gerado pelo Sistema de Gestão M&IC.\nO backup completo em CSV encontra-se disponível no painel.`;
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("RESUMO FINANCEIRO DO MÊS", 15, 50);
 
-      window.location.href = `mailto:chalfouncorretor@gmail.com?subject=Relatorio Mensal M&IC - ${mesRef}&body=${encodeURIComponent(texto)}`;
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Contratos Ativos: ${ativos}`, 15, 60);
+      doc.text(`Volume Total Transacionado: ${vol}`, 15, 67);
+      doc.text(`Faturamento Estimado (Lucro da Taxa Adm): ${fat}`, 15, 74);
+
+      // TABELA DE DETALHES
+      let tableData = [];
+      const ativosList = contratosDB.filter(c => c.ativo === 'SIM');
+      
+      ativosList.forEach(c => {
+         let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
+         let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
+         let alugMes = (c.aluguel_mes !== undefined && c.aluguel_mes !== null) ? c.aluguel_mes : ((alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base));
+
+         let vAlugProp = parseMoedaToFloat(alugProp);
+         let vCondProp = parseMoedaToFloat(condProp);
+         let vAlugMes = parseMoedaToFloat(alugMes);
+         let vCondMes = parseMoedaToFloat(c.cond_mes);
+         let vIptu = parseMoedaToFloat(c.iptu);
+         let vBombeiro = parseMoedaToFloat(c.bombeiro);
+         let vSeguro = parseMoedaToFloat(c.seguro);
+         let vOutras = parseMoedaToFloat(c.outras_taxas);
+         let vDesconto = parseMoedaToFloat(c.desconto);
+
+         let volumeLocacao = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+         let taxaAdm = parseMoedaToFloat(c.taxa_adm_fixa);
+
+         tableData.push([
+            c.inquilino || '-',
+            c.proprietario || '-',
+            fmtMoeda(volumeLocacao),
+            fmtMoeda(taxaAdm)
+         ]);
+      });
+
+      doc.autoTable({
+        startY: 85,
+        head: [['Inquilino (Origem)', 'Locador (Destino)', 'Volume Total Cobrado', 'Taxa Adm. Retida']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [197, 155, 39], textColor: [255,255,255] },
+        styles: { fontSize: 9 }
+      });
+
+      // SALVA O BLOBO E O TEXTO EM MEMÓRIA PARA O MODAL
+      lastGeneratedPdfBlob = doc.output('blob');
+      lastGeneratedPdfText = `📊 *M&IC Corretores*\nSegue o relatório gerencial referente a *${mesFormatado}*.\n\nContratos Ativos: ${ativos}\nVolume Transacionado: ${vol}\nLucro Estimado: ${fat}`;
+
+      // MOSTRA O MODAL DE AÇÕES
+      document.getElementById('relatorio-modal').style.display = 'flex';
   }
+
+  document.getElementById('btn-baixar-pdf').addEventListener('click', () => {
+      if(!lastGeneratedPdfBlob) return;
+      const mesRef = document.getElementById('filtro-mes').value;
+      const pdfUrl = URL.createObjectURL(lastGeneratedPdfBlob);
+      const a = document.createElement('a');
+      a.href = pdfUrl;
+      a.download = `Relatorio_Gerencial_MIC_${mesRef}.pdf`;
+      a.click();
+  });
+
+  document.getElementById('btn-share-pdf').addEventListener('click', async () => {
+      if(!lastGeneratedPdfBlob) return;
+      const mesRef = document.getElementById('filtro-mes').value;
+      const file = new File([lastGeneratedPdfBlob], `Relatorio_Gerencial_MIC_${mesRef}.pdf`, { type: 'application/pdf' });
+
+      // Tenta usar a Web Share API (Nativa em Celulares/Mac)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+              await navigator.share({
+                  files: [file],
+                  title: 'Relatório Gerencial M&IC',
+                  text: lastGeneratedPdfText
+              });
+          } catch(e) { console.error("Cancelado ou Erro no Share", e); }
+      } else {
+          // Fallback para PC (Baixa o PDF e abre o WPP Web para a pessoa arrastar o ficheiro)
+          alert('O seu dispositivo não suporta o envio direto de arquivos para o WhatsApp. O PDF será baixado agora. O WhatsApp abrirá logo de seguida com a mensagem de texto, para que você possa arrastar o PDF para lá.');
+          document.getElementById('btn-baixar-pdf').click();
+          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(lastGeneratedPdfText)}`, '_blank');
+      }
+  });
+
 </script>
 </body>
 </html>
