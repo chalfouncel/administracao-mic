@@ -303,7 +303,10 @@
           <thead>
             <tr>
               <th class="fit">Excluir</th>
-              <th class="fit" style="text-align: center;">Marcar</th>
+              <th class="fit" style="text-align: center;">
+                Marcar<br>
+                <input type="checkbox" id="check-all-imoveis" onchange="toggleMarcarTodos(this.checked)" style="cursor: pointer; width: 15px; height: 15px; margin-top: 4px; accent-color: var(--accent);" title="Selecionar Todos">
+              </th>
               <th class="fit">Status</th>
               <th>Inquilino</th>
               <th>Endereço do Imóvel</th>
@@ -867,12 +870,26 @@ ${fullText.substring(0, 8000)}`;
   // =======================================================
   // GESTÃO DE IMÓVEIS E TAXAS
   // =======================================================
+  function toggleMarcarTodos(isChecked) {
+    const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
+    imoveisVisiveis.forEach(c => {
+        const idStr = String(c.id || c._tempId);
+        if(isChecked) contratosMarcados.add(idStr);
+        else contratosMarcados.delete(idStr);
+    });
+    renderizarTabelaLinear();
+    renderizarTaxasCondominiais();
+    if (document.getElementById('tab-resumo_cobranca').classList.contains('active')) gerarTextosCobranca();
+    if (document.getElementById('tab-repasse').classList.contains('active')) gerarTextosRepasse();
+  }
+
   function toggleMarcar(idString, isChecked) {
     if(isChecked) {
       contratosMarcados.add(String(idString));
     } else {
       contratosMarcados.delete(String(idString));
     }
+    renderizarTabelaLinear(); // Para atualizar o check-all se necessário
     renderizarTaxasCondominiais(); 
   }
 
@@ -965,6 +982,12 @@ ${fullText.substring(0, 8000)}`;
     if (!tbody) return; 
     tbody.innerHTML = '';
     const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
+    
+    // Atualiza o Checkbox "Selecionar Todos"
+    const checkAllBtn = document.getElementById('check-all-imoveis');
+    if (checkAllBtn) {
+        checkAllBtn.checked = imoveisVisiveis.length > 0 && imoveisVisiveis.every(c => contratosMarcados.has(String(c.id || c._tempId)));
+    }
     
     if (imoveisVisiveis.length === 0) { 
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: #64748b;">Nenhum imóvel administrado registado.</td></tr>'; 
@@ -1240,7 +1263,7 @@ ${fullText.substring(0, 8000)}`;
 
 
   // =======================================================
-  // ABA: RESUMO PARA COBRANÇA E REPASSE
+  // ABA: RESUMO PARA COBRANÇA E REPASSE (Com Imagens html2canvas)
   // =======================================================
   function getNomeMesAtual(mesRef) { 
       if(!mesRef) return ''; 
