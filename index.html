@@ -108,6 +108,9 @@
   .auth-msg.err { background: #fee2e2; color: var(--danger); border: 1px solid #fca5a5; display: block; }
   .auth-msg.ok { background: #dcfce7; color: var(--success); border: 1px solid #86efac; display: block; }
   .auth-msg.loading { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; display: block; }
+
+  /* CAIXA DESTAQUE PIX */
+  .box-pix { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-top: 14px; }
 </style>
 </head>
 <body>
@@ -194,10 +197,14 @@
       <div class="card" style="margin-bottom:0;">
         <div class="card-title">Dados do Novo Contrato</div>
         
-        <div class="grid-3">
-          <div><label>Proprietário (Locador)</label><input type="text" id="proprietario"></div>
+        <div class="grid-2">
+          <div><label>Proprietário (Locador)</label><input type="text" id="proprietario" oninput="sincronizarCampos()"></div>
           <div><label>Telefone do Proprietário</label><input type="text" id="telProprietario"></div>
+        </div>
+
+        <div class="grid-2 box-pix">
           <div><label>Chave PIX Proprietário</label><input type="text" id="pixProprietario"></div>
+          <div><label>Titular do PIX (Nome Recebedor)</label><input type="text" id="titularPix" placeholder="Nome na conta PIX"></div>
         </div>
 
         <div class="grid-3" style="margin-top:14px;">
@@ -210,8 +217,7 @@
           <label>Endereço do Imóvel</label><input type="text" id="endereco">
         </div>
         
-        <div class="grid-3" style="margin-top:14px;">
-          <div><label>Titular do PIX (Nome Recebedor)</label><input type="text" id="titularPix" placeholder="Nome na conta PIX"></div>
+        <div class="grid-2" style="margin-top:14px;">
           <div><label>Data de Início</label><input type="date" id="dataInicio"></div>
           <div><label>Data de fim</label><input type="date" id="dataFim"></div>
         </div>
@@ -514,6 +520,13 @@
       placeholder.style.display = 'none'; canvas.style.display = 'block';
     } catch (e) {}
   }
+  
+  function sincronizarCampos() {
+    const prop = document.getElementById('proprietario').value;
+    const tit = document.getElementById('titularPix');
+    if (tit && tit.value.trim() === '') tit.value = prop;
+  }
+
   async function processarContratoPDF(event) {
     const file = event.target.files[0]; if (!file || file.type !== 'application/pdf') return;
     selectedPdfFile = file; document.getElementById('file-name-pill').innerText = `📄 ${file.name}`; document.getElementById('file-name-pill').style.display = 'inline-block';
@@ -557,11 +570,12 @@
       } catch(eIA) {}
 
       function flash(id, val) { 
-        if(val && val.trim() !== '') { 
+        if(val && String(val).trim() !== '') { 
           const el = document.getElementById(id); if(el) { el.value = val; el.classList.add('field-ok'); el.addEventListener('input', function onEdit() { el.classList.remove('field-ok'); el.removeEventListener('input', onEdit); }); }
         } 
       }
       flash('proprietario', decodeAddressOnly(ext.locador)); flash('telProprietario', ext.telLocador); flash('pixProprietario', ext.pix);
+      flash('titularPix', decodeAddressOnly(ext.locador));
       flash('inquilino', decodeAddressOnly(ext.locatario)); flash('emailInquilino', ext.emailLocatario); flash('telInquilino', ext.telLocatario);
       flash('endereco', decodeAddressOnly(ext.endereco)); flash('dataInicio', ext.dataIn); flash('dataFim', ext.dataFim);
       if(ext.valor > 0) flash('aluguelBase', formatadorStr(ext.valor));
@@ -658,7 +672,7 @@
       try {
         const loadingTask = pdfjsLib.getDocument(url); const pdf = await loadingTask.promise; const page = await pdf.getPage(1);
         const viewport = page.getViewport({ scale: 0.3 }); canvas.width = viewport.width; canvas.height = viewport.height;
-        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
         canvas.dataset.loaded = "true"; canvas.nextElementSibling.style.display = 'none'; canvas.style.display = 'block';
       } catch (e) {}
     }
@@ -1029,7 +1043,7 @@
       linhasCard += `<div class="comp-line" style="margin-top:10px; color:var(--danger);"><span><strong>Taxa de Administração</strong></span> <span><strong>-${fmtMoeda(vTaxaAdm)}</strong></span></div>`;
 
       let titularStr = (c.titular_pix && c.titular_pix !== c.proprietario) ? ` (Titular: ${c.titular_pix})` : '';
-      texto += `\n💰 *TOTAL REPASSADO: ${fmtMoeda(totalRepasseFinal)}*\n\nO valor foi transferido para a sua chave PIX: ${c.pix_proprietario || 'Não informada'}${titularStr}.\nQualquer dúvida, estamos à disposição!\n\n*M&IC Corretores de Imóveis*`;
+      texto += `\n💰 *TOTAL REPASSADO: ${fmtMoeda(totalRepasseFinal)}*\n\nO valor foi transferido para a chave PIX: ${c.pix_proprietario || 'Não informada'}\nTitular: ${c.titular_pix || c.proprietario}\nQualquer dúvida, estamos à disposição!\n\n*M&IC Corretores de Imóveis*`;
 
       let statusObj = {}; try { statusObj = JSON.parse(c.status_repasse || '{}'); } catch(e) {}
       let statusAtual = statusObj[mesRef] || 'pendente';
@@ -1052,7 +1066,11 @@
               <hr style="border:1px dashed #e2e8f0; margin:10px 0;">
               ${linhasCard}
               <div class="comp-total"><span>TOTAL REPASSADO:</span> <span>${fmtMoeda(totalRepasseFinal)}</span></div>
-              <div style="font-size:0.75rem; color:#64748b; margin-top:20px; text-align:center;">Chave PIX: ${c.pix_proprietario || 'Não informada'}<br>M&IC Corretores de Imóveis</div>
+              <div style="font-size:0.75rem; color:#64748b; margin-top:20px; text-align:center;">
+                  Chave PIX: ${c.pix_proprietario || 'Não informada'}<br>
+                  Titular: ${c.titular_pix || c.proprietario}<br>
+                  M&IC Corretores de Imóveis
+              </div>
            </div>
            
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
