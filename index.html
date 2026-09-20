@@ -658,7 +658,7 @@
       try {
         const loadingTask = pdfjsLib.getDocument(url); const pdf = await loadingTask.promise; const page = await pdf.getPage(1);
         const viewport = page.getViewport({ scale: 0.3 }); canvas.width = viewport.width; canvas.height = viewport.height;
-        await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
         canvas.dataset.loaded = "true"; canvas.nextElementSibling.style.display = 'none'; canvas.style.display = 'block';
       } catch (e) {}
     }
@@ -1010,8 +1010,14 @@
       if (vAlugProp > 0) { texto += `🔹 Aluguel Proporcional (${nomeMesAnterior}): ${fmtMoeda(vAlugProp)}\n`; linhasCard += `<div class="comp-line"><span>Aluguel Prop. (${nomeMesAnterior})</span> <span>${fmtMoeda(vAlugProp)}</span></div>`; }
       if (vAlugMes > 0) { texto += `🔹 Aluguel (${nomeMesAnterior}): ${fmtMoeda(vAlugMes)}\n`; linhasCard += `<div class="comp-line"><span>Aluguel (${nomeMesAnterior})</span> <span>${fmtMoeda(vAlugMes)}</span></div>`; }
       
-      if (vCondProp > 0) { texto += `🔹 Condomínio Proporcional (${nomeMesAtual}): ${fmtMoeda(vCondProp)} ${repassaCond ? '' : '(Repassado ao síndico)'}\n`; linhasCard += `<div class="comp-line"><span style="${!repassaCond?'color:#94a3b8; text-decoration:line-through;':''}">Condomínio Prop. (${nomeMesAtual})</span> <span>${repassaCond ? fmtMoeda(vCondProp) : '(Direto Síndico)'}</span></div>`; }
-      if (vCondMes > 0) { texto += `🔹 Condomínio Mensal (${nomeMesAtual}): ${fmtMoeda(vCondMes)} ${repassaCond ? '' : '(Repassado ao síndico)'}\n`; linhasCard += `<div class="comp-line"><span style="${!repassaCond?'color:#94a3b8; text-decoration:line-through;':''}">Condomínio (${nomeMesAtual})</span> <span>${repassaCond ? fmtMoeda(vCondMes) : '(Direto Síndico)'}</span></div>`; }
+      if (vCondProp > 0) { 
+          texto += `🔹 Condomínio Proporcional (${nomeMesAtual}): ${fmtMoeda(vCondProp)} ${repassaCond ? '' : '(Direto ao síndico/condomínio)'}\n`; 
+          linhasCard += `<div class="comp-line"><span>Condomínio Prop. (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico/condomínio)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondProp)}</span></div>`; 
+      }
+      if (vCondMes > 0) { 
+          texto += `🔹 Condomínio Mensal (${nomeMesAtual}): ${fmtMoeda(vCondMes)} ${repassaCond ? '' : '(Direto ao síndico/condomínio)'}\n`; 
+          linhasCard += `<div class="comp-line"><span>Condomínio (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico/condomínio)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondMes)}</span></div>`; 
+      }
       
       if (vIptu > 0) { texto += `🔹 IPTU: ${fmtMoeda(vIptu)}\n`; linhasCard += `<div class="comp-line"><span>IPTU</span> <span>${fmtMoeda(vIptu)}</span></div>`; }
       if (vBombeiro > 0) { texto += `🔹 Taxa de Incêndio/Bombeiro: ${fmtMoeda(vBombeiro)}\n`; linhasCard += `<div class="comp-line"><span>Taxa de Incêndio</span> <span>${fmtMoeda(vBombeiro)}</span></div>`; }
@@ -1046,7 +1052,7 @@
               <hr style="border:1px dashed #e2e8f0; margin:10px 0;">
               ${linhasCard}
               <div class="comp-total"><span>TOTAL REPASSADO:</span> <span>${fmtMoeda(totalRepasseFinal)}</span></div>
-              <div style="font-size:0.75rem; color:#64748b; margin-top:20px; text-align:center;">Chave PIX: ${c.pix_proprietario || 'Não informada'} ${titularStr}<br>M&IC Corretores de Imóveis</div>
+              <div style="font-size:0.75rem; color:#64748b; margin-top:20px; text-align:center;">Chave PIX: ${c.pix_proprietario || 'Não informada'}<br>M&IC Corretores de Imóveis</div>
            </div>
            
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
