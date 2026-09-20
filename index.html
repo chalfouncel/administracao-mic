@@ -469,7 +469,7 @@
   }
 
   // =======================================================
-  // RENOVAÇÃO DO SUPABASE (Tratamento para erro JWT Expired)
+  // RENOVAÇÃO DO SUPABASE E HELPERS DE DATA
   // =======================================================
   async function refreshSession() {
     const s = getLocalSession();
@@ -512,6 +512,27 @@
       }
     }
     return res;
+  }
+
+  function getNomeMesAtual(mesRef) {
+      if(!mesRef) return '';
+      const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+      const [ano, mes] = mesRef.split('-');
+      return meses[parseInt(mes) - 1];
+  }
+
+  function getNomeMesAnterior(mesRef) {
+      if(!mesRef) return '';
+      const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+      let [ano, mes] = mesRef.split('-');
+      let m = parseInt(mes) - 2;
+      if(m < 0) m = 11;
+      return meses[m];
+  }
+
+  function capitalizeFirstLetter(string) {
+      if (!string) return '';
+      return string.charAt(0).toUpperCase() + string.slice(1);
   }
 
   // =======================================================
@@ -963,9 +984,7 @@ ${fullText.substring(0, 8000)}`;
       taxa_adm_pct: 10, 
       regra_condominio: document.getElementById('regraCond').value || 'N',
       contrato_url: urlPdf, 
-      ativo: 'SIM',
-      status_cobranca: '{}',
-      status_repasse: '{}'
+      ativo: 'SIM'
     };
 
     try {
@@ -1142,18 +1161,18 @@ ${fullText.substring(0, 8000)}`;
   // =======================================================
   // ABA: RESUMO PARA COBRANÇA E REPASSE
   // =======================================================
-  function copiarTextoCob(idTextArea) {
-    const el = document.getElementById(idTextArea);
-    el.select();
-    document.execCommand('copy');
-    alert('✓ Texto copiado com sucesso!');
-  }
-
   function formatarMesAno(mesRef) {
     if(!mesRef) return '';
     const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
     const [ano, mes] = mesRef.split('-');
     return `${meses[parseInt(mes) - 1]} de ${ano}`;
+  }
+
+  function copiarTextoCob(idTextArea) {
+    const el = document.getElementById(idTextArea);
+    el.select();
+    document.execCommand('copy');
+    alert('✓ Texto copiado com sucesso!');
   }
 
   function avancarStatusCobranca(idReg, currentStatus) {
@@ -1195,6 +1214,8 @@ ${fullText.substring(0, 8000)}`;
 
     container.innerHTML = '';
     const mesRef = document.getElementById('filtro-mes').value;
+    const nomeMesAtual = capitalizeFirstLetter(getNomeMesAtual(mesRef));
+    const nomeMesAnterior = capitalizeFirstLetter(getNomeMesAnterior(mesRef));
     
     const [anoRef, mesRefStr] = mesRef.split('-');
     let dVenc = new Date(anoRef, parseInt(mesRefStr) - 1, 1);
@@ -1227,10 +1248,10 @@ ${fullText.substring(0, 8000)}`;
 
       let texto = `Prezado(a) ${c.inquilino}, tudo bem?\n\nSegue o demonstrativo de locação com vencimento em *${dataVencStr}*:\n\n`;
       
-      if (vAlugProp > 0) texto += `🔹 Aluguel Proporcional: ${fmtMoeda(vAlugProp)}\n`;
-      if (vAlugMes > 0) texto += `🔹 Aluguel: ${fmtMoeda(vAlugMes)}\n`;
-      if (vCondProp > 0) texto += `🔹 Condomínio Proporcional: ${fmtMoeda(vCondProp)}\n`;
-      if (vCondMes > 0) texto += `🔹 Condomínio Mensal: ${fmtMoeda(vCondMes)}\n`;
+      if (vAlugProp > 0) texto += `🔹 Aluguel Proporcional (${nomeMesAnterior}): ${fmtMoeda(vAlugProp)}\n`;
+      if (vAlugMes > 0) texto += `🔹 Aluguel (${nomeMesAnterior}): ${fmtMoeda(vAlugMes)}\n`;
+      if (vCondProp > 0) texto += `🔹 Condomínio Proporcional (${nomeMesAtual}): ${fmtMoeda(vCondProp)}\n`;
+      if (vCondMes > 0) texto += `🔹 Condomínio Mensal (${nomeMesAtual}): ${fmtMoeda(vCondMes)}\n`;
       if (vIptu > 0) texto += `🔹 IPTU: ${fmtMoeda(vIptu)}\n`;
       if (vBombeiro > 0) texto += `🔹 Taxa de Incêndio/Bombeiro: ${fmtMoeda(vBombeiro)}\n`;
       if (vSeguro > 0) texto += `🔹 Seguro: ${fmtMoeda(vSeguro)}\n`;
@@ -1301,6 +1322,8 @@ ${fullText.substring(0, 8000)}`;
     container.innerHTML = '';
     const mesRef = document.getElementById('filtro-mes').value;
     const repasseMesTexto = formatarMesAno(mesRef);
+    const nomeMesAtual = capitalizeFirstLetter(getNomeMesAtual(mesRef));
+    const nomeMesAnterior = capitalizeFirstLetter(getNomeMesAnterior(mesRef));
 
     marcados.forEach(c => {
       const idReg = c.id || c._tempId;
@@ -1333,11 +1356,11 @@ ${fullText.substring(0, 8000)}`;
 
       let texto = `Prezado(a) ${c.proprietario}, tudo bem?\n\nSegue o demonstrativo de repasse referente ao imóvel locado por ${c.inquilino}, competência de *${repasseMesTexto}*:\n\n`;
       
-      if (vAlugProp > 0) texto += `🔹 Aluguel Proporcional: ${fmtMoeda(vAlugProp)}\n`;
-      if (vAlugMes > 0) texto += `🔹 Aluguel: ${fmtMoeda(vAlugMes)}\n`;
+      if (vAlugProp > 0) texto += `🔹 Aluguel Proporcional (${nomeMesAnterior}): ${fmtMoeda(vAlugProp)}\n`;
+      if (vAlugMes > 0) texto += `🔹 Aluguel (${nomeMesAnterior}): ${fmtMoeda(vAlugMes)}\n`;
       
-      if (vCondProp > 0) texto += `🔹 Condomínio Proporcional: ${fmtMoeda(vCondProp)} ${repassaCond ? '' : '(Repassado ao síndico/condomínio)'}\n`;
-      if (vCondMes > 0) texto += `🔹 Condomínio Mensal: ${fmtMoeda(vCondMes)} ${repassaCond ? '' : '(Repassado ao síndico/condomínio)'}\n`;
+      if (vCondProp > 0) texto += `🔹 Condomínio Proporcional (${nomeMesAtual}): ${fmtMoeda(vCondProp)} ${repassaCond ? '' : '(Repassado ao síndico/condomínio)'}\n`;
+      if (vCondMes > 0) texto += `🔹 Condomínio Mensal (${nomeMesAtual}): ${fmtMoeda(vCondMes)} ${repassaCond ? '' : '(Repassado ao síndico/condomínio)'}\n`;
       
       if (vIptu > 0) texto += `🔹 IPTU: ${fmtMoeda(vIptu)}\n`;
       if (vBombeiro > 0) texto += `🔹 Taxa de Incêndio/Bombeiro: ${fmtMoeda(vBombeiro)}\n`;
