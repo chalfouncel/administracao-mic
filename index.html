@@ -65,6 +65,9 @@
   .btn-edit-pix { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; display: inline-block; transition: 0.2s; }
   .btn-edit-pix:hover { background: #bae6fd; }
 
+  /* CAIXA DESTAQUE PIX */
+  .box-pix { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; margin-top: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+
   /* TABELAS LINEARES */
   .table-linear-container { width: 100%; max-height: 75vh; overflow: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
   table.table-linear { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
@@ -111,9 +114,6 @@
   .auth-msg.err { background: #fee2e2; color: var(--danger); border: 1px solid #fca5a5; display: block; }
   .auth-msg.ok { background: #dcfce7; color: var(--success); border: 1px solid #86efac; display: block; }
   .auth-msg.loading { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; display: block; }
-
-  /* CAIXA DESTAQUE PIX */
-  .box-pix { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-top: 14px; }
 </style>
 </head>
 <body>
@@ -186,15 +186,22 @@
   <!-- ABA: RESUMO DO CONTRATO -->
   <div id="tab-resumo" class="tab-content active">
     <div class="resumo-layout">
+      
       <aside class="sidebar-contract-card">
         <div style="font-weight:800; margin-bottom:10px;">Contrato de Locação</div>
         <div class="thumbnail-wrapper" onclick="document.getElementById('contratoFile').click()">
           <canvas id="pdf-thumb-canvas"></canvas>
-          <div id="thumb-placeholder" style="color:#64748b; font-size:0.8rem; padding:20px;">Clique para Anexar Contrato (.PDF)<br><br>A thumbnail aparecerá aqui</div>
+          <div id="thumb-placeholder" style="color:#64748b; font-size:0.8rem; padding:20px;">
+            Clique para Anexar Contrato (.PDF)<br><br>A thumbnail aparecerá aqui
+          </div>
         </div>
+        <div class="file-name-pill" id="file-name-pill"></div>
         <div id="ai-extract-loader" class="ai-loader">⏳ Extraindo dados contratuais...</div>
+        
         <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="processarContratoPDF(event)">
-        <button type="button" class="btn btn-gold" style="width:100%; font-size:0.85rem; padding:10px;" onclick="document.getElementById('contratoFile').click()">📎 Anexar / Trocar Contrato</button>
+        <button type="button" class="btn btn-gold" style="width:100%; font-size:0.85rem; padding:10px;" onclick="document.getElementById('contratoFile').click()">
+          📎 Anexar / Trocar Contrato
+        </button>
       </aside>
 
       <div class="card" style="margin-bottom:0;">
@@ -211,13 +218,14 @@
           </div>
         </div>
 
+        <!-- BLOCO PIX DESTAQUE -->
         <div class="grid-2 box-pix">
           <div>
-            <label>Chave PIX Proprietário</label>
-            <input type="text" id="pixProprietario">
+            <label style="color:#0284c7;">Chave PIX Proprietário</label>
+            <input type="text" id="pixProprietario" placeholder="Ex: 123.456.789-00">
           </div>
           <div>
-            <label>Titular do PIX (Nome Recebedor)</label>
+            <label style="color:#0284c7;">Titular do PIX (Nome Recebedor)</label>
             <input type="text" id="titularPix" placeholder="Nome na conta PIX">
           </div>
         </div>
@@ -370,6 +378,9 @@
 </div>
 
 <script>
+  // =======================================================
+  // VARIÁVEIS GLOBAIS E UTILITÁRIOS
+  // =======================================================
   const SUPABASE_BASE_URL = 'https://dgadztmmarvbjcouvrnp.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_JwOjDkAj';
   let contratosDB = [];
@@ -407,6 +418,9 @@
     i.value = v;
   }
 
+  // =======================================================
+  // SESSÃO E SUPABASE FETCH
+  // =======================================================
   function getLocalSession() { 
     try { return JSON.parse(localStorage.getItem('mic_auth_session')); } catch(e) { return null; } 
   }
@@ -529,6 +543,7 @@
     document.getElementById('btn-register').addEventListener('click', doRegister);
     document.getElementById('btn-logout-action').addEventListener('click', doLogout);
     
+    // O Mês de Referência é sempre o PRÓXIMO MÊS.
     const hoje = new Date();
     let proxMes = hoje.getMonth() + 2; 
     let anoVenc = hoje.getFullYear();
@@ -553,6 +568,7 @@
     if (name === 'resumo_cobranca') gerarTextosCobranca();
     if (name === 'repasse') gerarTextosRepasse();
   }
+
 
   // =======================================================
   // MOTOR DE EXTRAÇÃO DE PDF (RESTAURADO E SEGURO)
@@ -636,13 +652,17 @@
       const viewport = page.getViewport({ scale: 0.65 });
       const canvas = document.getElementById('pdf-thumb-canvas');
       const placeholder = document.getElementById('thumb-placeholder');
-      canvas.width = viewport.width; canvas.height = viewport.height;
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      canvas.width = viewport.width; 
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
       placeholder.style.display = 'none';
       canvas.style.display = 'block';
-    } catch (e) {}
+    } catch (e) {
+      console.warn("Erro ao gerar miniatura:", e);
+    }
   }
-  
+
   function sincronizarCampos() {
     const prop = document.getElementById('proprietario').value;
     const tit = document.getElementById('titularPix');
@@ -767,7 +787,7 @@ ${fullText.substring(0, 8000)}`;
       flash('proprietario', decodeAddressOnly(ext.locador));
       flash('telProprietario', ext.telLocador);
       flash('pixProprietario', ext.pix);
-      flash('titularPix', decodeAddressOnly(ext.locador)); // Preenche o titular automaticamente
+      flash('titularPix', decodeAddressOnly(ext.locador));
       flash('inquilino', decodeAddressOnly(ext.locatario));
       flash('emailInquilino', ext.emailLocatario);
       flash('telInquilino', ext.telLocatario);
@@ -848,8 +868,11 @@ ${fullText.substring(0, 8000)}`;
   // GESTÃO DE IMÓVEIS E TAXAS
   // =======================================================
   function toggleMarcar(idString, isChecked) {
-    if(isChecked) contratosMarcados.add(String(idString));
-    else contratosMarcados.delete(String(idString));
+    if(isChecked) {
+      contratosMarcados.add(String(idString));
+    } else {
+      contratosMarcados.delete(String(idString));
+    }
     renderizarTaxasCondominiais(); 
   }
 
@@ -1290,7 +1313,7 @@ ${fullText.substring(0, 8000)}`;
     
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
     if (marcados.length === 0) { 
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:20px;">Nenhum imóvel Ativo marcado.</div>'; 
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:20px;">Nenhum imóvel Ativo marcado na aba de Imóveis Administrados.</div>'; 
         return; 
     }
 
@@ -1509,7 +1532,7 @@ ${fullText.substring(0, 8000)}`;
       texto += `\n🔻 *Deduções:*\n🔸 Taxa de Administração: -${fmtMoeda(vTaxaAdm)}\n`;
       linhasCard += `<div class="comp-line" style="margin-top:10px; color:var(--danger);"><span><strong>Taxa de Administração</strong></span> <span><strong>-${fmtMoeda(vTaxaAdm)}</strong></span></div>`;
 
-      let titularStr = (c.titular_pix && c.titular_pix !== c.proprietario) ? `\nTitular: ${c.titular_pix}` : '';
+      let titularStr = c.titular_pix ? `\nTitular: ${c.titular_pix}` : `\nTitular: ${c.proprietario}`;
       texto += `\n💰 *TOTAL REPASSADO: ${fmtMoeda(totalRepasseFinal)}*\n\nO valor foi transferido para a chave PIX: ${c.pix_proprietario || 'Não informada'}${titularStr}\nQualquer dúvida, estamos à disposição!\n\n*M&IC Corretores de Imóveis*`;
 
       let statusObj = {}; 
