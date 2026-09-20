@@ -156,7 +156,7 @@
 <div id="relatorio-modal">
   <div class="auth-card" style="border-top: 4px solid #0284c7;">
     <h3 style="color:var(--primary); margin-bottom:10px;">📊 Relatório Gerado!</h3>
-    <p style="font-size:0.85rem; color:#64748b; margin-bottom:20px;">Seu Relatório Gerencial foi gerado com sucesso em PDF. O que deseja fazer agora?</p>
+    <p style="font-size:0.85rem; color:#64748b; margin-bottom:20px;">O seu Relatório Gerencial foi gerado com sucesso em PDF. O que deseja fazer agora?</p>
     <div style="display:flex; flex-direction:column; gap:10px;">
         <button class="btn btn-gold" id="btn-baixar-pdf">⬇️ Baixar PDF</button>
         <button class="btn btn-whatsapp" id="btn-share-pdf">📲 Compartilhar no WhatsApp</button>
@@ -226,8 +226,8 @@
 
         <div class="grid-3" style="margin-top:14px;">
           <div><label>Inquilino (Locatário)</label><input type="text" id="inquilino"></div>
-          <div><label>E-mail Inquilino</label><input type="email" id="emailInquilino"></div>
-          <div><label>Telefone Inquilino</label><input type="text" id="telInquilino"></div>
+          <div><label>E-mail do Inquilino</label><input type="email" id="emailInquilino"></div>
+          <div><label>Telefone do Inquilino</label><input type="text" id="telInquilino"></div>
         </div>
 
         <div style="margin-top:14px;">
@@ -559,7 +559,7 @@
 
       let mVal = fullText.match(/R\$\s*([\d\.,]+)/i); if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
-      loader.innerHTML = '🤖 IA extraindo telefones, e-mail e PIX...';
+      loader.innerHTML = '🤖 IA extraindo contatos e PIX...';
       try {
         const promptIA = `Você é um perito de extração de dados. Analise o texto do contrato abaixo e retorne APENAS um objeto JSON.
 REGRAS OBRIGATÓRIAS:
@@ -671,11 +671,11 @@ Texto: ${fullText.substring(0, 8000)}`;
     else if (diffDays <= 60 && diffDays > 30) {
         bola = '<div class="bola bola-amarela" title="Vencendo em breve"></div>';
         textoCob = `\n⚠️ *Aviso Importante:* O seu contrato de locação encerra em ${diffDays} dias (${c.data_fim.split('-').reverse().join('/')}). Por favor, entre em contato para tratativas de renovação.\n`;
-        htmlCard = `<div style="background:#fef9c3; color:#a16207; padding:8px; border-left:4px solid #eab308; font-size:0.75rem; margin:10px 0; border-radius:4px;"><strong>⚠️ Atenção:</strong> Contrato encerra em ${diffDays} dias (${c.data_fim.split('-').reverse().join('/')}). Contate-nos para renovação.</div>`;
+        htmlCard = `<div style="background:#fef9c3; color:#a16207; padding:8px; border-left:4px solid #eab308; font-size:0.75rem; margin:10px 0; border-radius:4px;"><strong>⚠️ Atenção:</strong> Contrato encerra em ${diffDays} dias (${c.data_fim.split('-').reverse().join('/')}). Entre em contato para renovação.</div>`;
     } else if (diffDays <= 30 && diffDays >= 0) {
         bola = '<div class="bola bola-metade" title="Vencimento Crítico (<=30 dias)"></div>'; let desc = diffDays === 0 ? "HOJE" : `em ${diffDays} dias`;
-        textoCob = `\n⚠️ *Aviso Urgente:* O seu contrato de locação encerra ${desc} (${c.data_fim.split('-').reverse().join('/')}). Por favor, entre em contato para tratativas de renovação.\n`;
-        htmlCard = `<div style="background:#fef9c3; color:#a16207; padding:8px; border-left:4px solid #eab308; font-size:0.75rem; margin:10px 0; border-radius:4px;"><strong>⚠️ Urgente:</strong> Contrato encerra ${desc}. Contate-nos para renovação.</div>`;
+        textoCob = `\n⚠️ *Aviso Urgente:* O seu contrato de locação encerra ${desc} (${c.data_fim.split('-').reverse().join('/')}). Por favor, entre em contato com urgência para tratativas de renovação.\n`;
+        htmlCard = `<div style="background:#fef9c3; color:#a16207; padding:8px; border-left:4px solid #eab308; font-size:0.75rem; margin:10px 0; border-radius:4px;"><strong>⚠️ Urgente:</strong> Contrato encerra ${desc}. Entre em contato para renovação.</div>`;
     } else {
         bola = '<div class="bola bola-vermelha" title="Vencido"></div>';
         textoCob = `\n🚨 *Aviso Urgente:* O seu contrato de locação encontra-se VENCIDO desde ${c.data_fim.split('-').reverse().join('/')}. Por favor, entre em contato com urgência para regularização.\n`;
@@ -768,7 +768,7 @@ Texto: ${fullText.substring(0, 8000)}`;
   // =======================================================
   // ABA: TAXAS CONDOMINIAIS E COBRANÇAS
   // =======================================================
-  function editarProporcional(el) { if (el.readOnly && confirm('Deseja editar manualmente este campo?\n(O cálculo automático deixará de agir nesta célula)')) { el.readOnly = false; el.style.backgroundColor = '#fff'; el.focus(); } }
+  function editarProporcional(el) { if (el.readOnly && confirm('Deseja editar manualmente este campo?')) { el.readOnly = false; el.style.backgroundColor = '#fff'; el.focus(); } }
   function calcularProp(valorBase, dataInicio, mesRef) {
     if (!valorBase || !dataInicio || !mesRef) return 'Não';
     const [anoRefStr, mesRefStr] = mesRef.split('-'); let anoRef = parseInt(anoRefStr); let mesRefInt = parseInt(mesRefStr);
@@ -815,7 +815,29 @@ Texto: ${fullText.substring(0, 8000)}`;
   function capitalizeFirstLetter(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
   function formatarMesAno(mesRef) { if(!mesRef) return ''; const [ano, mes] = mesRef.split('-'); return `${getNomeMesAtual(mesRef)} de ${ano}`; }
 
-  function baixarImagem(idHtml, fileName) { const el = document.getElementById(idHtml); html2canvas(el, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => { let a = document.createElement('a'); a.href = canvas.toDataURL("image/jpeg", 0.9); a.download = fileName + '.jpg'; a.click(); }); }
+  function copiarImagem(idHtml, btn) {
+     const el = document.getElementById(idHtml);
+     const txtOrig = btn.innerText;
+     btn.innerText = "Copiando...";
+     html2canvas(el, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
+         canvas.toBlob(blob => {
+             try {
+                 navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => {
+                     btn.innerText = "✓ Copiado!";
+                     setTimeout(() => btn.innerText = txtOrig, 2000);
+                     alert('✓ Imagem copiada com sucesso! Cole na conversa do WhatsApp.');
+                 }).catch(err => {
+                     btn.innerText = txtOrig;
+                     alert('Erro ao copiar: O seu navegador bloqueou ou não suporta a cópia direta de imagens. Tente pelo computador.');
+                 });
+             } catch(e) {
+                 btn.innerText = txtOrig;
+                 alert('Erro: O seu navegador não suporta cópia direta de imagens. Tente pelo Google Chrome no computador.');
+             }
+         }, 'image/png');
+     });
+  }
+
   function copiarTextoCob(idTextArea) { const el = document.getElementById(idTextArea); el.style.display = 'block'; el.select(); document.execCommand('copy'); el.style.display = 'none'; alert('✓ Texto copiado com sucesso!'); }
 
   function avancarStatusCobranca(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_cobranca || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_cobranca', JSON.stringify(statusObj)); }
@@ -865,7 +887,8 @@ Texto: ${fullText.substring(0, 8000)}`;
               ${linhasCard}${vencInfo.htmlCard || ''}<div class="comp-total"><span>TOTAL A PAGAR:</span> <span>${fmtMoeda(total)}</span></div>
               <div style="font-size:0.75rem; color:#64748b; margin-top:20px; text-align:center;">Envie o comprovante após o pagamento.<br>M&IC Corretores de Imóveis</div></div>
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
-           <div style="display: flex; gap: 8px; margin-top: 16px;"><button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="baixarImagem('${idCard}', 'Cobranca_${c.inquilino.replace(/\s+/g,'_')}')">⬇️ Imagem</button>
+           <div style="display: flex; gap: 8px; margin-top: 16px;">
+              <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarImagem('${idCard}', this)">📋 Copiar Imagem</button>
               <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Texto</button>
               <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.8rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a></div>
            <div style="display: flex; gap: 8px; margin-top: 8px;">${acaoHtml}</div>${msgFinal}
@@ -899,11 +922,11 @@ Texto: ${fullText.substring(0, 8000)}`;
       
       if (vCondProp > 0) { 
           texto += `🔹 Condomínio Proporcional (${nomeMesAtual}): ${fmtMoeda(vCondProp)} ${repassaCond ? '' : '(Direto ao síndico/condomínio)'}\n`; 
-          linhasCard += `<div class="comp-line"><span>Condomínio Prop. (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico/condomínio)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondProp)}</span></div>`; 
+          linhasCard += `<div class="comp-line"><span>Condomínio Prop. (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondProp)}</span></div>`; 
       }
       if (vCondMes > 0) { 
           texto += `🔹 Condomínio Mensal (${nomeMesAtual}): ${fmtMoeda(vCondMes)} ${repassaCond ? '' : '(Direto ao síndico/condomínio)'}\n`; 
-          linhasCard += `<div class="comp-line"><span>Condomínio (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico/condomínio)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondMes)}</span></div>`; 
+          linhasCard += `<div class="comp-line"><span>Condomínio (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondMes)}</span></div>`; 
       }
       
       if (vIptu > 0) { texto += `🔹 IPTU: ${fmtMoeda(vIptu)}\n`; linhasCard += `<div class="comp-line"><span>IPTU</span> <span>${fmtMoeda(vIptu)}</span></div>`; }
@@ -930,7 +953,8 @@ Texto: ${fullText.substring(0, 8000)}`;
               ${linhasCard}<div class="comp-total"><span>TOTAL REPASSADO:</span> <span>${fmtMoeda(totalRepasseFinal)}</span></div>
               <div style="font-size:0.75rem; color:#64748b; margin-top:20px; text-align:center;">Chave PIX: ${c.pix_proprietario || 'Não informada'}<br>Titular: ${c.titular_pix || c.proprietario}<br>M&IC Corretores de Imóveis</div></div>
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
-           <div style="display: flex; gap: 8px; margin-top: 16px;"><button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="baixarImagem('${idCard}', 'Repasse_${c.proprietario.replace(/\s+/g,'_')}')">⬇️ Imagem</button>
+           <div style="display: flex; gap: 8px; margin-top: 16px;">
+              <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarImagem('${idCard}', this)">📋 Copiar Imagem</button>
               <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Texto</button>
               <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.8rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_proprietario).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a></div>
            <div style="display: flex; gap: 8px; margin-top: 8px;">${acaoHtml}</div>${msgFinal}
