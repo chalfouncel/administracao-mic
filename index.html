@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gestão de Locação Imobiliária — M&IC</title>
+
+<!-- CHAMADA PARA O PWA -->
+<link rel="icon" type="image/png" href="/Loga%20marca%20nova.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#c59b27">
+
 <!-- Leitor de PDF, Gerador de Imagens e Gerador de PDF Gerencial -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
@@ -92,6 +98,7 @@
   
   .ai-loader { display: none; padding: 10px; background: #e0f2fe; color: #0369a1; border-radius: 8px; font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; text-align: center; border: 1px solid #bae6fd; }
 
+  /* MODAIS */
   #auth-modal, #pdf-modal, #reajuste-modal, #relatorio-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.94); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; }
   #pdf-modal, #reajuste-modal, #relatorio-modal { display: none; }
   .auth-card { background: #fff; border-radius: 14px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; border-top: 4px solid var(--accent); }
@@ -352,7 +359,16 @@
 
 <script>
   // =======================================================
-  // VARIÁVEIS GLOBAIS E UTILITÁRIOS
+  // INÍCIO DO SERVICE WORKER (Para instalação PWA)
+  // =======================================================
+  if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').catch(err => console.log('SW falhou', err));
+      });
+  }
+
+  // =======================================================
+  // VARIÁVEIS GLOBAIS E MÁSCARAS LGPD
   // =======================================================
   const SUPABASE_BASE_URL = 'https://dgadztmmarvbjcouvrnp.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_JwOjDkAj';
@@ -360,6 +376,13 @@
   let selectedPdfFile = null;
   let contratosMarcados = new Set(); 
   let reajusteAtualId = null;
+
+  const mascararDado = str => {
+      if(!str) return '';
+      if(str.length <= 5) return '***';
+      if(str.includes('@')) return str.split('@')[0].substring(0,3) + '***@' + str.split('@')[1];
+      return '***' + str.slice(-4);
+  };
 
   const formatadorStr = val => {
     if(!val) return '';
@@ -385,6 +408,121 @@
       let [a1, m1] = mesInicio.split('-').map(Number);
       let [a2, m2] = mesAtual.split('-').map(Number);
       return (a2 - a1) * 12 + (m2 - m1);
+  }
+
+  // =======================================================
+  // SISTEMA DE MEMÓRIA MENSAL E RECORRÊNCIA (RESTAURADO)
+  // =======================================================
+  async function saveTaxaMensal(index, mesRef, field, value) {
+      let c = contratosDB[index];
+      let taxas = {};
+      try { taxas = JSON.parse(c.taxas_mensais || '{}'); } catch(e){}
+      if(!taxas[mesRef]) taxas[mesRef] = {};
+      taxas[mesRef][field] = value;
+      c.taxas_mensais = JSON.stringify(taxas);
+      
+      if(c.id) {
+          try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${c.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taxas_mensais: c.taxas_mensais }) }); } catch(e) {}
+      }
+  }
+
+  async function handleOutrasChange(index, tipo, el) {
+      let val = parseMoedaToFloat(el.value);
+      let mesRef = document.getElementById('filtro-mes').value;
+      
+      if(val > 0) {
+         if(confirm(`Deseja tornar este valor de ${fmtMoeda(val)} recorrente (parcelado em vários meses)?\nSe escolher "Cancelar", ele será salvo apenas para o mês atual.`)) {
+             let parcelas = prompt("Digite a quantidade de meses do parcelamento (ex: 4):", "4");
+             if(parcelas && parseInt(parcelas) > 0) {
+                 let pInt = parseInt(parcelas);
+                 let padraoMotivo = tipo === 'outras' ? "Parcelamento" : "Desconto Parcelado";
+                 let motivo = prompt("Qual o motivo? (ex: Parcelamento do Caução)", padraoMotivo);
+                 
+                 let c = contratosDB[index];
+                 let recs = [];
+                 try { recs = JSON.parse(c.recorrencias || '[]'); } catch(e){}
+                 
+                 recs.push({
+                     id: Date.now().toString(),
+                     tipo: tipo,
+                     valor: val,
+                     motivo: motivo || padraoMotivo,
+                     mes_inicio: mesRef,
+                     parcelas: pInt
+                 });
+                 c.recorrencias = JSON.stringify(recs);
+                 
+                 el.value = '';
+                 await saveTaxaMensal(index, mesRef, tipo === 'outras' ? 'outras_taxas' : 'desconto', '');
+                 
+                 if(c.id) {
+                     try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${c.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ recorrencias: c.recorrencias }) }); } catch(e) {}
+                 }
+                 atualizarInterfaceGeral();
+                 return;
+             }
+         }
+      }
+      await saveTaxaMensal(index, mesRef, tipo === 'outras' ? 'outras_taxas' : 'desconto', el.value);
+      atualizarInterfaceGeral();
+  }
+
+  async function removerRecorrencia(idReg, idRec) {
+      if(!confirm("Deseja realmente cancelar e excluir este parcelamento? Ele sumirá de todos os meses restantes.")) return;
+      const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg));
+      if(idx === -1) return;
+      let c = contratosDB[idx];
+      let recs = [];
+      try { recs = JSON.parse(c.recorrencias || '[]'); } catch(e){}
+      recs = recs.filter(r => r.id !== idRec);
+      c.recorrencias = JSON.stringify(recs);
+      
+      if(c.id) {
+          try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${c.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ recorrencias: c.recorrencias }) }); } catch(e) {}
+      }
+      atualizarInterfaceGeral();
+  }
+
+  function getValoresMes(c, mesRef) {
+      let taxas = {}; try { taxas = JSON.parse(c.taxas_mensais || '{}'); } catch(e){}
+      let tMes = taxas[mesRef] || {};
+      let recs = []; try { recs = JSON.parse(c.recorrencias || '[]'); } catch(e){}
+      
+      let rawOutras = tMes.outras_taxas !== undefined ? tMes.outras_taxas : (c.outras_taxas || '');
+      let rawDesconto = tMes.desconto !== undefined ? tMes.desconto : (c.desconto || '');
+      let rawDescOutras = tMes.desc_outras !== undefined ? tMes.desc_outras : (c.desc_outras || '');
+      let rawDescDesconto = tMes.desc_desconto !== undefined ? tMes.desc_desconto : (c.desc_desconto || '');
+      
+      let vCondMes = parseMoedaToFloat(tMes.cond_mes !== undefined ? tMes.cond_mes : c.cond_mes);
+      let vIptu = parseMoedaToFloat(tMes.iptu !== undefined ? tMes.iptu : c.iptu);
+      let vBombeiro = parseMoedaToFloat(tMes.bombeiro !== undefined ? tMes.bombeiro : c.bombeiro);
+      let vSeguro = parseMoedaToFloat(tMes.seguro !== undefined ? tMes.seguro : c.seguro);
+      
+      let vOutras = parseMoedaToFloat(rawOutras);
+      let vDesconto = parseMoedaToFloat(rawDesconto);
+      
+      let extraOutras = []; let extraDesconto = []; 
+      let recsAtivasOutrasHtml = ''; let recsAtivasDescontoHtml = '';
+      
+      recs.forEach(r => {
+          let diff = diffMeses(r.mes_inicio, mesRef);
+          if(diff >= 0 && diff < r.parcelas) {
+              let parcelaAtual = diff + 1;
+              let textoRec = `${r.motivo} ${parcelaAtual}/${r.parcelas}`;
+              if(r.tipo === 'outras') {
+                  vOutras += r.valor; extraOutras.push(textoRec);
+                  recsAtivasOutrasHtml += `<div style="font-size:0.7rem; color:#0284c7; margin-top:4px; border:1px dashed #0284c7; padding:2px; border-radius:4px;">+ ${fmtMoeda(r.valor)} (${textoRec}) <span style="cursor:pointer; color:red; float:right;" title="Cancelar Parcela" onclick="removerRecorrencia('${c.id||c._tempId}', '${r.id}')">✖</span></div>`;
+              } else if(r.tipo === 'desconto') {
+                  vDesconto += r.valor; extraDesconto.push(textoRec);
+                  recsAtivasDescontoHtml += `<div style="font-size:0.7rem; color:#dc2626; margin-top:4px; border:1px dashed #dc2626; padding:2px; border-radius:4px;">- ${fmtMoeda(r.valor)} (${textoRec}) <span style="cursor:pointer; color:red; float:right;" title="Cancelar Parcela" onclick="removerRecorrencia('${c.id||c._tempId}', '${r.id}')">✖</span></div>`;
+              }
+          }
+      });
+      
+      let txtOutrasFinal = [rawDescOutras, ...extraOutras].filter(Boolean).join(' | ');
+      let txtDescontoFinal = [rawDescDesconto, ...extraDesconto].filter(Boolean).join(' | ');
+      
+      return { vCondMes, vIptu, vBombeiro, vSeguro, vOutras, txtOutrasFinal, rawOutras, rawDescOutras, vDesconto, txtDescontoFinal, rawDesconto, rawDescDesconto, tMes, recsAtivasOutrasHtml, recsAtivasDescontoHtml };
   }
 
   // =======================================================
@@ -571,14 +709,11 @@
           if (mLocat1 && isValidPersonName(mLocat1[1])) ext.locatario = cleanName(mLocat1[1]);
           if (!ext.locatario) { for (let j = 0; j < allRawLines.length; j++) { if (cleanSearch(allRawLines[j]).indexOf("assinou como locatario") !== -1) { ext.locatario = findTrueSignerAbove(allRawLines, j); break; } } }
       }
-      
       if (!ext.endereco) ext.endereco = extractAddressAfterSituado(page1Text);
-
       if (!ext.dataIn || !ext.dataFim) {
           let dateMatches = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
           if (dateMatches && dateMatches.length >= 2) { ext.dataIn = dateMatches[0].split('/').reverse().join('-'); ext.dataFim = dateMatches[1].split('/').reverse().join('-'); }
       }
-      
       if (!ext.valor) {
           let mVal = fullText.match(/R\$\s*([\d\.,]+)/i); if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
       }
@@ -594,7 +729,7 @@
       flash('endereco', decodeAddressOnly(ext.endereco)); flash('dataInicio', ext.dataIn); flash('dataFim', ext.dataFim);
       if(ext.valor > 0) flash('aluguelBase', formatadorStr(ext.valor));
 
-      // 4. CHAMA A IA SOMENTE SE FALTAR DADOS SENSÍVEIS (E NÃO USOU O BLOCO OCULTO)
+      // 4. CHAMA A IA SOMENTE SE FALTAR DADOS SENSÍVEIS E NÃO USOU BLOCO OCULTO
       let faltouContato = (!ext.telLocador || !ext.pix || !ext.emailLocatario || !ext.telLocatario);
       if (faltouContato) {
           loader.innerHTML = '🤖 IA preenchendo as lacunas...';
@@ -651,145 +786,8 @@
   }
 
   // =======================================================
-  // SISTEMA DE MEMÓRIA MENSAL E RECORRÊNCIA
+  // CARREGAR E DELETAR IMÓVEIS (GERAL)
   // =======================================================
-  
-  async function saveTaxaMensal(index, mesRef, field, value) {
-      let c = contratosDB[index];
-      let taxas = {};
-      try { taxas = JSON.parse(c.taxas_mensais || '{}'); } catch(e){}
-      if(!taxas[mesRef]) taxas[mesRef] = {};
-      taxas[mesRef][field] = value;
-      c.taxas_mensais = JSON.stringify(taxas);
-      
-      if(c.id) {
-          try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${c.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taxas_mensais: c.taxas_mensais }) }); } catch(e) {}
-      }
-  }
-
-  async function handleOutrasChange(index, tipo, el) {
-      let val = parseMoedaToFloat(el.value);
-      let mesRef = document.getElementById('filtro-mes').value;
-      
-      if(val > 0) {
-         if(confirm(`Deseja tornar este valor de ${fmtMoeda(val)} recorrente (parcelado em vários meses)?\nSe escolher "Cancelar", ele será salvo apenas para o mês de referência atual.`)) {
-             let parcelas = prompt("Digite a quantidade de meses do parcelamento (ex: 4):", "4");
-             if(parcelas && parseInt(parcelas) > 0) {
-                 let pInt = parseInt(parcelas);
-                 let padraoMotivo = tipo === 'outras' ? "Parcelamento" : "Desconto Parcelado";
-                 let motivo = prompt("Qual o motivo? (ex: Parcelamento do Caução)", padraoMotivo);
-                 
-                 let c = contratosDB[index];
-                 let recs = [];
-                 try { recs = JSON.parse(c.recorrencias || '[]'); } catch(e){}
-                 
-                 recs.push({
-                     id: Date.now().toString(),
-                     tipo: tipo,
-                     valor: val,
-                     motivo: motivo || padraoMotivo,
-                     mes_inicio: mesRef,
-                     parcelas: pInt
-                 });
-                 c.recorrencias = JSON.stringify(recs);
-                 
-                 // Limpa a caixa física (pois agora é recorrente)
-                 el.value = '';
-                 await saveTaxaMensal(index, mesRef, tipo === 'outras' ? 'outras_taxas' : 'desconto', '');
-                 
-                 if(c.id) {
-                     try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${c.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ recorrencias: c.recorrencias }) }); } catch(e) {}
-                 }
-                 atualizarInterfaceGeral();
-                 return;
-             }
-         }
-      }
-      
-      // Salva apenas no mês se disse Não ou valor for 0
-      await saveTaxaMensal(index, mesRef, tipo === 'outras' ? 'outras_taxas' : 'desconto', el.value);
-      atualizarInterfaceGeral();
-  }
-
-  async function removerRecorrencia(idReg, idRec) {
-      if(!confirm("Deseja realmente cancelar e excluir este parcelamento? Ele sumirá de todos os meses restantes.")) return;
-      const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg));
-      if(idx === -1) return;
-      let c = contratosDB[idx];
-      let recs = [];
-      try { recs = JSON.parse(c.recorrencias || '[]'); } catch(e){}
-      recs = recs.filter(r => r.id !== idRec);
-      c.recorrencias = JSON.stringify(recs);
-      
-      if(c.id) {
-          try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${c.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ recorrencias: c.recorrencias }) }); } catch(e) {}
-      }
-      atualizarInterfaceGeral();
-  }
-
-  function getValoresMes(c, mesRef) {
-      let taxas = {}; try { taxas = JSON.parse(c.taxas_mensais || '{}'); } catch(e){}
-      let tMes = taxas[mesRef] || {};
-      let recs = []; try { recs = JSON.parse(c.recorrencias || '[]'); } catch(e){}
-      
-      let rawOutras = tMes.outras_taxas !== undefined ? tMes.outras_taxas : (c.outras_taxas || '');
-      let rawDesconto = tMes.desconto !== undefined ? tMes.desconto : (c.desconto || '');
-      let rawDescOutras = tMes.desc_outras !== undefined ? tMes.desc_outras : (c.desc_outras || '');
-      let rawDescDesconto = tMes.desc_desconto !== undefined ? tMes.desc_desconto : (c.desc_desconto || '');
-      
-      let vCondMes = parseMoedaToFloat(tMes.cond_mes !== undefined ? tMes.cond_mes : c.cond_mes);
-      let vIptu = parseMoedaToFloat(tMes.iptu !== undefined ? tMes.iptu : c.iptu);
-      let vBombeiro = parseMoedaToFloat(tMes.bombeiro !== undefined ? tMes.bombeiro : c.bombeiro);
-      let vSeguro = parseMoedaToFloat(tMes.seguro !== undefined ? tMes.seguro : c.seguro);
-      
-      let vOutras = parseMoedaToFloat(rawOutras);
-      let vDesconto = parseMoedaToFloat(rawDesconto);
-      
-      let extraOutras = []; let extraDesconto = []; let recsAtivasHtml = '';
-      
-      recs.forEach(r => {
-          let diff = diffMeses(r.mes_inicio, mesRef);
-          if(diff >= 0 && diff < r.parcelas) {
-              let parcelaAtual = diff + 1;
-              let textoRec = `${r.motivo} ${parcelaAtual}/${r.parcelas}`;
-              if(r.tipo === 'outras') {
-                  vOutras += r.valor; extraOutras.push(textoRec);
-                  recsAtivasHtml += `<div style="font-size:0.7rem; color:#0284c7; margin-top:4px; border:1px dashed #0284c7; padding:2px; border-radius:4px;">+ ${fmtMoeda(r.valor)} (${textoRec}) <span style="cursor:pointer; color:red; float:right;" title="Cancelar Parcela" onclick="removerRecorrencia('${c.id||c._tempId}', '${r.id}')">✖</span></div>`;
-              } else if(r.tipo === 'desconto') {
-                  vDesconto += r.valor; extraDesconto.push(textoRec);
-                  recsAtivasHtml += `<div style="font-size:0.7rem; color:#dc2626; margin-top:4px; border:1px dashed #dc2626; padding:2px; border-radius:4px;">- ${fmtMoeda(r.valor)} (${textoRec}) <span style="cursor:pointer; color:red; float:right;" title="Cancelar Parcela" onclick="removerRecorrencia('${c.id||c._tempId}', '${r.id}')">✖</span></div>`;
-              }
-          }
-      });
-      
-      let txtOutrasFinal = [rawDescOutras, ...extraOutras].filter(Boolean).join(' | ');
-      let txtDescontoFinal = [rawDescDesconto, ...extraDesconto].filter(Boolean).join(' | ');
-      
-      return { vCondMes, vIptu, vBombeiro, vSeguro, vOutras, txtOutrasFinal, rawOutras, rawDescOutras, vDesconto, txtDescontoFinal, rawDesconto, rawDescDesconto, tMes, recsAtivasHtml };
-  }
-
-  // =======================================================
-  // GESTÃO DE IMÓVEIS E TAXAS
-  // =======================================================
-  function toggleMarcarTodos(isChecked) {
-    const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
-    imoveisVisiveis.forEach(c => { const idStr = String(c.id || c._tempId); if(isChecked) contratosMarcados.add(idStr); else contratosMarcados.delete(idStr); });
-    atualizarInterfaceGeral();
-  }
-  function toggleMarcar(idString, isChecked) {
-    if(isChecked) contratosMarcados.add(String(idString)); else contratosMarcados.delete(String(idString));
-    atualizarInterfaceGeral(); 
-  }
-  async function editarPix(index) {
-    const c = contratosDB[index];
-    const novoPix = prompt(`1/2 - Alterar chave PIX de ${c.proprietario}:\n\nDigite a nova chave (ou deixe em branco):`, c.pix_proprietario || ''); if (novoPix === null) return; 
-    const novoTitular = prompt(`2/2 - Nome do Titular da conta PIX:\n(Aparecerá no recibo do repasse para confirmação)`, c.titular_pix || c.proprietario || ''); if (novoTitular === null) return; 
-    c.pix_proprietario = novoPix.trim(); c.titular_pix = novoTitular.trim();
-    atualizarInterfaceGeral();
-    const id = c.id; if(!id) return;
-    try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pix_proprietario: c.pix_proprietario, titular_pix: c.titular_pix }) }); alert('PIX e Titular atualizados!'); } catch(e) {}
-  }
-
   async function loadTableThumbnails() {
     const canvases = document.querySelectorAll('.table-pdf-thumb');
     for (let canvas of canvases) {
@@ -890,38 +888,23 @@
     }
   }
 
-  async function gravarNovoContrato() {
-    const btn = document.getElementById('btn-gravar-novo'); btn.disabled = true; btn.innerText = 'Salvando no banco de dados...';
-    let urlPdf = null;
-    if (selectedPdfFile) {
-      const safeInq = (document.getElementById('inquilino').value || 'inquilino').replace(/[^a-zA-Z0-9]/g, '_'); const filePath = `contratos/${Date.now()}_${safeInq}.pdf`;
-      try { const uRes = await supabaseFetchWithRefresh(`/storage/v1/object/contratos/${filePath}`, { method: 'POST', headers: { 'Content-Type': 'application/pdf' }, body: selectedPdfFile }); if (uRes.ok) urlPdf = `${SUPABASE_BASE_URL}/storage/v1/object/public/contratos/${filePath}`; } catch(e) {}
-    }
-    const s = getLocalSession(); let emailUser = 'chalfouncorretor@gmail.com'; if (s && s.user && s.user.email) emailUser = s.user.email; else { const inputEmail = document.getElementById('auth-email').value; if (inputEmail) emailUser = inputEmail; }
 
-    const payload = {
-      user_email: emailUser, proprietario: document.getElementById('proprietario').value, telefone_proprietario: document.getElementById('telProprietario').value, pix_proprietario: document.getElementById('pixProprietario').value,
-      titular_pix: document.getElementById('titularPix').value || document.getElementById('proprietario').value, inquilino: document.getElementById('inquilino').value, email_inquilino: document.getElementById('emailInquilino').value,
-      telefone_inquilino: document.getElementById('telInquilino').value, endereco: document.getElementById('endereco').value, data_inicio: document.getElementById('dataInicio').value || null, data_fim: document.getElementById('dataFim').value || null,
-      aluguel_base: parseMoedaToFloat(document.getElementById('aluguelBase').value), condominio_base: parseMoedaToFloat(document.getElementById('condominioBase').value), taxa_adm_fixa: parseMoedaToFloat(document.getElementById('valorTaxaAdm').value), taxa_adm_pct: 10, regra_condominio: document.getElementById('regraCond').value || 'N',
-      contrato_url: urlPdf, ativo: 'SIM', reajuste_aplicado: 'NAO', historico_reajuste: '', taxas_mensais: '{}', recorrencias: '[]'
-    };
-
-    try {
-      const r = await supabaseFetchWithRefresh(`/rest/v1/locacoes`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Prefer': 'return=representation' }, body: JSON.stringify(payload) });
-      if (r.ok) {
-        const dadosGravados = await r.json(); if (dadosGravados && dadosGravados.length > 0) payload.id = dadosGravados[0].id; else payload._tempId = Date.now();
-        contratosDB.unshift(payload); atualizarInterfaceGeral(); alert('✓ Dados salvos com sucesso no banco de dados!');
-        document.querySelectorAll('#tab-resumo input, #tab-resumo select').forEach(el => { if(el.type !== 'file') el.value = ''; el.classList.remove('field-ok'); }); document.getElementById('contratoFile').value = ''; selectedPdfFile = null; document.getElementById('file-name-pill').style.display = 'none';
-        const canvas = document.getElementById('pdf-thumb-canvas'); const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; document.getElementById('thumb-placeholder').style.display = 'block'; setTab('imoveis', document.querySelectorAll('.tab-btn')[1]);
-      } else { alert('Erro ao salvar no banco de dados. ' + JSON.stringify(await r.json())); }
-    } catch(e) { alert('Falha: ' + e.message); } finally { btn.disabled = false; btn.innerText = '💾 Salvar dados do novo contrato'; }
+  // =======================================================
+  // ABA: TAXAS CONDOMINIAIS, MEMÓRIA E RECORRÊNCIA
+  // =======================================================
+  function editarProporcional(el) { if (el.readOnly && confirm('Deseja editar manualmente este campo?\n(O cálculo automático deixará de agir nesta célula)')) { el.readOnly = false; el.style.backgroundColor = '#fff'; el.focus(); } }
+  
+  function calcularProp(valorBase, dataInicio, mesRef) {
+    if (!valorBase || !dataInicio || !mesRef) return 'Não';
+    const [anoRefStr, mesRefStr] = mesRef.split('-'); let anoRef = parseInt(anoRefStr); let mesRefInt = parseInt(mesRefStr);
+    let mesCompInt = mesRefInt - 1; let anoComp = anoRef; if (mesCompInt === 0) { mesCompInt = 12; anoComp -= 1; }
+    const [anoIn, mesIn, diaIn] = dataInicio.split('-');
+    if (anoComp === parseInt(anoIn) && mesCompInt === parseInt(mesIn)) {
+      const dia = parseInt(diaIn); if (dia <= 1) return 'Não'; const daysInMonth = new Date(anoComp, mesCompInt, 0).getDate(); const usedDays = daysInMonth - dia + 1;
+      const valNum = typeof valorBase === 'number' ? valorBase : parseFloat(String(valorBase).replace(/\./g,'').replace(',','.')); return formatadorStr((valNum / daysInMonth) * usedDays);
+    } return 'Não';
   }
 
-
-  // =======================================================
-  // ABA: TAXAS CONDOMINIAIS
-  // =======================================================
   function calcularTotalCobrancaLinha(c, alugPropVal, condPropVal, alugMesVal, vm) {
     let total = parseMoedaToFloat(alugPropVal) + parseMoedaToFloat(alugMesVal) + parseMoedaToFloat(condPropVal) + vm.vCondMes + vm.vIptu + vm.vBombeiro + vm.vSeguro + vm.vOutras - vm.vDesconto;
     return fmtMoeda(total);
@@ -932,6 +915,7 @@
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
     if (marcados.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel ativo marcado na aba anterior.</td></tr>'; return; }
     tbody.innerHTML = ''; const mesRef = document.getElementById('filtro-mes').value;
+
     marcados.forEach(c => {
       const i = contratosDB.indexOf(c); 
       let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
@@ -955,30 +939,25 @@
           <td class="fit" style="vertical-align: top;">
             <input type="text" value="${vm.rawOutras}" onchange="handleOutrasChange(${i}, 'outras', this)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00">
             <textarea rows="2" maxlength="300" placeholder="Motivo (Avulso)..." class="input-desc" style="display:${parseMoedaToFloat(vm.rawOutras) > 0 ? 'block' : 'none'};" onchange="saveTaxaMensal(${i}, '${mesRef}', 'desc_outras', this.value)">${vm.rawDescOutras}</textarea>
-            ${vm.recsAtivasHtml}
+            ${vm.recsAtivasOutrasHtml}
           </td>
           <td class="fit" style="vertical-align: top;">
             <input type="text" value="${vm.rawDesconto}" onchange="handleOutrasChange(${i}, 'desconto', this)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00">
             <textarea rows="2" maxlength="300" placeholder="Motivo (Avulso)..." class="input-desc" style="display:${parseMoedaToFloat(vm.rawDesconto) > 0 ? 'block' : 'none'};" onchange="saveTaxaMensal(${i}, '${mesRef}', 'desc_desconto', this.value)">${vm.rawDescDesconto}</textarea>
+            ${vm.recsAtivasDescontoHtml}
           </td>
           <td class="fit" style="background-color:#f8fafc; text-align:center; vertical-align: middle;"><strong style="color:var(--danger); font-size:0.95rem;">${totalCalculado}</strong></td></tr>`;
     });
   }
 
   // =======================================================
-  // ABA: COBRANÇA E REPASSE 
+  // ABA: COBRANÇA (Inquilino)
   // =======================================================
-  function getNomeMesAtual(mesRef) { if(!mesRef) return ''; const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; return meses[parseInt(mesRef.split('-')[1]) - 1]; }
-  function getNomeMesAnterior(mesRef) { if(!mesRef) return ''; const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; let m = parseInt(mesRef.split('-')[1]) - 2; if(m < 0) m = 11; return meses[m]; }
-  function capitalizeFirstLetter(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
-  function formatarMesAno(mesRef) { if(!mesRef) return ''; const [ano, mes] = mesRef.split('-'); return `${getNomeMesAtual(mesRef)} de ${ano}`; }
-
   function copiarTextoCob(idTextArea) { const el = document.getElementById(idTextArea); el.style.display = 'block'; el.select(); document.execCommand('copy'); el.style.display = 'none'; alert('✓ Texto copiado com sucesso!'); }
 
   async function dispararWppMassa(tipo) {
      const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
      if(marcados.length === 0) return alert('Nenhum imóvel marcado para envio.');
-     
      if(!confirm(`Deseja abrir o WhatsApp Web em sequência para os ${marcados.length} contatos marcados?\nCertifique-se de que as janelas pop-up estão liberadas no seu navegador.`)) return;
 
      for(let i = 0; i < marcados.length; i++) {
@@ -987,12 +966,14 @@
          const el = document.getElementById(idTextArea);
          if(el) {
              const telefone = tipo === 'cobranca' ? String(c.telefone_inquilino).replace(/\D/g,'') : String(c.telefone_proprietario).replace(/\D/g,'');
-             const url = `https://api.whatsapp.com/send?phone=55${telefone}&text=${encodeURIComponent(el.value)}`;
-             window.open(url, '_blank');
+             window.open(`https://api.whatsapp.com/send?phone=55${telefone}&text=${encodeURIComponent(el.value)}`, '_blank');
              await new Promise(r => setTimeout(r, 1500));
          }
      }
   }
+
+  function avancarStatusCobranca(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_cobranca || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_cobranca', JSON.stringify(statusObj)); }
+  function avancarStatusRepasse(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_repasse', JSON.stringify(statusObj)); }
 
   function gerarTextosCobranca() {
     const container = document.getElementById('cobrancas-container'); if (!container) return;
@@ -1006,6 +987,7 @@
       const idReg = c.id || c._tempId; const vencInfo = getAvisoVencimento(c);
       let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
       let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
+      
       let vm = getValoresMes(c, mesRef);
       let alugMes = (vm.tMes.aluguel_mes !== undefined && vm.tMes.aluguel_mes !== null) ? vm.tMes.aluguel_mes : ((alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base));
       
@@ -1049,6 +1031,9 @@
     });
   }
 
+  // =======================================================
+  // ABA: REPASSE (Proprietário)
+  // =======================================================
   function gerarTextosRepasse() {
     const container = document.getElementById('repasses-container'); if (!container) return;
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
@@ -1060,6 +1045,7 @@
       const idReg = c.id || c._tempId;
       let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
       let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
+      
       let vm = getValoresMes(c, mesRef);
       let alugMes = (vm.tMes.aluguel_mes !== undefined && vm.tMes.aluguel_mes !== null) ? vm.tMes.aluguel_mes : ((alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base));
       
@@ -1075,11 +1061,11 @@
       
       if (vCondProp > 0) { 
           texto += `🔹 Condomínio Proporcional (${nomeMesAtual}): ${fmtMoeda(vCondProp)} ${repassaCond ? '' : '(Direto ao síndico/condomínio)'}\n`; 
-          linhasCard += `<div class="comp-line"><span>Condomínio Prop. (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondProp)}</span></div>`; 
+          linhasCard += `<div class="comp-line"><span>Condomínio Prop. (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico/condomínio)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondProp)}</span></div>`; 
       }
       if (vm.vCondMes > 0) { 
           texto += `🔹 Condomínio Mensal (${nomeMesAtual}): ${fmtMoeda(vm.vCondMes)} ${repassaCond ? '' : '(Direto ao síndico/condomínio)'}\n`; 
-          linhasCard += `<div class="comp-line"><span>Condomínio (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vm.vCondMes)}</span></div>`; 
+          linhasCard += `<div class="comp-line"><span>Condomínio (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico/condomínio)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vm.vCondMes)}</span></div>`; 
       }
       
       if (vm.vIptu > 0) { texto += `🔹 IPTU: ${fmtMoeda(vm.vIptu)}\n`; linhasCard += `<div class="comp-line"><span>IPTU</span> <span>${fmtMoeda(vm.vIptu)}</span></div>`; }
@@ -1116,7 +1102,7 @@
   }
 
   // =======================================================
-  // ABA: GERENCIAL E EXPORTAÇÃO
+  // ABA: GERENCIAL E EXPORTAÇÃO (NOVO PDF INCRÍVEL)
   // =======================================================
   function renderizarGerencial() {
       const mesRef = document.getElementById('filtro-mes').value;
