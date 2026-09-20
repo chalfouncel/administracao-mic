@@ -152,7 +152,7 @@
     <button class="tab-btn" onclick="setTab('resumo_gerencial', this)">📈 Resumo Gerencial</button>
   </div>
 
-  <!-- ABA: RESUMO DO CONTRATO — NÃO ALTERAR (Mantido Intacto) -->
+  <!-- ABA: RESUMO DO CONTRATO — NÃO ALTERAR -->
   <div id="tab-resumo" class="tab-content active">
     <div class="resumo-layout">
       
@@ -284,13 +284,14 @@
       </div>
       
       <div class="table-linear-container">
-        <table class="table-linear" style="min-width: 1400px;">
+        <table class="table-linear" style="min-width: 1500px;">
           <thead>
             <tr>
               <th style="min-width:180px;">Inquilino</th>
               <th style="min-width:250px;">Endereço do Imóvel</th>
               <th class="fit" title="Aluguel Proporcional">Alug. Prop</th>
               <th class="fit" title="Condomínio Proporcional">Cond. Prop</th>
+              <th class="fit">Aluguel</th>
               <th class="fit">Cond. mês</th>
               <th class="fit">IPTU</th>
               <th class="fit">Bombeiro</th>
@@ -301,7 +302,7 @@
             </tr>
           </thead>
           <tbody id="tabela-taxas-body">
-            <tr><td colspan="11" style="text-align: center; padding: 20px; color: #64748b;">Nenhum imóvel Ativo marcado na aba anterior.</td></tr>
+            <tr><td colspan="12" style="text-align: center; padding: 20px; color: #64748b;">Nenhum imóvel Ativo marcado na aba anterior.</td></tr>
           </tbody>
         </table>
       </div>
@@ -343,16 +344,24 @@
     if(!val) return '';
     return parseFloat(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
+  
   const parseMoedaToFloat = str => {
-    if (!str || str === 'Não') return 0;
+    if (!str || String(str).toLowerCase() === 'não' || String(str).toLowerCase() === 'nao') return 0;
     if (typeof str === 'number') return str;
     let s = String(str).replace(/[^\d,-]/g, '').replace(',', '.');
     return parseFloat(s) || 0;
   };
+  
   const fmtMoeda = val => parseFloat(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   
   function formatarMoedaInput(i) {
-    let v = i.value.replace(/\D/g,'');
+    if (i.value === 'Não') return;
+    let val = i.value;
+    if (val.toLowerCase() === 'n' || val.toLowerCase() === 'nao' || val.toLowerCase() === 'não') {
+      i.value = 'Não';
+      return;
+    }
+    let v = val.replace(/\D/g,'');
     if(v === '') { i.value = ''; return; }
     v = (v/100).toFixed(2) + '';
     v = v.replace(".", ",");
@@ -732,7 +741,7 @@ ${fullText.substring(0, 8000)}`;
     } else {
       contratosMarcados.delete(String(idString));
     }
-    renderizarTaxasCondominiais(); // Atualiza a outra tabela imediatamente
+    renderizarTaxasCondominiais(); 
   }
 
   async function loadTableThumbnails() {
@@ -765,7 +774,6 @@ ${fullText.substring(0, 8000)}`;
     if (!tbody) return;
     tbody.innerHTML = '';
     
-    // Filtro invisível para SOFT DELETE
     const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
 
     if (imoveisVisiveis.length === 0) {
@@ -997,7 +1005,7 @@ ${fullText.substring(0, 8000)}`;
 
 
   // =======================================================
-  // ABA: TAXAS CONDOMINIAIS & EXTRAS
+  // ABA: TAXAS CONDOMINIAIS & EXTRAS (Com Aluguel e Exclusão Mútua)
   // =======================================================
   function editarProporcional(el) {
     if (el.readOnly) {
@@ -1037,9 +1045,10 @@ ${fullText.substring(0, 8000)}`;
     return 'Não';
   }
 
-  function calcularTotalCobrancaLinha(c, alugPropVal, condPropVal) {
-    let vAlugProp = (alugPropVal === 'Não' || alugPropVal === '') ? parseMoedaToFloat(c.aluguel_base) : parseMoedaToFloat(alugPropVal);
-    let vCondProp = (condPropVal === 'Não' || condPropVal === '') ? 0 : parseMoedaToFloat(condPropVal);
+  function calcularTotalCobrancaLinha(c, alugPropVal, condPropVal, alugMesVal) {
+    let vAlugProp = parseMoedaToFloat(alugPropVal);
+    let vCondProp = parseMoedaToFloat(condPropVal);
+    let vAlugMes = parseMoedaToFloat(alugMesVal);
     let vCondMes = parseMoedaToFloat(c.cond_mes);
     let vIptu = parseMoedaToFloat(c.iptu);
     let vBombeiro = parseMoedaToFloat(c.bombeiro);
@@ -1047,7 +1056,7 @@ ${fullText.substring(0, 8000)}`;
     let vOutras = parseMoedaToFloat(c.outras_taxas);
     let vDesconto = parseMoedaToFloat(c.desconto);
 
-    let total = vAlugProp + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+    let total = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
     return fmtMoeda(total);
   }
 
@@ -1055,11 +1064,10 @@ ${fullText.substring(0, 8000)}`;
     const tbody = document.getElementById('tabela-taxas-body');
     if(!tbody) return;
     
-    // Mostra apenas os contratos que foram "Marcados" na aba de Imóveis Administrados
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
 
     if (marcados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel Ativo marcado na aba anterior.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel Ativo marcado na aba anterior.</td></tr>';
       return;
     }
 
@@ -1072,7 +1080,11 @@ ${fullText.substring(0, 8000)}`;
       let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
       let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
 
-      const totalCalculado = calcularTotalCobrancaLinha(c, alugProp, condProp);
+      // Exclusão mútua do Aluguel: Se há proporcional, aluguel mensal é "Não". Se não há, é o aluguel base.
+      let alugMesDefault = (alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base);
+      let alugMes = (c.aluguel_mes !== undefined && c.aluguel_mes !== null) ? c.aluguel_mes : alugMesDefault;
+
+      const totalCalculado = calcularTotalCobrancaLinha(c, alugProp, condProp, alugMes);
       
       const isOutrasVisible = parseMoedaToFloat(c.outras_taxas) > 0 ? 'block' : 'none';
       const isDescVisible = parseMoedaToFloat(c.desconto) > 0 ? 'block' : 'none';
@@ -1083,6 +1095,8 @@ ${fullText.substring(0, 8000)}`;
           <td style="font-size:0.75rem;">${c.endereco}</td>
           <td class="fit"><input type="text" value="${alugProp}" readonly onclick="editarProporcional(this)" onchange="updateDbLinear(${i}, 'aluguel_prop', this.value)" class="input-calc"></td>
           <td class="fit"><input type="text" value="${condProp}" readonly onclick="editarProporcional(this)" onchange="updateDbLinear(${i}, 'cond_prop', this.value)" class="input-calc"></td>
+          
+          <td class="fit"><input type="text" value="${alugMes}" onchange="updateDbLinear(${i}, 'aluguel_mes', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"></td>
           <td class="fit"><input type="text" value="${c.cond_mes || ''}" onchange="updateDbLinear(${i}, 'cond_mes', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"></td>
           <td class="fit"><input type="text" value="${c.iptu || ''}" onchange="updateDbLinear(${i}, 'iptu', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"></td>
           <td class="fit"><input type="text" value="${c.bombeiro || ''}" onchange="updateDbLinear(${i}, 'bombeiro', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"></td>
@@ -1142,27 +1156,24 @@ ${fullText.substring(0, 8000)}`;
     marcados.forEach(c => {
       let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
       let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
+      let alugMesDefault = (alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base);
+      let alugMes = (c.aluguel_mes !== undefined && c.aluguel_mes !== null) ? c.aluguel_mes : alugMesDefault;
 
-      let vAlugProp = (alugProp === 'Não' || alugProp === '') ? parseMoedaToFloat(c.aluguel_base) : parseMoedaToFloat(alugProp);
-      let vCondProp = (condProp === 'Não' || condProp === '') ? 0 : parseMoedaToFloat(condProp);
+      let vAlugProp = parseMoedaToFloat(alugProp);
+      let vCondProp = parseMoedaToFloat(condProp);
+      let vAlugMes = parseMoedaToFloat(alugMes);
       let vCondMes = parseMoedaToFloat(c.cond_mes);
       let vIptu = parseMoedaToFloat(c.iptu);
       let vBombeiro = parseMoedaToFloat(c.bombeiro);
       let vSeguro = parseMoedaToFloat(c.seguro);
       let vOutras = parseMoedaToFloat(c.outras_taxas);
       let vDesconto = parseMoedaToFloat(c.desconto);
-      let total = vAlugProp + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+      let total = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
 
       let texto = `Prezado(a) ${c.inquilino}, tudo bem?\n\nSegue o demonstrativo de locação com vencimento em *${dataVencStr}*:\n\n`;
       
-      if (vAlugProp > 0) {
-         if (alugProp !== 'Não' && alugProp !== '') {
-             texto += `🔹 Aluguel Proporcional: ${fmtMoeda(vAlugProp)}\n`;
-         } else {
-             texto += `🔹 Aluguel: ${fmtMoeda(vAlugProp)}\n`;
-         }
-      }
-      
+      if (vAlugProp > 0) texto += `🔹 Aluguel Proporcional: ${fmtMoeda(vAlugProp)}\n`;
+      if (vAlugMes > 0) texto += `🔹 Aluguel: ${fmtMoeda(vAlugMes)}\n`;
       if (vCondProp > 0) texto += `🔹 Condomínio Proporcional: ${fmtMoeda(vCondProp)}\n`;
       if (vCondMes > 0) texto += `🔹 Condomínio Mensal: ${fmtMoeda(vCondMes)}\n`;
       if (vIptu > 0) texto += `🔹 IPTU: ${fmtMoeda(vIptu)}\n`;
