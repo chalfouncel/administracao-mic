@@ -151,7 +151,7 @@
 <div id="relatorio-modal">
   <div class="auth-card" style="border-top: 4px solid #0284c7;">
     <h3 style="color:var(--primary); margin-bottom:10px;">📊 Relatório Gerado!</h3>
-    <p style="font-size:0.85rem; color:#64748b; margin-bottom:20px;">Seu Relatório Gerencial foi gerado com sucesso em PDF. O que deseja fazer agora?</p>
+    <p style="font-size:0.85rem; color:#64748b; margin-bottom:20px;">O seu Relatório Gerencial foi gerado com sucesso em PDF. O que deseja fazer agora?</p>
     <div style="display:flex; flex-direction:column; gap:10px;">
         <button class="btn btn-gold" id="btn-baixar-pdf">⬇️ Baixar PDF</button>
         <button class="btn btn-whatsapp" id="btn-share-pdf">📲 Compartilhar no WhatsApp</button>
@@ -201,7 +201,7 @@
           <div id="thumb-placeholder" style="color:#64748b; font-size:0.8rem; padding:20px;">Clique para Anexar Contrato (.PDF)<br><br>A miniatura aparecerá aqui</div>
         </div>
         <div class="file-name-pill" id="file-name-pill"></div>
-        <div id="ai-extract-loader" class="ai-loader">⏳ Extraindo dados contratuais...</div>
+        <div id="ai-extract-loader" class="ai-loader">⏳ Lendo o arquivo do contrato...</div>
         <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="processarContratoPDF(event)">
         <button type="button" class="btn btn-gold" style="width:100%; font-size:0.85rem; padding:10px;" onclick="document.getElementById('contratoFile').click()">📎 Anexar / Trocar Contrato</button>
       </aside>
@@ -270,7 +270,7 @@
               <th class="fit" style="text-align: center;">Contrato</th>
             </tr>
           </thead>
-          <tbody id="tabela-imoveis-linear-body"><tr><td colspan="7" style="text-align: center; padding: 20px; color: #64748b;">Carregando imóveis administrados...</td></tr></tbody>
+          <tbody id="tabela-imoveis-linear-body"><tr><td colspan="7" style="text-align: center; padding: 20px; color: #64748b;">Aguardando inicialização...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -359,7 +359,7 @@
 
 <script>
   // =======================================================
-  // INÍCIO DO SERVICE WORKER (Para instalação PWA)
+  // INÍCIO DO SERVICE WORKER E VARIÁVEIS GLOBAIS
   // =======================================================
   if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -367,23 +367,17 @@
       });
   }
 
-  // =======================================================
-  // VARIÁVEIS GLOBAIS E MÁSCARAS LGPD
-  // =======================================================
   const SUPABASE_BASE_URL = 'https://dgadztmmarvbjcouvrnp.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_JwOjDkAj';
   let contratosDB = [];
   let selectedPdfFile = null;
   let contratosMarcados = new Set(); 
   let reajusteAtualId = null;
+  let isLoadingImoveis = false;
 
-  const mascararDado = str => {
-      if(!str) return '';
-      if(str.length <= 5) return '***';
-      if(str.includes('@')) return str.split('@')[0].substring(0,3) + '***@' + str.split('@')[1];
-      return '***' + str.slice(-4);
-  };
-
+  // =======================================================
+  // FUNÇÕES DE FORMATAÇÃO E CÁLCULO
+  // =======================================================
   const formatadorStr = val => {
     if(!val) return '';
     return parseFloat(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -404,7 +398,7 @@
   }
 
   // =======================================================
-  // SESSÃO E SUPABASE FETCH
+  // AUTENTICAÇÃO E COMUNICAÇÃO COM O BANCO DE DADOS
   // =======================================================
   function getLocalSession() { try { return JSON.parse(localStorage.getItem('mic_auth_session')); } catch(e) { return null; } }
   function setLocalSession(session) { if (session) localStorage.setItem('mic_auth_session', JSON.stringify(session)); else localStorage.removeItem('mic_auth_session'); }
@@ -415,15 +409,17 @@
       if (resp.ok) { setLocalSession(await resp.json()); return true; }
     } catch (e) {} return false;
   }
+  
   async function supabaseFetchWithRefresh(endpoint, options = {}) {
     let s = getLocalSession(); if (!s) throw new Error("Sem sessão local. Faça login.");
     if (!options.headers) options.headers = {}; options.headers['apikey'] = SUPABASE_KEY; options.headers['Authorization'] = `Bearer ${s.access_token}`;
     let res = await fetch(`${SUPABASE_BASE_URL}${endpoint}`, options);
     if (res.status === 401 || res.status === 403) {
       if (await refreshSession()) { s = getLocalSession(); options.headers['Authorization'] = `Bearer ${s.access_token}`; res = await fetch(`${SUPABASE_BASE_URL}${endpoint}`, options); } 
-      else { doLogout(); throw new Error("Sessão expirada. Faça login."); }
+      else { doLogout(); throw new Error("Sessão expirada. Faça login novamente."); }
     } return res;
   }
+  
   function checkSession() {
     const s = getLocalSession();
     if (s && s.user) {
@@ -431,6 +427,7 @@
       document.getElementById('logged-user-email').innerText = s.user.email; carregarImoveis(); 
     } else { document.getElementById('auth-modal').style.display = 'flex'; document.getElementById('user-pill').style.display = 'none'; }
   }
+  
   async function doLogin() {
     const email = document.getElementById('auth-email').value.trim(); const password = document.getElementById('auth-pass').value;
     const status = document.getElementById('auth-status'); const btn = document.getElementById('btn-login');
@@ -442,6 +439,7 @@
       else { status.className = 'auth-msg ok'; status.innerText = '✓ Sucesso!'; setLocalSession(data); setTimeout(() => checkSession(), 300); }
     } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
   }
+  
   async function doRegister() {
     const email = document.getElementById('auth-email').value.trim(); const password = document.getElementById('auth-pass').value;
     const status = document.getElementById('auth-status'); const btn = document.getElementById('btn-register');
@@ -453,8 +451,12 @@
       else { status.className = 'auth-msg ok'; status.innerText = '✓ Cadastro concluído!'; setLocalSession(data); setTimeout(() => checkSession(), 400); }
     } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
   }
+  
   function doLogout() { setLocalSession(null); checkSession(); }
 
+  // =======================================================
+  // INICIALIZAÇÃO DA INTERFACE
+  // =======================================================
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-login').addEventListener('click', doLogin);
     document.getElementById('btn-register').addEventListener('click', doRegister);
@@ -485,7 +487,7 @@
   }
 
   // =======================================================
-  // MOTOR DE EXTRAÇÃO DE PDF COM BLOCO OCULTO (BALA DE PRATA)
+  // MOTOR DE EXTRAÇÃO DE PDF E INTELIGÊNCIA ARTIFICIAL
   // =======================================================
   function cleanSearch(text) { return text ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : ""; }
   function decodeAddressOnly(text) {
@@ -530,6 +532,11 @@
       await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
       placeholder.style.display = 'none'; canvas.style.display = 'block';
     } catch (e) { console.warn("Erro ao gerar miniatura:", e); }
+  }
+  function abrirVisualizadorPdf(url, inq) {
+    document.getElementById('pdf-modal-title').innerText = 'Contrato - ' + inq;
+    document.getElementById('pdf-iframe').src = url + '#toolbar=0';
+    document.getElementById('pdf-modal').style.display = 'flex';
   }
   function sincronizarCampos() {
     const prop = document.getElementById('proprietario').value; const tit = document.getElementById('titularPix');
@@ -615,7 +622,15 @@
       if (faltouContato) {
           loader.innerHTML = '🤖 IA preenchendo as lacunas...';
           try {
-            const promptIA = `Retorne APENAS um objeto JSON estrito com os dados encontrados: {"telProprietario":"", "pixProprietario":"", "emailInquilino":"", "telInquilino":""} Texto: ${fullText.substring(0, 8000)}`;
+            const promptIA = `Você é um perito de extração de dados. Analise o texto do contrato abaixo e retorne APENAS um objeto JSON.
+REGRAS OBRIGATÓRIAS:
+- telProprietario: Busque o Telefone APENAS dentro da qualificação do "LOCADOR(A)".
+- emailInquilino: Busque o Email APENAS dentro da qualificação do "LOCATÁRIO(A)".
+- telInquilino: Busque o Telefone APENAS dentro da qualificação do "LOCATÁRIO(A)".
+- pixProprietario: Busque a chave PIX na "CLÁUSULA SEGUNDA" após a frase "A chave PIX para transferência é" ou na qualificação do Locador. Nunca retorne a palavra "para". Retorne apenas a chave.
+Retorne o JSON estrito: {"telProprietario":"", "pixProprietario":"", "emailInquilino":"", "telInquilino":""}
+Texto: ${fullText.substring(0, 8000)}`;
+
             const resIA = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: promptIA }) });
             if (resIA.ok) {
               const matchJson = ((await resIA.json()).reply || "").match(/\{[\s\S]*\}/);
@@ -633,8 +648,212 @@
     } catch (err) { alert('Erro ao processar contrato: ' + err.message); } finally { loader.style.display = 'none'; loader.innerHTML = '⏳ Extraindo dados contratuais...'; }
   }
 
+
   // =======================================================
-  // LIVRO-RAZÃO: GESTÃO DE TAXAS MENSAIS (SEM RECARREGAR)
+  // BANCO CENTRAL DO BRASIL - REAJUSTE DE ALUGUEL
+  // =======================================================
+  async function getIndiceAcumulado(serie) {
+     try {
+         const res = await fetch(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.${serie}/dados/ultimos/12?formato=json`);
+         const data = await res.json();
+         let mult = 1; data.forEach(item => { mult *= (1 + (parseFloat(item.valor) / 100)); }); return mult - 1;
+     } catch(e) { return null; }
+  }
+  function abrirModalReajuste(idReg) {
+     reajusteAtualId = idReg; document.getElementById('reajuste-modal').style.display = 'flex';
+     document.getElementById('btn-igpm').innerText = 'IGP-M (FGV)'; document.getElementById('btn-ipca').innerText = 'IPCA (IBGE)';
+  }
+  function fecharReajuste() { document.getElementById('reajuste-modal').style.display = 'none'; reajusteAtualId = null; }
+  async function aplicarReajuste(tipo) {
+     if(!reajusteAtualId) return; const btn = document.getElementById(tipo === 'IGPM' ? 'btn-igpm' : 'btn-ipca'); btn.innerText = 'Calculando... aguarde';
+     const serie = tipo === 'IGPM' ? 189 : 433; const acc = await getIndiceAcumulado(serie);
+     if (acc === null) { alert('Falha ao obter índice do Banco Central. Tente novamente mais tarde.'); btn.innerText = tipo === 'IGPM' ? 'IGP-M (FGV)' : 'IPCA (IBGE)'; return; }
+     const idx = contratosDB.findIndex(x => (x.id || x._tempId) == reajusteAtualId); const c = contratosDB[idx];
+     const alugBase = parseMoedaToFloat(c.aluguel_base); const novoVal = alugBase * (1 + acc);
+     const conf = confirm(`Índice ${tipo} acumulado nos últimos 12 meses: ${(acc*100).toFixed(2)}%\n\nValor Atual: ${fmtMoeda(alugBase)}\nNOVO VALOR: ${fmtMoeda(novoVal)}\n\nConfirmar o reajuste para as próximas cobranças?`);
+     if(conf) { 
+         const hist = `${c.historico_reajuste || ''}\n[${new Date().toLocaleDateString('pt-BR')}] ${tipo}: +${(acc*100).toFixed(2)}% -> R$ ${fmtMoeda(novoVal)}`.trim();
+         await updateDbLinear(idx, 'aluguel_base', novoVal); 
+         await updateDbLinear(idx, 'reajuste_aplicado', 'SIM'); 
+         await updateDbLinear(idx, 'historico_reajuste', hist);
+         alert('✅ Reajuste aplicado com sucesso!'); fecharReajuste(); 
+     } 
+     else { btn.innerText = tipo === 'IGPM' ? 'IGP-M (FGV)' : 'IPCA (IBGE)'; }
+  }
+
+  // =======================================================
+  // TABELA MESTRE (IMÓVEIS ADMINISTRADOS)
+  // =======================================================
+  function toggleMarcarTodos(isChecked) {
+    const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
+    imoveisVisiveis.forEach(c => { const idStr = String(c.id || c._tempId); if(isChecked) contratosMarcados.add(idStr); else contratosMarcados.delete(idStr); });
+    atualizarInterfaceGeral();
+  }
+  
+  function toggleMarcar(idString, isChecked) {
+    if(isChecked) contratosMarcados.add(String(idString)); else contratosMarcados.delete(String(idString));
+    atualizarInterfaceGeral(); 
+  }
+  
+  async function editarPix(index) {
+    const c = contratosDB[index];
+    const novoPix = prompt(`1/2 - Alterar chave PIX de ${c.proprietario}:\n\nDigite a nova chave (ou deixe em branco):`, c.pix_proprietario || ''); if (novoPix === null) return; 
+    const novoTitular = prompt(`2/2 - Nome do Titular da conta PIX:\n(Aparecerá no recibo do repasse para confirmação)`, c.titular_pix || c.proprietario || ''); if (novoTitular === null) return; 
+    c.pix_proprietario = novoPix.trim(); c.titular_pix = novoTitular.trim();
+    atualizarInterfaceGeral();
+    const id = c.id; if(!id) return;
+    try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pix_proprietario: c.pix_proprietario, titular_pix: c.titular_pix }) }); alert('PIX e Titular atualizados!'); } catch(e) {}
+  }
+
+  async function loadTableThumbnails() {
+    const canvases = document.querySelectorAll('.table-pdf-thumb');
+    for (let canvas of canvases) {
+      if (canvas.dataset.loaded === "true") continue;
+      const url = canvas.dataset.pdfUrl; if (!url) continue;
+      try {
+        const loadingTask = pdfjsLib.getDocument(url); const pdf = await loadingTask.promise; const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 0.3 }); canvas.width = viewport.width; canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+        canvas.dataset.loaded = "true"; canvas.nextElementSibling.style.display = 'none'; canvas.style.display = 'block';
+      } catch (e) {}
+    }
+  }
+
+  function getAvisoVencimento(c) {
+    if (!c.data_fim) return { html: '<div class="bola bola-verde" title="No prazo"></div>', textoCob: '', btn: '' };
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const [a, m, d] = c.data_fim.split('-'); const fim = new Date(a, m-1, d);
+    const diffDays = Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24));
+    let bola = ''; let textoCob = ''; let htmlCard = ''; let btnReajuste = '';
+
+    if (diffDays > 60) bola = '<div class="bola bola-verde" title="No prazo"></div>';
+    else if (diffDays <= 60 && diffDays > 30) {
+        bola = '<div class="bola bola-amarela" title="Vencendo em breve"></div>';
+        textoCob = `\n⚠️ *Aviso Importante:* O seu contrato de locação encerra em ${diffDays} dias (${c.data_fim.split('-').reverse().join('/')}). Por favor, entre em contato para tratativas de renovação.\n`;
+        htmlCard = `<div style="background:#fef9c3; color:#a16207; padding:8px; border-left:4px solid #eab308; font-size:0.75rem; margin:10px 0; border-radius:4px;"><strong>⚠️ Atenção:</strong> Contrato encerra em ${diffDays} dias (${c.data_fim.split('-').reverse().join('/')}). Entre em contato para renovação.</div>`;
+    } else if (diffDays <= 30 && diffDays >= 0) {
+        bola = '<div class="bola bola-metade" title="Vencimento Crítico (<=30 dias)"></div>'; let desc = diffDays === 0 ? "HOJE" : `em ${diffDays} dias`;
+        textoCob = `\n⚠️ *Aviso Urgente:* O seu contrato de locação encerra ${desc} (${c.data_fim.split('-').reverse().join('/')}). Por favor, entre em contato com urgência para tratativas de renovação.\n`;
+        htmlCard = `<div style="background:#fef9c3; color:#a16207; padding:8px; border-left:4px solid #eab308; font-size:0.75rem; margin:10px 0; border-radius:4px;"><strong>⚠️ Urgente:</strong> Contrato encerra ${desc}. Entre em contato para renovação.</div>`;
+    } else {
+        bola = '<div class="bola bola-vermelha" title="Vencido"></div>';
+        textoCob = `\n🚨 *Aviso Urgente:* O seu contrato de locação encontra-se VENCIDO desde ${c.data_fim.split('-').reverse().join('/')}. Por favor, entre em contato com urgência para regularização.\n`;
+        htmlCard = `<div style="background:#fee2e2; color:#b91c1c; padding:8px; border-left:4px solid #ef4444; font-size:0.75rem; margin:10px 0; border-radius:4px;"><strong>🚨 Contrato Vencido</strong> desde ${c.data_fim.split('-').reverse().join('/')}. Entre em contato com urgência.</div>`;
+    }
+    if (diffDays <= 30 && c.reajuste_aplicado !== 'SIM') { const idReg = c.id || c._tempId; btnReajuste = `<div style="margin-top:4px;"><button class="btn-edit-pix" style="background:#fef08a; border-color:#eab308; color:#a16207;" onclick="abrirModalReajuste('${idReg}')">📈 Reajuste</button></div>`; }
+    return { html: bola, textoCob, htmlCard, btn: btnReajuste };
+  }
+
+  function renderizarTabelaLinear() {
+    const tbody = document.getElementById('tabela-imoveis-linear-body'); 
+    if (!tbody) return; 
+    tbody.innerHTML = '';
+    
+    const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
+    const checkAllBtn = document.getElementById('check-all-imoveis');
+    if (checkAllBtn) checkAllBtn.checked = imoveisVisiveis.length > 0 && imoveisVisiveis.every(c => contratosMarcados.has(String(c.id || c._tempId)));
+    
+    if (imoveisVisiveis.length === 0) { 
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: #64748b;">Nenhum imóvel administrado registrado.</td></tr>'; 
+        return; 
+    }
+
+    imoveisVisiveis.forEach((c) => {
+      const i = contratosDB.indexOf(c); const idReg = c.id || c._tempId; const isMarcado = contratosMarcados.has(String(idReg)) ? 'checked' : ''; const venc = getAvisoVencimento(c);
+      const btnPdf = c.contrato_url ? `<div onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')" class="row-pdf-btn" title="Visualizar Contrato"><canvas class="table-pdf-thumb" data-pdf-url="${c.contrato_url}" style="width:100%; height:100%; display:none; object-fit:cover;"></canvas><div class="row-pdf-icon"><span style="font-size:22px; color:#94a3b8;">📄</span><span style="font-size:9px; color:#dc2626; font-weight:bold; margin-top:1px;">PDF</span></div></div>` : '<span style="font-size:0.75rem; color:#94a3b8;">Sem anexo</span>';
+      
+      tbody.innerHTML += `
+        <tr>
+          <td class="fit"><button class="btn btn-danger" onclick="excluirImovel('${idReg}')">🗑️ Excluir</button></td>
+          <td class="fit" style="text-align: center;"><input type="checkbox" class="checkbox-marcar" onchange="toggleMarcar('${idReg}', this.checked)" ${isMarcado}></td>
+          <td class="fit"><select onchange="updateDbLinear(${i}, 'ativo', this.value)" style="padding: 6px; font-size: 0.82rem; width: 100px; border: 1px solid #ccc; border-radius: 4px;"><option value="SIM" ${c.ativo === 'SIM' ? 'selected' : ''}>🟢 Ativo</option><option value="NÃO" ${c.ativo === 'NÃO' ? 'selected' : ''}>🔴 Inativo</option></select></td>
+          <td><strong style="font-size: 0.95rem;">${c.inquilino || 'Não informado'}</strong><br><span style="font-size: 0.75rem; color: #64748b;">Locador: ${c.proprietario || '-'}</span><br><button class="btn-edit-pix" onclick="editarPix(${i})">✏️ Editar PIX Titular</button></td>
+          <td>${c.endereco || 'Endereço não informado'}</td>
+          <td class="fit" style="text-align: center; vertical-align: middle;">${venc.html}${venc.btn}</td>
+          <td class="fit" style="text-align: center;">${btnPdf}</td>
+        </tr>`;
+    });
+    setTimeout(() => { loadTableThumbnails(); }, 300);
+  }
+
+  async function carregarImoveis(forceUI = true) {
+    if (isLoadingImoveis) return; isLoadingImoveis = true;
+    const tbody = document.getElementById('tabela-imoveis-linear-body');
+    if (forceUI && tbody && contratosDB.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: #64748b;">Sincronizando com o banco de dados...</td></tr>';
+    }
+    try {
+      const resp = await supabaseFetchWithRefresh('/rest/v1/locacoes?select=*&order=created_at.desc', { method: 'GET' });
+      if (resp.ok) { 
+          contratosDB = await resp.json(); 
+          atualizarInterfaceGeral(); 
+      } else {
+          const err = await resp.json();
+          throw new Error(err.message || "Erro desconhecido na API.");
+      }
+    } catch(e) { 
+        if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: red; padding:20px;">Falha de conexão: ${e.message}</td></tr>`; 
+    } finally { 
+        isLoadingImoveis = false; 
+    }
+  }
+
+  async function updateDbLinear(index, field, value) {
+    contratosDB[index][field] = value; atualizarInterfaceGeral();
+    const id = contratosDB[index].id; if(!id) return;
+    try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); } catch(e) {}
+  }
+
+  async function excluirImovel(idReg) {
+    if (!confirm("Tem certeza de que deseja remover este contrato da tela de imóveis administrados?\nEle continuará salvo no banco de dados para segurança financeira.")) return;
+    const idx = contratosDB.findIndex(x => (x.id || x._tempId) == idReg);
+    if(idx > -1) {
+      const c = contratosDB[idx];
+      contratosDB[idx].ativo = 'EXCLUIDO'; contratosMarcados.delete(String(idReg)); atualizarInterfaceGeral();
+      const idBanco = c.id;
+      if (idBanco) { 
+          try { 
+              await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${idBanco}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ativo: 'EXCLUIDO' }) }); 
+              if(c.contrato_url) {
+                  const filePath = c.contrato_url.split('/public/')[1];
+                  if(filePath) await supabaseFetchWithRefresh(`/storage/v1/object/${filePath}`, { method: 'DELETE' });
+              }
+          } catch(e) {} 
+      }
+    }
+  }
+
+  async function gravarNovoContrato() {
+    const btn = document.getElementById('btn-gravar-novo'); btn.disabled = true; btn.innerText = 'Salvando no banco de dados...';
+    let urlPdf = null;
+    if (selectedPdfFile) {
+      const safeInq = (document.getElementById('inquilino').value || 'inquilino').replace(/[^a-zA-Z0-9]/g, '_'); const filePath = `contratos/${Date.now()}_${safeInq}.pdf`;
+      try { const uRes = await supabaseFetchWithRefresh(`/storage/v1/object/contratos/${filePath}`, { method: 'POST', headers: { 'Content-Type': 'application/pdf' }, body: selectedPdfFile }); if (uRes.ok) urlPdf = `${SUPABASE_BASE_URL}/storage/v1/object/public/contratos/${filePath}`; } catch(e) {}
+    }
+    const s = getLocalSession(); let emailUser = 'chalfouncorretor@gmail.com'; if (s && s.user && s.user.email) emailUser = s.user.email; else { const inputEmail = document.getElementById('auth-email').value; if (inputEmail) emailUser = inputEmail; }
+
+    const payload = {
+      user_email: emailUser, proprietario: document.getElementById('proprietario').value, telefone_proprietario: document.getElementById('telProprietario').value, pix_proprietario: document.getElementById('pixProprietario').value,
+      titular_pix: document.getElementById('titularPix').value || document.getElementById('proprietario').value, inquilino: document.getElementById('inquilino').value, email_inquilino: document.getElementById('emailInquilino').value,
+      telefone_inquilino: document.getElementById('telInquilino').value, endereco: document.getElementById('endereco').value, data_inicio: document.getElementById('dataInicio').value || null, data_fim: document.getElementById('dataFim').value || null,
+      aluguel_base: parseMoedaToFloat(document.getElementById('aluguelBase').value), condominio_base: parseMoedaToFloat(document.getElementById('condominioBase').value), taxa_adm_fixa: parseMoedaToFloat(document.getElementById('valorTaxaAdm').value), taxa_adm_pct: 10, regra_condominio: document.getElementById('regraCond').value || 'N',
+      contrato_url: urlPdf, ativo: 'SIM', reajuste_aplicado: 'NAO', historico_reajuste: '', lancamentos_mensais: '{}'
+    };
+
+    try {
+      const r = await supabaseFetchWithRefresh(`/rest/v1/locacoes`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Prefer': 'return=representation' }, body: JSON.stringify(payload) });
+      if (r.ok) {
+        const dadosGravados = await r.json(); if (dadosGravados && dadosGravados.length > 0) payload.id = dadosGravados[0].id; else payload._tempId = Date.now();
+        contratosDB.unshift(payload); atualizarInterfaceGeral(); alert('✓ Dados salvos com sucesso no banco de dados!');
+        document.querySelectorAll('#tab-resumo input, #tab-resumo select').forEach(el => { if(el.type !== 'file') el.value = ''; el.classList.remove('field-ok'); }); document.getElementById('contratoFile').value = ''; selectedPdfFile = null; document.getElementById('file-name-pill').style.display = 'none';
+        const canvas = document.getElementById('pdf-thumb-canvas'); const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; document.getElementById('thumb-placeholder').style.display = 'block'; setTab('imoveis', document.querySelectorAll('.tab-btn')[1]);
+      } else { alert('Erro ao salvar no banco de dados. ' + JSON.stringify(await r.json())); }
+    } catch(e) { alert('Falha: ' + e.message); } finally { btn.disabled = false; btn.innerText = '💾 Salvar dados do novo contrato'; }
+  }
+
+
+  // =======================================================
+  // LIVRO-RAZÃO: TAXAS CONDOMINIAIS MENSAIS
   // =======================================================
   function getVariaveisMes(c, mesRef) {
       let lancamentos = {};
@@ -683,53 +902,33 @@
           if(ta) ta.style.display = parseMoedaToFloat(value) > 0 ? 'block' : 'none';
       }
       
-      // Recalcula o total visualmente na linha para não perder o foco ao digitar
       const v = getVariaveisMes(c, mesRef);
       const total = parseMoedaToFloat(v.alugProp) + parseMoedaToFloat(v.alugMes) + parseMoedaToFloat(v.condProp) + parseMoedaToFloat(v.condMes) + parseMoedaToFloat(v.iptu) + parseMoedaToFloat(v.bombeiro) + parseMoedaToFloat(v.seguro) + parseMoedaToFloat(v.outras_taxas) - parseMoedaToFloat(v.desconto);
       const tdTotal = document.getElementById(`total-linha-${index}`);
       if (tdTotal) tdTotal.innerHTML = `<strong style="color:var(--danger); font-size:0.95rem;">${fmtMoeda(total)}</strong>`;
       
+      if (document.getElementById('tab-resumo_cobranca').classList.contains('active')) gerarTextosCobranca();
+      if (document.getElementById('tab-repasse').classList.contains('active')) gerarTextosRepasse();
+      if (document.getElementById('tab-resumo_gerencial').classList.contains('active')) renderizarGerencial();
+
       const id = c.id; if(!id) return;
       try { 
           await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { 
-              method: 'PATCH', 
-              headers: { 'Content-Type': 'application/json' }, 
-              body: JSON.stringify({ lancamentos_mensais: strLanc }) 
+              method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lancamentos_mensais: strLanc }) 
           }); 
       } catch(e) {}
   }
 
-
-  // =======================================================
-  // BANCO CENTRAL DO BRASIL - REAJUSTE DE ALUGUEL
-  // =======================================================
-  async function getIndiceAcumulado(serie) {
-     try {
-         const res = await fetch(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.${serie}/dados/ultimos/12?formato=json`);
-         const data = await res.json();
-         let mult = 1; data.forEach(item => { mult *= (1 + (parseFloat(item.valor) / 100)); }); return mult - 1;
-     } catch(e) { return null; }
-  }
-  function abrirModalReajuste(idReg) {
-     reajusteAtualId = idReg; document.getElementById('reajuste-modal').style.display = 'flex';
-     document.getElementById('btn-igpm').innerText = 'IGP-M (FGV)'; document.getElementById('btn-ipca').innerText = 'IPCA (IBGE)';
-  }
-  function fecharReajuste() { document.getElementById('reajuste-modal').style.display = 'none'; reajusteAtualId = null; }
-  async function aplicarReajuste(tipo) {
-     if(!reajusteAtualId) return; const btn = document.getElementById(tipo === 'IGPM' ? 'btn-igpm' : 'btn-ipca'); btn.innerText = 'Calculando... aguarde';
-     const serie = tipo === 'IGPM' ? 189 : 433; const acc = await getIndiceAcumulado(serie);
-     if (acc === null) { alert('Falha ao obter índice do Banco Central. Tente novamente mais tarde.'); btn.innerText = tipo === 'IGPM' ? 'IGP-M (FGV)' : 'IPCA (IBGE)'; return; }
-     const idx = contratosDB.findIndex(x => (x.id || x._tempId) == reajusteAtualId); const c = contratosDB[idx];
-     const alugBase = parseMoedaToFloat(c.aluguel_base); const novoVal = alugBase * (1 + acc);
-     const conf = confirm(`Índice ${tipo} acumulado nos últimos 12 meses: ${(acc*100).toFixed(2)}%\n\nValor Atual: ${fmtMoeda(alugBase)}\nNOVO VALOR: ${fmtMoeda(novoVal)}\n\nConfirmar o reajuste para as próximas cobranças?`);
-     if(conf) { 
-         const hist = `${c.historico_reajuste || ''}\n[${new Date().toLocaleDateString('pt-BR')}] ${tipo}: +${(acc*100).toFixed(2)}% -> R$ ${fmtMoeda(novoVal)}`.trim();
-         await updateDbLinear(idx, 'aluguel_base', novoVal); 
-         await updateDbLinear(idx, 'reajuste_aplicado', 'SIM'); 
-         await updateDbLinear(idx, 'historico_reajuste', hist);
-         alert('✅ Reajuste aplicado com sucesso!'); fecharReajuste(); 
-     } 
-     else { btn.innerText = tipo === 'IGPM' ? 'IGP-M (FGV)' : 'IPCA (IBGE)'; }
+  function editarProporcional(el) { if (el.readOnly && confirm('Deseja editar manualmente este campo?\n(O cálculo automático deixará de agir nesta célula)')) { el.readOnly = false; el.style.backgroundColor = '#fff'; el.focus(); } }
+  function calcularProp(valorBase, dataInicio, mesRef) {
+    if (!valorBase || !dataInicio || !mesRef) return 'Não';
+    const [anoRefStr, mesRefStr] = mesRef.split('-'); let anoRef = parseInt(anoRefStr); let mesRefInt = parseInt(mesRefStr);
+    let mesCompInt = mesRefInt - 1; let anoComp = anoRef; if (mesCompInt === 0) { mesCompInt = 12; anoComp -= 1; }
+    const [anoIn, mesIn, diaIn] = dataInicio.split('-');
+    if (anoComp === parseInt(anoIn) && mesCompInt === parseInt(mesIn)) {
+      const dia = parseInt(diaIn); if (dia <= 1) return 'Não'; const daysInMonth = new Date(anoComp, mesCompInt, 0).getDate(); const usedDays = daysInMonth - dia + 1;
+      const valNum = typeof valorBase === 'number' ? valorBase : parseFloat(String(valorBase).replace(/\./g,'').replace(',','.')); return formatadorStr((valNum / daysInMonth) * usedDays);
+    } return 'Não';
   }
 
   function renderizarTaxasCondominiais() {
@@ -759,6 +958,50 @@
           <td class="fit" id="total-linha-${i}" style="background-color:#f8fafc; text-align:center; vertical-align: middle;"><strong style="color:var(--danger); font-size:0.95rem;">${fmtMoeda(totalCalculado)}</strong></td></tr>`;
     });
   }
+
+  // =======================================================
+  // ABA: RESUMO PARA COBRANÇA E REPASSE
+  // =======================================================
+  function getNomeMesAtual(mesRef) { if(!mesRef) return ''; const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; return meses[parseInt(mesRef.split('-')[1]) - 1]; }
+  function getNomeMesAnterior(mesRef) { if(!mesRef) return ''; const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; let m = parseInt(mesRef.split('-')[1]) - 2; if(m < 0) m = 11; return meses[m]; }
+  function capitalizeFirstLetter(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+  function formatarMesAno(mesRef) { if(!mesRef) return ''; const [ano, mes] = mesRef.split('-'); return `${getNomeMesAtual(mesRef)} de ${ano}`; }
+
+  function copiarImagem(idHtml, btn) {
+     const el = document.getElementById(idHtml); const txtOrig = btn.innerText; btn.innerText = "Copiando...";
+     html2canvas(el, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
+         canvas.toBlob(blob => {
+             try {
+                 navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => {
+                     btn.innerText = "✓ Copiado!"; setTimeout(() => btn.innerText = txtOrig, 2000); alert('✓ Imagem copiada com sucesso! Cole na conversa do WhatsApp.');
+                 }).catch(err => { btn.innerText = txtOrig; alert('Erro: O seu navegador bloqueou a cópia direta de imagens. Tente pelo computador.'); });
+             } catch(e) { btn.innerText = txtOrig; alert('Erro: O seu navegador não suporta cópia direta de imagens. Tente pelo Google Chrome.'); }
+         }, 'image/png');
+     });
+  }
+
+  function copiarTextoCob(idTextArea) { const el = document.getElementById(idTextArea); el.style.display = 'block'; el.select(); document.execCommand('copy'); el.style.display = 'none'; alert('✓ Texto copiado com sucesso!'); }
+
+  async function dispararWppMassa(tipo) {
+     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
+     if(marcados.length === 0) return alert('Nenhum imóvel marcado para envio.');
+     if(!confirm(`Deseja abrir o WhatsApp Web em sequência para os ${marcados.length} contatos marcados?\nCertifique-se de que as janelas pop-up estão liberadas no seu navegador.`)) return;
+
+     for(let i = 0; i < marcados.length; i++) {
+         const c = marcados[i];
+         const idTextArea = tipo === 'cobranca' ? `txt-cob-${c.id || c._tempId}` : `txt-rep-${c.id || c._tempId}`;
+         const el = document.getElementById(idTextArea);
+         if(el) {
+             const telefone = tipo === 'cobranca' ? String(c.telefone_inquilino).replace(/\D/g,'') : String(c.telefone_proprietario).replace(/\D/g,'');
+             const url = `https://api.whatsapp.com/send?phone=55${telefone}&text=${encodeURIComponent(el.value)}`;
+             window.open(url, '_blank');
+             await new Promise(r => setTimeout(r, 1500));
+         }
+     }
+  }
+
+  function avancarStatusCobranca(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_cobranca || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_cobranca', JSON.stringify(statusObj)); }
+  function avancarStatusRepasse(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_repasse', JSON.stringify(statusObj)); }
 
   function gerarTextosCobranca() {
     const container = document.getElementById('cobrancas-container'); if (!container) return;
@@ -997,7 +1240,6 @@
           window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(lastGeneratedPdfText)}`, '_blank');
       }
   });
-
 </script>
 </body>
 </html>
