@@ -4,11 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gestão de Locação Imobiliária — M&IC</title>
-<!-- Leitor de PDF e Gerador de Imagens -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-</script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root {
@@ -51,7 +48,6 @@
   label { display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 4px; text-transform: uppercase; }
   input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; transition: 0.2s; }
   input:focus, select:focus, textarea:focus { border-color: var(--accent); }
-  
   .field-ok { background-color: #f0fdf4 !important; border-color: #22c55e !important; color: #047857; font-weight: bold; }
 
   .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; transition: 0.15s; font-size: 0.92rem; }
@@ -61,14 +57,11 @@
   .btn-danger { background: var(--danger); color: #fff; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; }
   .btn-whatsapp { background: #25D366; color: #fff; }
   .btn-download { background: #0284c7; color: #fff; }
-  
   .btn-edit-pix { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; display: inline-block; transition: 0.2s; }
   .btn-edit-pix:hover { background: #bae6fd; }
 
-  /* CAIXA DESTAQUE PIX */
   .box-pix { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; margin-top: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
 
-  /* TABELAS LINEARES */
   .table-linear-container { width: 100%; max-height: 75vh; overflow: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
   table.table-linear { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
   table.table-linear th { background: #000; color: #fff; padding: 12px 10px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: bold; }
@@ -87,13 +80,11 @@
   .bola-metade { background: linear-gradient(90deg, #eab308 50%, #ef4444 50%); }
   .bola-vermelha { background: #ef4444; }
 
-  /* DEMONSTRATIVO PREMIUM (IMAGEM) */
   .receipt-box { background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%; max-width: 420px; margin: 0 auto; position: relative; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; }
   .receipt-box::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px; background: var(--accent); border-radius: 8px 8px 0 0; }
   .comp-line { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
   .comp-total { display: flex; justify-content: space-between; font-weight: 900; font-size: 1.15rem; color: #166534; margin-top: 14px; padding-top: 14px; border-top: 2px dashed #cbd5e1; }
 
-  /* EFEITO THUMBNAIL TABELA LINEAR */
   .row-pdf-btn { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 64px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; overflow: hidden; transition: 0.2s; position: relative; }
   .row-pdf-btn:hover { border-color: var(--accent); transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
   .row-pdf-icon { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
@@ -106,7 +97,6 @@
   
   .ai-loader { display: none; padding: 10px; background: #e0f2fe; color: #0369a1; border-radius: 8px; font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; text-align: center; border: 1px solid #bae6fd; }
 
-  /* MODAIS */
   #auth-modal, #pdf-modal, #reajuste-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.94); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; }
   #pdf-modal, #reajuste-modal { display: none; }
   .auth-card { background: #fff; border-radius: 14px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; border-top: 4px solid var(--accent); }
@@ -114,6 +104,10 @@
   .auth-msg.err { background: #fee2e2; color: var(--danger); border: 1px solid #fca5a5; display: block; }
   .auth-msg.ok { background: #dcfce7; color: var(--success); border: 1px solid #86efac; display: block; }
   .auth-msg.loading { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; display: block; }
+
+  .gerencial-metric { text-align:center; padding:30px; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0; }
+  .gerencial-metric h3 { color:#64748b; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; }
+  .gerencial-metric .value { font-size:2.4rem; font-weight:900; color:var(--primary); }
 </style>
 </head>
 <body>
@@ -170,7 +164,7 @@
   <div style="display:flex; justify-content:flex-end; margin-bottom: 12px;">
      <div style="display:flex; align-items:center; gap: 8px;">
         <span style="font-size:0.85rem; font-weight:bold; color:var(--primary);">Mês e Ano de Referência:</span>
-        <input type="month" id="filtro-mes" onchange="renderizarTabelaLinear(); renderizarTaxasCondominiais(); gerarTextosCobranca(); gerarTextosRepasse();" style="width:160px; padding: 6px 12px; font-weight:bold;">
+        <input type="month" id="filtro-mes" onchange="atualizarInterfaceGeral()" style="width:160px; padding: 6px 12px; font-weight:bold;">
      </div>
   </div>
 
@@ -186,106 +180,57 @@
   <!-- ABA: RESUMO DO CONTRATO -->
   <div id="tab-resumo" class="tab-content active">
     <div class="resumo-layout">
-      
       <aside class="sidebar-contract-card">
         <div style="font-weight:800; margin-bottom:10px;">Contrato de Locação</div>
         <div class="thumbnail-wrapper" onclick="document.getElementById('contratoFile').click()">
           <canvas id="pdf-thumb-canvas"></canvas>
-          <div id="thumb-placeholder" style="color:#64748b; font-size:0.8rem; padding:20px;">
-            Clique para Anexar Contrato (.PDF)<br><br>A thumbnail aparecerá aqui
-          </div>
+          <div id="thumb-placeholder" style="color:#64748b; font-size:0.8rem; padding:20px;">Clique para Anexar Contrato (.PDF)<br><br>A thumbnail aparecerá aqui</div>
         </div>
         <div class="file-name-pill" id="file-name-pill"></div>
         <div id="ai-extract-loader" class="ai-loader">⏳ Extraindo dados contratuais...</div>
-        
         <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="processarContratoPDF(event)">
-        <button type="button" class="btn btn-gold" style="width:100%; font-size:0.85rem; padding:10px;" onclick="document.getElementById('contratoFile').click()">
-          📎 Anexar / Trocar Contrato
-        </button>
+        <button type="button" class="btn btn-gold" style="width:100%; font-size:0.85rem; padding:10px;" onclick="document.getElementById('contratoFile').click()">📎 Anexar / Trocar Contrato</button>
       </aside>
 
       <div class="card" style="margin-bottom:0;">
         <div class="card-title">Dados do Novo Contrato</div>
         
         <div class="grid-2">
-          <div>
-            <label>Proprietário (Locador)</label>
-            <input type="text" id="proprietario" oninput="sincronizarCampos()">
-          </div>
-          <div>
-            <label>Telefone do Proprietário</label>
-            <input type="text" id="telProprietario">
-          </div>
+          <div><label>Proprietário (Locador)</label><input type="text" id="proprietario" oninput="sincronizarCampos()"></div>
+          <div><label>Telefone do Proprietário</label><input type="text" id="telProprietario"></div>
         </div>
 
-        <!-- BLOCO PIX DESTAQUE -->
         <div class="grid-2 box-pix">
-          <div>
-            <label style="color:#0284c7;">Chave PIX Proprietário</label>
-            <input type="text" id="pixProprietario" placeholder="Ex: 123.456.789-00">
-          </div>
-          <div>
-            <label style="color:#0284c7;">Titular do PIX (Nome Recebedor)</label>
-            <input type="text" id="titularPix" placeholder="Nome na conta PIX">
-          </div>
+          <div><label style="color:#0284c7;">Chave PIX Proprietário</label><input type="text" id="pixProprietario" placeholder="Ex: 123.456.789-00"></div>
+          <div><label style="color:#0284c7;">Titular do PIX (Nome Recebedor)</label><input type="text" id="titularPix" placeholder="Nome na conta PIX"></div>
         </div>
 
         <div class="grid-3" style="margin-top:14px;">
-          <div>
-            <label>Inquilino (Locatário)</label>
-            <input type="text" id="inquilino">
-          </div>
-          <div>
-            <label>Email Inquilino</label>
-            <input type="email" id="emailInquilino">
-          </div>
-          <div>
-            <label>Telefone Inquilino</label>
-            <input type="text" id="telInquilino">
-          </div>
+          <div><label>Inquilino (Locatário)</label><input type="text" id="inquilino"></div>
+          <div><label>Email Inquilino</label><input type="email" id="emailInquilino"></div>
+          <div><label>Telefone Inquilino</label><input type="text" id="telInquilino"></div>
         </div>
 
         <div style="margin-top:14px;">
-          <label>Endereço do Imóvel</label>
-          <input type="text" id="endereco">
+          <label>Endereço do Imóvel</label><input type="text" id="endereco">
         </div>
         
         <div class="grid-2" style="margin-top:14px;">
-          <div>
-            <label>Data de Início</label>
-            <input type="date" id="dataInicio">
-          </div>
-          <div>
-            <label>Data de fim</label>
-            <input type="date" id="dataFim">
-          </div>
+          <div><label>Data de Início</label><input type="date" id="dataInicio"></div>
+          <div><label>Data de fim</label><input type="date" id="dataFim"></div>
         </div>
 
         <div class="grid-3" style="margin-top:14px;">
-          <div>
-            <label>Valor do aluguel Base</label>
-            <input type="text" id="aluguelBase" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)">
-          </div>
-          <div>
-            <label>Condomínio mês contratado</label>
-            <input type="text" id="condominioBase" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)">
-          </div>
-          <div>
-            <label>Taxa Adm Fixo (R$)</label>
-            <input type="text" id="valorTaxaAdm" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)">
-          </div>
+          <div><label>Valor do aluguel Base</label><input type="text" id="aluguelBase" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)"></div>
+          <div><label>Condomínio mês contratado</label><input type="text" id="condominioBase" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)"></div>
+          <div><label>Taxa Adm Fixo (R$)</label><input type="text" id="valorTaxaAdm" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)"></div>
         </div>
         
         <div class="grid-3" style="margin-top:14px;">
-          <div>
-            <label>Repassa Condomínio?</label>
-            <select id="regraCond"><option value="S">SIM</option><option value="N">NÃO</option></select>
-          </div>
+          <div><label>Repassa Condomínio?</label><select id="regraCond"><option value="S">SIM</option><option value="N">NÃO</option></select></div>
         </div>
 
-        <button type="button" class="btn btn-gold" id="btn-gravar-novo" style="width:100%; margin-top:18px;" onclick="gravarNovoContrato()">
-          💾 Gravar dados do novo contrato
-        </button>
+        <button type="button" class="btn btn-gold" id="btn-gravar-novo" style="width:100%; margin-top:18px;" onclick="gravarNovoContrato()">💾 Gravar dados do novo contrato</button>
       </div>
     </div>
   </div>
@@ -297,16 +242,12 @@
         <div style="font-weight:800; font-size: 1.1rem; color: var(--primary);">Cadastro Mestre de Imóveis Administrados</div>
         <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="carregarImoveis(true)">🔄 Atualizar Lista</button>
       </div>
-      
       <div class="table-linear-container">
         <table class="table-linear">
           <thead>
             <tr>
               <th class="fit">Excluir</th>
-              <th class="fit" style="text-align: center;">
-                Marcar<br>
-                <input type="checkbox" id="check-all-imoveis" onchange="toggleMarcarTodos(this.checked)" style="cursor: pointer; width: 15px; height: 15px; margin-top: 4px; accent-color: var(--accent);" title="Selecionar Todos">
-              </th>
+              <th class="fit" style="text-align: center;">Marcar<br><input type="checkbox" id="check-all-imoveis" onchange="toggleMarcarTodos(this.checked)" style="cursor: pointer; width: 15px; height: 15px; margin-top: 4px; accent-color: var(--accent);" title="Selecionar Todos"></th>
               <th class="fit">Status</th>
               <th>Inquilino</th>
               <th>Endereço do Imóvel</th>
@@ -314,9 +255,7 @@
               <th class="fit" style="text-align: center;">Contrato</th>
             </tr>
           </thead>
-          <tbody id="tabela-imoveis-linear-body">
-            <tr><td colspan="7" style="text-align: center; padding: 20px; color: #64748b;">Carregando imóveis administrados...</td></tr>
-          </tbody>
+          <tbody id="tabela-imoveis-linear-body"><tr><td colspan="7" style="text-align: center; padding: 20px; color: #64748b;">Carregando imóveis administrados...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -346,9 +285,7 @@
               <th class="fit" style="background-color: var(--primary);">Valor da Cobrança</th>
             </tr>
           </thead>
-          <tbody id="tabela-taxas-body">
-            <tr><td colspan="12" style="text-align: center; padding: 20px; color: #64748b;">Nenhum imóvel Ativo marcado.</td></tr>
-          </tbody>
+          <tbody id="tabela-taxas-body"><tr><td colspan="12" style="text-align: center; padding: 20px; color: #64748b;">Nenhum imóvel Ativo marcado.</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -376,8 +313,31 @@
 
   <!-- ABA: GERENCIAL -->
   <div id="tab-resumo_gerencial" class="tab-content">
-    <div class="card"><div class="card-title">Resumo Financeiro</div><p>Módulo em desenvolvimento estrutural...</p></div>
+    <div class="grid-3">
+        <div class="gerencial-metric">
+            <h3>Contratos Ativos</h3>
+            <div class="value" id="ger-ativos">0</div>
+        </div>
+        <div class="gerencial-metric">
+            <h3>Faturamento Estimado (Taxa Adm)</h3>
+            <div class="value" style="color:var(--success);" id="ger-faturamento">R$ 0,00</div>
+        </div>
+        <div class="gerencial-metric">
+            <h3>Volume Total do Mês</h3>
+            <div class="value" style="color:#0284c7;" id="ger-volume">R$ 0,00</div>
+        </div>
+    </div>
+    
+    <div class="card" style="margin-top:20px;">
+        <div class="card-title">Ferramentas de Segurança e Exportação</div>
+        <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">O ficheiro CSV contém o backup absoluto de todos os contratos e valores registados na base de dados para auditoria e recuperação de emergência.</p>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-gold" onclick="gerarBackupCSV()">📥 Baixar Backup Completo (CSV)</button>
+            <button class="btn btn-dark" onclick="enviarRelatorioEmail()">✉️ Enviar Relatório do Mês (E-mail)</button>
+        </div>
+    </div>
   </div>
+
 </div>
 
 <script>
@@ -395,168 +355,83 @@
     if(!val) return '';
     return parseFloat(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
-  
   const parseMoedaToFloat = str => {
     if (!str || String(str).toLowerCase() === 'não' || String(str).toLowerCase() === 'nao') return 0;
     if (typeof str === 'number') return str;
-    let s = String(str).replace(/[^\d,-]/g, '').replace(',', '.');
-    return parseFloat(s) || 0;
+    return parseFloat(String(str).replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
   };
-  
   const fmtMoeda = val => parseFloat(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   
   function formatarMoedaInput(i) {
     if (i.value === 'Não') return;
     let val = i.value;
-    if (val.toLowerCase() === 'n' || val.toLowerCase() === 'nao' || val.toLowerCase() === 'não') {
-      i.value = 'Não'; 
-      return;
-    }
-    let v = val.replace(/\D/g,'');
-    if(v === '') { i.value = ''; return; }
-    v = (v/100).toFixed(2) + '';
-    v = v.replace(".", ",");
-    v = v.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,");
-    v = v.replace(/(\d)(\d{3}),/g, "$1.$2,");
-    i.value = v;
+    if (val.toLowerCase() === 'n' || val.toLowerCase() === 'nao' || val.toLowerCase() === 'não') { i.value = 'Não'; return; }
+    let v = val.replace(/\D/g,''); if(v === '') { i.value = ''; return; }
+    v = (v/100).toFixed(2) + ''; v = v.replace(".", ","); v = v.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,"); v = v.replace(/(\d)(\d{3}),/g, "$1.$2,"); i.value = v;
   }
 
   // =======================================================
   // SESSÃO E SUPABASE FETCH
   // =======================================================
-  function getLocalSession() { 
-    try { return JSON.parse(localStorage.getItem('mic_auth_session')); } catch(e) { return null; } 
-  }
-  
-  function setLocalSession(session) { 
-    if (session) localStorage.setItem('mic_auth_session', JSON.stringify(session)); 
-    else localStorage.removeItem('mic_auth_session'); 
-  }
-  
+  function getLocalSession() { try { return JSON.parse(localStorage.getItem('mic_auth_session')); } catch(e) { return null; } }
+  function setLocalSession(session) { if (session) localStorage.setItem('mic_auth_session', JSON.stringify(session)); else localStorage.removeItem('mic_auth_session'); }
   async function refreshSession() {
-    const s = getLocalSession();
-    if (!s || !s.refresh_token) return false;
+    const s = getLocalSession(); if (!s || !s.refresh_token) return false;
     try {
-      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/token?grant_type=refresh_token`, {
-        method: 'POST', 
-        headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: s.refresh_token })
-      });
-      if (resp.ok) { 
-        setLocalSession(await resp.json()); 
-        return true; 
-      }
-    } catch (e) {} 
-    return false;
+      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/token?grant_type=refresh_token`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: s.refresh_token }) });
+      if (resp.ok) { setLocalSession(await resp.json()); return true; }
+    } catch (e) {} return false;
   }
-
   async function supabaseFetchWithRefresh(endpoint, options = {}) {
-    let s = getLocalSession();
-    if (!s) throw new Error("Sem sessão local. Faça login.");
-    
-    if (!options.headers) options.headers = {};
-    options.headers['apikey'] = SUPABASE_KEY;
-    options.headers['Authorization'] = `Bearer ${s.access_token}`;
-    
-    let url = `${SUPABASE_BASE_URL}${endpoint}`;
-    let res = await fetch(url, options);
-    
+    let s = getLocalSession(); if (!s) throw new Error("Sem sessão local. Faça login.");
+    if (!options.headers) options.headers = {}; options.headers['apikey'] = SUPABASE_KEY; options.headers['Authorization'] = `Bearer ${s.access_token}`;
+    let res = await fetch(`${SUPABASE_BASE_URL}${endpoint}`, options);
     if (res.status === 401 || res.status === 403) {
-      if (await refreshSession()) {
-        s = getLocalSession();
-        options.headers['Authorization'] = `Bearer ${s.access_token}`;
-        res = await fetch(url, options); 
-      } else {
-        doLogout(); throw new Error("Sessão expirada. Faça login.");
-      }
-    }
-    return res;
+      if (await refreshSession()) { s = getLocalSession(); options.headers['Authorization'] = `Bearer ${s.access_token}`; res = await fetch(`${SUPABASE_BASE_URL}${endpoint}`, options); } 
+      else { doLogout(); throw new Error("Sessão expirada. Faça login."); }
+    } return res;
   }
-
   function checkSession() {
     const s = getLocalSession();
     if (s && s.user) {
-      document.getElementById('auth-modal').style.display = 'none';
-      document.getElementById('user-pill').style.display = 'flex';
-      document.getElementById('logged-user-email').innerText = s.user.email;
-      carregarImoveis(); 
-    } else {
-      document.getElementById('auth-modal').style.display = 'flex';
-      document.getElementById('user-pill').style.display = 'none';
-    }
+      document.getElementById('auth-modal').style.display = 'none'; document.getElementById('user-pill').style.display = 'flex';
+      document.getElementById('logged-user-email').innerText = s.user.email; carregarImoveis(); 
+    } else { document.getElementById('auth-modal').style.display = 'flex'; document.getElementById('user-pill').style.display = 'none'; }
   }
-
   async function doLogin() {
-    const email = document.getElementById('auth-email').value.trim();
-    const password = document.getElementById('auth-pass').value;
-    const status = document.getElementById('auth-status');
-    const btn = document.getElementById('btn-login');
+    const email = document.getElementById('auth-email').value.trim(); const password = document.getElementById('auth-pass').value;
+    const status = document.getElementById('auth-status'); const btn = document.getElementById('btn-login');
     status.style.display = 'block'; status.className = 'auth-msg loading'; status.innerText = 'A autenticar...'; btn.disabled = true;
     try {
-      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/token?grant_type=password`, {
-        method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password })
-      });
+      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
       const data = await resp.json();
-      if (!resp.ok) { 
-        status.className = 'auth-msg err'; status.innerText = 'Erro: ' + (data.error_description || data.message); 
-      } else { 
-        status.className = 'auth-msg ok'; status.innerText = '✓ Sucesso!'; 
-        setLocalSession(data); 
-        setTimeout(() => checkSession(), 300); 
-      }
-    } catch (err) { 
-      status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; 
-    } finally { 
-      btn.disabled = false; 
-    }
+      if (!resp.ok) { status.className = 'auth-msg err'; status.innerText = 'Erro: ' + (data.error_description || data.message); } 
+      else { status.className = 'auth-msg ok'; status.innerText = '✓ Sucesso!'; setLocalSession(data); setTimeout(() => checkSession(), 300); }
+    } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
   }
-
   async function doRegister() {
-    const email = document.getElementById('auth-email').value.trim();
-    const password = document.getElementById('auth-pass').value;
-    const status = document.getElementById('auth-status');
-    const btn = document.getElementById('btn-register');
+    const email = document.getElementById('auth-email').value.trim(); const password = document.getElementById('auth-pass').value;
+    const status = document.getElementById('auth-status'); const btn = document.getElementById('btn-register');
     status.style.display = 'block'; status.className = 'auth-msg loading'; status.innerText = 'Criando conta...'; btn.disabled = true;
     try {
-      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/signup`, {
-        method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password })
-      });
+      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/signup`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
       const data = await resp.json();
-      if (!resp.ok) { 
-        status.className = 'auth-msg err'; status.innerText = 'Erro: ' + data.message; 
-      } else { 
-        status.className = 'auth-msg ok'; status.innerText = '✓ Cadastro concluído!'; 
-        setLocalSession(data); 
-        setTimeout(() => checkSession(), 400); 
-      }
-    } catch (err) { 
-      status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; 
-    } finally { 
-      btn.disabled = false; 
-    }
+      if (!resp.ok) { status.className = 'auth-msg err'; status.innerText = 'Erro: ' + data.message; } 
+      else { status.className = 'auth-msg ok'; status.innerText = '✓ Cadastro concluído!'; setLocalSession(data); setTimeout(() => checkSession(), 400); }
+    } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
   }
-
-  function doLogout() { 
-    setLocalSession(null); 
-    checkSession(); 
-  }
+  function doLogout() { setLocalSession(null); checkSession(); }
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-login').addEventListener('click', doLogin);
     document.getElementById('btn-register').addEventListener('click', doRegister);
     document.getElementById('btn-logout-action').addEventListener('click', doLogout);
     
-    // O Mês de Referência é sempre o PRÓXIMO MÊS.
-    const hoje = new Date();
-    let proxMes = hoje.getMonth() + 2; 
-    let anoVenc = hoje.getFullYear();
+    const hoje = new Date(); let proxMes = hoje.getMonth() + 2; let anoVenc = hoje.getFullYear();
     if(proxMes > 12) { proxMes = 1; anoVenc++; }
     document.getElementById('filtro-mes').value = `${anoVenc}-${proxMes.toString().padStart(2, '0')}`;
     
-    document.querySelectorAll('.card input').forEach(input => {
-      input.addEventListener('input', () => { input.classList.remove('field-ok'); });
-    });
-    
+    document.querySelectorAll('.card input').forEach(input => { input.addEventListener('input', () => { input.classList.remove('field-ok'); }); });
     checkSession();
   });
 
@@ -565,144 +440,84 @@
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     btn.classList.add('active');
-    
-    if (name === 'imoveis') renderizarTabelaLinear();
-    if (name === 'taxas_cond') renderizarTaxasCondominiais();
-    if (name === 'resumo_cobranca') gerarTextosCobranca();
-    if (name === 'repasse') gerarTextosRepasse();
+    atualizarInterfaceGeral();
   }
 
+  function atualizarInterfaceGeral() {
+    renderizarTabelaLinear();
+    renderizarTaxasCondominiais();
+    if (document.getElementById('tab-resumo_cobranca').classList.contains('active')) gerarTextosCobranca();
+    if (document.getElementById('tab-repasse').classList.contains('active')) gerarTextosRepasse();
+    if (document.getElementById('tab-resumo_gerencial').classList.contains('active')) renderizarGerencial();
+  }
 
   // =======================================================
   // MOTOR DE EXTRAÇÃO DE PDF (RESTAURADO E SEGURO)
   // =======================================================
-  
-  function cleanSearch(text) {
-    if (!text) return "";
-    return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  }
-
+  function cleanSearch(text) { return text ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : ""; }
   function decodeAddressOnly(text) {
     if (!text) return "";
     let s = text.replace(/PraÁa/gi, "Praça").replace(/praÁa/gi, "praça").replace(/HÈlder/gi, "Hélder")
                 .replace(/hÈlder/gi, "hélder").replace(/c‚mara/gi, "câmara").replace(/C‚mara/gi, "Câmara")
-                .replace(/n∫/gi, "nº").replace(/N∫/gi, "Nº").replace(/n\s*∫/gi, "nº")
-                .replace(/∫/g, "º").replace(/™/g, "ª").replace(/‚/g, "â").replace(/È/g, "é")
-                .replace(/Á(?=[a-z])/g, "ç");
+                .replace(/n∫/gi, "nº").replace(/N∫/gi, "Nº").replace(/n\s*∫/gi, "nº").replace(/∫/g, "º").replace(/™/g, "ª").replace(/‚/g, "â").replace(/È/g, "é").replace(/Á(?=[a-z])/g, "ç");
     try { s = s.normalize('NFC'); } catch(e) {}
     return s.replace(/\s+/g, ' ').trim();
   }
-
   function isValidPersonName(str) {
-    if (!str) return false;
-    let s = str.trim();
-    let sNorm = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    let monthRegex = /\b(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez|janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/i;
-    if (monthRegex.test(sNorm) && /\d/.test(s)) return false;
+    if (!str) return false; let s = str.trim(); let sNorm = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (/\b(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez|janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/i.test(sNorm) && /\d/.test(s)) return false;
     if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/.test(s)) return false;
-    if (/^\d{1,2}\s+[a-z]{3,9}\s+\d{2,4}/i.test(sNorm)) return false;
-    if (s.indexOf('@') !== -1) return false;
-    if (sNorm.indexOf("cpf") !== -1 || sNorm.indexOf("cnpj") !== -1 || sNorm.indexOf("rg") !== -1) return false;
-    if (sNorm.indexOf("hash") !== -1 || sNorm.indexOf("ip:") !== -1 || sNorm.indexOf("token") !== -1) return false;
-    if (sNorm.indexOf("assinou") !== -1 || sNorm.indexOf("autenticado") !== -1 || sNorm.indexOf("clicksign") !== -1) return false;
-    if (/^\d+$/.test(s.replace(/[\.\-\s\/]/g, ''))) return false;
-    if (!/[A-Za-zÀ-Úà-ú]{3,}/.test(s)) return false;
+    if (s.indexOf('@') !== -1 || sNorm.indexOf("cpf") !== -1 || sNorm.indexOf("cnpj") !== -1 || sNorm.indexOf("rg") !== -1) return false;
+    if (sNorm.indexOf("hash") !== -1 || sNorm.indexOf("ip:") !== -1 || sNorm.indexOf("token") !== -1 || sNorm.indexOf("assinou") !== -1 || sNorm.indexOf("autenticado") !== -1 || sNorm.indexOf("clicksign") !== -1) return false;
+    if (/^\d+$/.test(s.replace(/[\.\-\s\/]/g, '')) || !/[A-Za-zÀ-Úà-ú]{3,}/.test(s)) return false;
     return true;
   }
-
   function cleanName(raw) {
-    if (!raw) return "";
-    let s = raw.trim();
-    s = s.replace(/^(?:Nome|Signat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '');
-    s = s.replace(/\s+CPF.*$/i, '');
-    s = s.replace(/\s+assinou.*$/i, '');
-    let parts = s.split(',');
-    return parts[0].trim();
+    if (!raw) return ""; let s = raw.trim().replace(/^(?:Nome|Signat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '').replace(/\s+CPF.*$/i, '').replace(/\s+assinou.*$/i, ''); return s.split(',')[0].trim();
   }
-
   function findTrueSignerAbove(lines, index) {
-    for (let j = index - 1; j >= Math.max(0, index - 8); j--) {
-      let candidate = lines[j].trim();
-      if (isValidPersonName(candidate)) return cleanName(candidate);
-    }
-    return "";
+    for (let j = index - 1; j >= Math.max(0, index - 8); j--) { let candidate = lines[j].trim(); if (isValidPersonName(candidate)) return cleanName(candidate); } return "";
   }
-
   function extractAddressAfterSituado(text) {
-    if (!text) return "";
-    let normText = cleanSearch(text);
-    let indexSituado = normText.indexOf("situado");
-
+    if (!text) return ""; let normText = cleanSearch(text); let indexSituado = normText.indexOf("situado");
     if (indexSituado !== -1) {
-      let afterSituado = text.substring(indexSituado + 7).trim();
-      afterSituado = afterSituado.replace(/^(?:na|no|à|a|em|:)\s+/i, '').trim();
-      let addressCandidate = afterSituado.split(/[;\.\r\n]/)[0].trim();
-      addressCandidate = addressCandidate.replace(/(?:,?\s*destinado\s+exclusivamente|para\s+fins\s+residenciais|conforme).*/i, '').trim();
+      let afterSituado = text.substring(indexSituado + 7).trim().replace(/^(?:na|no|à|a|em|:)\s+/i, '').trim();
+      let addressCandidate = afterSituado.split(/[;\.\r\n]/)[0].trim().replace(/(?:,?\s*destinado\s+exclusivamente|para\s+fins\s+residenciais|conforme).*/i, '').trim();
       if (addressCandidate.length > 5) return addressCandidate;
     }
     let indexImovel = normText.indexOf("imovel:");
-    if (indexImovel !== -1) {
-      let afterImov = text.substring(indexImovel + 7).trim();
-      let addr = afterImov.split(/[;\.\r\n]/)[0].trim();
-      return addr.replace(/(?:destinado|para\s+fins).*/i, '').trim();
-    }
+    if (indexImovel !== -1) return text.substring(indexImovel + 7).trim().split(/[;\.\r\n]/)[0].trim().replace(/(?:destinado|para\s+fins).*/i, '').trim();
     return "";
   }
-
   async function renderPdfThumbnail(pdfDoc) {
     try {
-      const page = await pdfDoc.getPage(1);
-      const viewport = page.getViewport({ scale: 0.65 });
-      const canvas = document.getElementById('pdf-thumb-canvas');
-      const placeholder = document.getElementById('thumb-placeholder');
-      canvas.width = viewport.width; 
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext('2d');
-      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-      placeholder.style.display = 'none';
-      canvas.style.display = 'block';
-    } catch (e) {
-      console.warn("Erro ao gerar miniatura:", e);
-    }
+      const page = await pdfDoc.getPage(1); const viewport = page.getViewport({ scale: 0.65 });
+      const canvas = document.getElementById('pdf-thumb-canvas'); const placeholder = document.getElementById('thumb-placeholder');
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      placeholder.style.display = 'none'; canvas.style.display = 'block';
+    } catch (e) { console.warn("Erro ao gerar miniatura:", e); }
   }
-
   function sincronizarCampos() {
-    const prop = document.getElementById('proprietario').value;
-    const tit = document.getElementById('titularPix');
+    const prop = document.getElementById('proprietario').value; const tit = document.getElementById('titularPix');
     if (tit && tit.value.trim() === '') tit.value = prop;
   }
 
   async function processarContratoPDF(event) {
-    const file = event.target.files[0];
-    if (!file || file.type !== 'application/pdf') return;
-    
-    selectedPdfFile = file;
-    document.getElementById('file-name-pill').innerText = `📄 ${file.name}`;
-    document.getElementById('file-name-pill').style.display = 'inline-block';
-    
-    const loader = document.getElementById('ai-extract-loader');
-    loader.innerHTML = '⏳ Extraindo dados do contrato (Local)...';
-    loader.style.display = 'block';
+    const file = event.target.files[0]; if (!file || file.type !== 'application/pdf') return;
+    selectedPdfFile = file; document.getElementById('file-name-pill').innerText = `📄 ${file.name}`; document.getElementById('file-name-pill').style.display = 'inline-block';
+    const loader = document.getElementById('ai-extract-loader'); loader.innerHTML = '⏳ Extraindo dados do contrato (Local)...'; loader.style.display = 'block';
 
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const arrayBuffer = await file.arrayBuffer(); const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       await renderPdfThumbnail(pdf);
 
-      let allRawLines = [];
-      let page1RawLines = [];
-      let fullText = '';
-      
+      let allRawLines = []; let page1RawLines = []; let fullText = '';
       for (let p = 1; p <= pdf.numPages; p++) {
-        const page = await pdf.getPage(p);
-        const textContent = await page.getTextContent();
+        const page = await pdf.getPage(p); const textContent = await page.getTextContent();
         for (let i = 0; i < textContent.items.length; i++) {
           let str = textContent.items[i].str;
-          if (str && str.trim().length > 0) {
-            allRawLines.push(str.trim());
-            fullText += ' ' + str.trim();
-            if (p === 1) page1RawLines.push(str.trim());
-          }
+          if (str && str.trim().length > 0) { allRawLines.push(str.trim()); fullText += ' ' + str.trim(); if (p === 1) page1RawLines.push(str.trim()); }
         }
       }
 
@@ -711,34 +526,18 @@
 
       let mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
       if (mLoc1 && isValidPersonName(mLoc1[1])) ext.locador = cleanName(mLoc1[1]);
-      if (!ext.locador) {
-        for (let i = 0; i < allRawLines.length; i++) {
-          if (cleanSearch(allRawLines[i]).indexOf("assinou como locador") !== -1) {
-            ext.locador = findTrueSignerAbove(allRawLines, i); break;
-          }
-        }
-      }
+      if (!ext.locador) { for (let i = 0; i < allRawLines.length; i++) { if (cleanSearch(allRawLines[i]).indexOf("assinou como locador") !== -1) { ext.locador = findTrueSignerAbove(allRawLines, i); break; } } }
 
       let mLocat1 = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
       if (mLocat1 && isValidPersonName(mLocat1[1])) ext.locatario = cleanName(mLocat1[1]);
-      if (!ext.locatario) {
-        for (let j = 0; j < allRawLines.length; j++) {
-          if (cleanSearch(allRawLines[j]).indexOf("assinou como locatario") !== -1) {
-            ext.locatario = findTrueSignerAbove(allRawLines, j); break;
-          }
-        }
-      }
+      if (!ext.locatario) { for (let j = 0; j < allRawLines.length; j++) { if (cleanSearch(allRawLines[j]).indexOf("assinou como locatario") !== -1) { ext.locatario = findTrueSignerAbove(allRawLines, j); break; } } }
 
       ext.endereco = extractAddressAfterSituado(page1Text);
 
       let dateMatches = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
-      if (dateMatches && dateMatches.length >= 2) {
-        ext.dataIn = dateMatches[0].split('/').reverse().join('-');
-        ext.dataFim = dateMatches[1].split('/').reverse().join('-');
-      }
+      if (dateMatches && dateMatches.length >= 2) { ext.dataIn = dateMatches[0].split('/').reverse().join('-'); ext.dataFim = dateMatches[1].split('/').reverse().join('-'); }
 
-      let mVal = fullText.match(/R\$\s*([\d\.,]+)/i);
-      if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
+      let mVal = fullText.match(/R\$\s*([\d\.,]+)/i); if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
 
       loader.innerHTML = '🤖 IA extraindo telefones, e-mail e PIX...';
       try {
@@ -748,21 +547,12 @@ REGRAS OBRIGATÓRIAS:
 - emailInquilino: Busque o Email APENAS dentro da qualificação do "LOCATÁRIO(A)".
 - telInquilino: Busque o Telefone APENAS dentro da qualificação do "LOCATÁRIO(A)".
 - pixProprietario: Busque a chave PIX na "CLÁUSULA SEGUNDA" após a frase "A chave PIX para transferência é" ou na qualificação do Locador. Nunca retorne a palavra "para". Retorne apenas a chave.
-
 Retorne o JSON estrito: {"telProprietario":"", "pixProprietario":"", "emailInquilino":"", "telInquilino":""}
+Texto: ${fullText.substring(0, 8000)}`;
 
-Texto:
-${fullText.substring(0, 8000)}`;
-
-        const resIA = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: promptIA })
-        });
-        
+        const resIA = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: promptIA }) });
         if (resIA.ok) {
-          const dataIA = await resIA.json();
-          const matchJson = (dataIA.reply || "").match(/\{[\s\S]*\}/);
+          const matchJson = ((await resIA.json()).reply || "").match(/\{[\s\S]*\}/);
           if (matchJson) {
             const parsed = JSON.parse(matchJson[0]);
             if (parsed.telProprietario) ext.telLocador = parsed.telProprietario;
@@ -775,36 +565,16 @@ ${fullText.substring(0, 8000)}`;
 
       function flash(id, val) { 
         if(val && String(val).trim() !== '') { 
-          const el = document.getElementById(id); 
-          if(el) {
-            el.value = val; 
-            el.classList.add('field-ok'); 
-            el.addEventListener('input', function onEdit() {
-              el.classList.remove('field-ok');
-              el.removeEventListener('input', onEdit);
-            });
-          }
+          const el = document.getElementById(id); if(el) { el.value = val; el.classList.add('field-ok'); el.addEventListener('input', function onEdit() { el.classList.remove('field-ok'); el.removeEventListener('input', onEdit); }); }
         } 
       }
 
-      flash('proprietario', decodeAddressOnly(ext.locador));
-      flash('telProprietario', ext.telLocador);
-      flash('pixProprietario', ext.pix);
-      flash('titularPix', decodeAddressOnly(ext.locador));
-      flash('inquilino', decodeAddressOnly(ext.locatario));
-      flash('emailInquilino', ext.emailLocatario);
-      flash('telInquilino', ext.telLocatario);
-      flash('endereco', decodeAddressOnly(ext.endereco));
-      flash('dataInicio', ext.dataIn);
-      flash('dataFim', ext.dataFim);
+      flash('proprietario', decodeAddressOnly(ext.locador)); flash('telProprietario', ext.telLocador); flash('pixProprietario', ext.pix); flash('titularPix', decodeAddressOnly(ext.locador));
+      flash('inquilino', decodeAddressOnly(ext.locatario)); flash('emailInquilino', ext.emailLocatario); flash('telInquilino', ext.telLocatario);
+      flash('endereco', decodeAddressOnly(ext.endereco)); flash('dataInicio', ext.dataIn); flash('dataFim', ext.dataFim);
       if(ext.valor > 0) flash('aluguelBase', formatadorStr(ext.valor));
 
-    } catch (err) { 
-      alert('Erro ao processar contrato: ' + err.message);
-    } finally { 
-      loader.style.display = 'none'; 
-      loader.innerHTML = '⏳ Extraindo dados contratuais...'; 
-    }
+    } catch (err) { alert('Erro ao processar contrato: ' + err.message); } finally { loader.style.display = 'none'; loader.innerHTML = '⏳ Extraindo dados contratuais...'; }
   }
 
 
@@ -815,131 +585,58 @@ ${fullText.substring(0, 8000)}`;
      try {
          const res = await fetch(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.${serie}/dados/ultimos/12?formato=json`);
          const data = await res.json();
-         let mult = 1;
-         data.forEach(item => { mult *= (1 + (parseFloat(item.valor) / 100)); });
-         return mult - 1;
-     } catch(e) { 
-         console.error("Erro BCB:", e); 
-         return null; 
-     }
+         let mult = 1; data.forEach(item => { mult *= (1 + (parseFloat(item.valor) / 100)); }); return mult - 1;
+     } catch(e) { return null; }
   }
-
   function abrirModalReajuste(idReg) {
-     reajusteAtualId = idReg;
-     document.getElementById('reajuste-modal').style.display = 'flex';
-     document.getElementById('btn-igpm').innerText = 'IGP-M (FGV)';
-     document.getElementById('btn-ipca').innerText = 'IPCA (IBGE)';
+     reajusteAtualId = idReg; document.getElementById('reajuste-modal').style.display = 'flex';
+     document.getElementById('btn-igpm').innerText = 'IGP-M (FGV)'; document.getElementById('btn-ipca').innerText = 'IPCA (IBGE)';
   }
-
-  function fecharReajuste() {
-     document.getElementById('reajuste-modal').style.display = 'none';
-     reajusteAtualId = null;
-  }
-
+  function fecharReajuste() { document.getElementById('reajuste-modal').style.display = 'none'; reajusteAtualId = null; }
   async function aplicarReajuste(tipo) {
-     if(!reajusteAtualId) return;
-     const btn = document.getElementById(tipo === 'IGPM' ? 'btn-igpm' : 'btn-ipca');
-     btn.innerText = 'Calculando... aguarde';
-     
-     const serie = tipo === 'IGPM' ? 189 : 433;
-     const acc = await getIndiceAcumulado(serie);
-     
-     if (acc === null) {
-         alert('Falha ao obter índice do Banco Central. Tente novamente mais tarde.');
-         btn.innerText = tipo === 'IGPM' ? 'IGP-M (FGV)' : 'IPCA (IBGE)';
-         return;
-     }
-
-     const idx = contratosDB.findIndex(x => (x.id || x._tempId) == reajusteAtualId);
-     const c = contratosDB[idx];
-     const alugBase = parseMoedaToFloat(c.aluguel_base);
-     const novoVal = alugBase * (1 + acc);
-
+     if(!reajusteAtualId) return; const btn = document.getElementById(tipo === 'IGPM' ? 'btn-igpm' : 'btn-ipca'); btn.innerText = 'Calculando... aguarde';
+     const serie = tipo === 'IGPM' ? 189 : 433; const acc = await getIndiceAcumulado(serie);
+     if (acc === null) { alert('Falha ao obter índice do Banco Central. Tente novamente mais tarde.'); btn.innerText = tipo === 'IGPM' ? 'IGP-M (FGV)' : 'IPCA (IBGE)'; return; }
+     const idx = contratosDB.findIndex(x => (x.id || x._tempId) == reajusteAtualId); const c = contratosDB[idx];
+     const alugBase = parseMoedaToFloat(c.aluguel_base); const novoVal = alugBase * (1 + acc);
      const conf = confirm(`Índice ${tipo} acumulado (Últimos 12 meses): ${(acc*100).toFixed(2)}%\n\nValor Atual: ${fmtMoeda(alugBase)}\nNOVO VALOR: ${fmtMoeda(novoVal)}\n\nConfirmar o reajuste para as próximas cobranças?`);
-     if(conf) {
-         await updateDbLinear(idx, 'aluguel_base', novoVal);
-         await updateDbLinear(idx, 'reajuste_aplicado', 'SIM');
-         alert('✅ Reajuste aplicado com sucesso!');
-         fecharReajuste();
-     } else {
-         btn.innerText = tipo === 'IGPM' ? 'IGP-M (FGV)' : 'IPCA (IBGE)';
-     }
+     if(conf) { await updateDbLinear(idx, 'aluguel_base', novoVal); await updateDbLinear(idx, 'reajuste_aplicado', 'SIM'); alert('✅ Reajuste aplicado com sucesso!'); fecharReajuste(); } 
+     else { btn.innerText = tipo === 'IGPM' ? 'IGP-M (FGV)' : 'IPCA (IBGE)'; }
   }
-
 
   // =======================================================
   // GESTÃO DE IMÓVEIS E TAXAS
   // =======================================================
   function toggleMarcarTodos(isChecked) {
     const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
-    imoveisVisiveis.forEach(c => {
-        const idStr = String(c.id || c._tempId);
-        if(isChecked) contratosMarcados.add(idStr);
-        else contratosMarcados.delete(idStr);
-    });
-    renderizarTabelaLinear();
-    renderizarTaxasCondominiais();
-    if (document.getElementById('tab-resumo_cobranca').classList.contains('active')) gerarTextosCobranca();
-    if (document.getElementById('tab-repasse').classList.contains('active')) gerarTextosRepasse();
+    imoveisVisiveis.forEach(c => { const idStr = String(c.id || c._tempId); if(isChecked) contratosMarcados.add(idStr); else contratosMarcados.delete(idStr); });
+    atualizarInterfaceGeral();
   }
-
   function toggleMarcar(idString, isChecked) {
-    if(isChecked) {
-      contratosMarcados.add(String(idString));
-    } else {
-      contratosMarcados.delete(String(idString));
-    }
-    renderizarTabelaLinear(); // Para atualizar o check-all se necessário
-    renderizarTaxasCondominiais(); 
+    if(isChecked) contratosMarcados.add(String(idString)); else contratosMarcados.delete(String(idString));
+    atualizarInterfaceGeral(); 
   }
-
   async function editarPix(index) {
     const c = contratosDB[index];
-    const novoPix = prompt(`1/2 - Alterar chave PIX de ${c.proprietario}:\n\nDigite a nova chave (ou deixe em branco):`, c.pix_proprietario || '');
-    if (novoPix === null) return; 
-    const novoTitular = prompt(`2/2 - Nome do Titular da conta PIX:\n(Aparecerá no recibo do repasse para confirmação)`, c.titular_pix || c.proprietario || '');
-    if (novoTitular === null) return; 
-    
-    c.pix_proprietario = novoPix.trim(); 
-    c.titular_pix = novoTitular.trim();
-    
-    renderizarTabelaLinear();
-    if (document.getElementById('tab-repasse').classList.contains('active')) gerarTextosRepasse();
-    
+    const novoPix = prompt(`1/2 - Alterar chave PIX de ${c.proprietario}:\n\nDigite a nova chave (ou deixe em branco):`, c.pix_proprietario || ''); if (novoPix === null) return; 
+    const novoTitular = prompt(`2/2 - Nome do Titular da conta PIX:\n(Aparecerá no recibo do repasse para confirmação)`, c.titular_pix || c.proprietario || ''); if (novoTitular === null) return; 
+    c.pix_proprietario = novoPix.trim(); c.titular_pix = novoTitular.trim();
+    atualizarInterfaceGeral();
     const id = c.id; if(!id) return;
-    try {
-        await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { 
-            method: 'PATCH', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ pix_proprietario: c.pix_proprietario, titular_pix: c.titular_pix }) 
-        });
-        alert('PIX e Titular atualizados!');
-    } catch(e) { 
-        alert('Erro: ' + e.message); 
-    }
+    try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pix_proprietario: c.pix_proprietario, titular_pix: c.titular_pix }) }); alert('PIX e Titular atualizados!'); } catch(e) {}
   }
 
   async function loadTableThumbnails() {
     const canvases = document.querySelectorAll('.table-pdf-thumb');
     for (let canvas of canvases) {
       if (canvas.dataset.loaded === "true") continue;
-      const url = canvas.dataset.pdfUrl; 
-      if (!url) continue;
+      const url = canvas.dataset.pdfUrl; if (!url) continue;
       try {
-        const loadingTask = pdfjsLib.getDocument(url); 
-        const pdf = await loadingTask.promise; 
-        const page = await pdf.getPage(1);
-        const viewport = page.getViewport({ scale: 0.3 }); 
-        canvas.width = viewport.width; 
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext('2d');
-        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-        canvas.dataset.loaded = "true"; 
-        canvas.nextElementSibling.style.display = 'none'; 
-        canvas.style.display = 'block';
-      } catch (e) {
-        console.warn("Erro ao carregar miniatura do PDF", e);
-      }
+        const loadingTask = pdfjsLib.getDocument(url); const pdf = await loadingTask.promise; const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 0.3 }); canvas.width = viewport.width; canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+        canvas.dataset.loaded = "true"; canvas.nextElementSibling.style.display = 'none'; canvas.style.display = 'block';
+      } catch (e) {}
     }
   }
 
@@ -948,19 +645,15 @@ ${fullText.substring(0, 8000)}`;
     const hoje = new Date(); hoje.setHours(0,0,0,0);
     const [a, m, d] = c.data_fim.split('-'); const fim = new Date(a, m-1, d);
     const diffDays = Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24));
-    
-    let bola = ''; let textoCob = ''; let htmlCard = '';
-    let btnReajuste = '';
+    let bola = ''; let textoCob = ''; let htmlCard = ''; let btnReajuste = '';
 
-    if (diffDays > 60) {
-        bola = '<div class="bola bola-verde" title="No prazo"></div>';
-    } else if (diffDays <= 60 && diffDays > 30) {
+    if (diffDays > 60) bola = '<div class="bola bola-verde" title="No prazo"></div>';
+    else if (diffDays <= 60 && diffDays > 30) {
         bola = '<div class="bola bola-amarela" title="Vencendo em breve"></div>';
         textoCob = `\n⚠️ *Aviso Importante:* O seu contrato de locação encerra em ${diffDays} dias (${c.data_fim.split('-').reverse().join('/')}). Por favor, entre em contato para tratativas de renovação.\n`;
         htmlCard = `<div style="background:#fef9c3; color:#a16207; padding:8px; border-left:4px solid #eab308; font-size:0.75rem; margin:10px 0; border-radius:4px;"><strong>⚠️ Atenção:</strong> Contrato encerra em ${diffDays} dias (${c.data_fim.split('-').reverse().join('/')}). Contate-nos para renovação.</div>`;
     } else if (diffDays <= 30 && diffDays >= 0) {
-        bola = '<div class="bola bola-metade" title="Vencimento Crítico (<=30 dias)"></div>';
-        let desc = diffDays === 0 ? "HOJE" : `em ${diffDays} dias`;
+        bola = '<div class="bola bola-metade" title="Vencimento Crítico (<=30 dias)"></div>'; let desc = diffDays === 0 ? "HOJE" : `em ${diffDays} dias`;
         textoCob = `\n⚠️ *Aviso Urgente:* O seu contrato de locação encerra ${desc} (${c.data_fim.split('-').reverse().join('/')}). Por favor, entre em contato para tratativas de renovação.\n`;
         htmlCard = `<div style="background:#fef9c3; color:#a16207; padding:8px; border-left:4px solid #eab308; font-size:0.75rem; margin:10px 0; border-radius:4px;"><strong>⚠️ Urgente:</strong> Contrato encerra ${desc}. Contate-nos para renovação.</div>`;
     } else {
@@ -968,53 +661,25 @@ ${fullText.substring(0, 8000)}`;
         textoCob = `\n🚨 *Aviso Urgente:* O seu contrato de locação encontra-se VENCIDO desde ${c.data_fim.split('-').reverse().join('/')}. Por favor, entre em contato urgente para regularização.\n`;
         htmlCard = `<div style="background:#fee2e2; color:#b91c1c; padding:8px; border-left:4px solid #ef4444; font-size:0.75rem; margin:10px 0; border-radius:4px;"><strong>🚨 Contrato Vencido</strong> desde ${c.data_fim.split('-').reverse().join('/')}. Regularize urgente.</div>`;
     }
-
-    if (diffDays <= 30 && c.reajuste_aplicado !== 'SIM') {
-        const idReg = c.id || c._tempId;
-        btnReajuste = `<div style="margin-top:4px;"><button class="btn-edit-pix" style="background:#fef08a; border-color:#eab308; color:#a16207;" onclick="abrirModalReajuste('${idReg}')">📈 Reajuste</button></div>`;
-    }
-
+    if (diffDays <= 30 && c.reajuste_aplicado !== 'SIM') { const idReg = c.id || c._tempId; btnReajuste = `<div style="margin-top:4px;"><button class="btn-edit-pix" style="background:#fef08a; border-color:#eab308; color:#a16207;" onclick="abrirModalReajuste('${idReg}')">📈 Reajuste</button></div>`; }
     return { html: bola, textoCob, htmlCard, btn: btnReajuste };
   }
 
   function renderizarTabelaLinear() {
-    const tbody = document.getElementById('tabela-imoveis-linear-body');
-    if (!tbody) return; 
-    tbody.innerHTML = '';
+    const tbody = document.getElementById('tabela-imoveis-linear-body'); if (!tbody) return; tbody.innerHTML = '';
     const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
-    
-    // Atualiza o Checkbox "Selecionar Todos"
     const checkAllBtn = document.getElementById('check-all-imoveis');
-    if (checkAllBtn) {
-        checkAllBtn.checked = imoveisVisiveis.length > 0 && imoveisVisiveis.every(c => contratosMarcados.has(String(c.id || c._tempId)));
-    }
-    
-    if (imoveisVisiveis.length === 0) { 
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: #64748b;">Nenhum imóvel administrado registado.</td></tr>'; 
-        return; 
-    }
+    if (checkAllBtn) checkAllBtn.checked = imoveisVisiveis.length > 0 && imoveisVisiveis.every(c => contratosMarcados.has(String(c.id || c._tempId)));
+    if (imoveisVisiveis.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: #64748b;">Nenhum imóvel administrado registado.</td></tr>'; return; }
 
     imoveisVisiveis.forEach((c) => {
-      const i = contratosDB.indexOf(c); 
-      const idReg = c.id || c._tempId; 
-      const isMarcado = contratosMarcados.has(String(idReg)) ? 'checked' : '';
-      const venc = getAvisoVencimento(c);
-      
-      const btnPdf = c.contrato_url 
-        ? `<div onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')" class="row-pdf-btn" title="Visualizar Contrato">
-             <canvas class="table-pdf-thumb" data-pdf-url="${c.contrato_url}" style="width:100%; height:100%; display:none; object-fit:cover;"></canvas>
-             <div class="row-pdf-icon"><span style="font-size:22px; color:#94a3b8;">📄</span><span style="font-size:9px; color:#dc2626; font-weight:bold; margin-top:1px;">PDF</span></div></div>`
-        : '<span style="font-size:0.75rem; color:#94a3b8;">Sem anexo</span>';
-
+      const i = contratosDB.indexOf(c); const idReg = c.id || c._tempId; const isMarcado = contratosMarcados.has(String(idReg)) ? 'checked' : ''; const venc = getAvisoVencimento(c);
+      const btnPdf = c.contrato_url ? `<div onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')" class="row-pdf-btn" title="Visualizar Contrato"><canvas class="table-pdf-thumb" data-pdf-url="${c.contrato_url}" style="width:100%; height:100%; display:none; object-fit:cover;"></canvas><div class="row-pdf-icon"><span style="font-size:22px; color:#94a3b8;">📄</span><span style="font-size:9px; color:#dc2626; font-weight:bold; margin-top:1px;">PDF</span></div></div>` : '<span style="font-size:0.75rem; color:#94a3b8;">Sem anexo</span>';
       tbody.innerHTML += `
         <tr>
           <td class="fit"><button class="btn btn-danger" onclick="excluirImovel('${idReg}')">🗑️ Excluir</button></td>
           <td class="fit" style="text-align: center;"><input type="checkbox" class="checkbox-marcar" onchange="toggleMarcar('${idReg}', this.checked)" ${isMarcado}></td>
-          <td class="fit">
-            <select onchange="updateDbLinear(${i}, 'ativo', this.value)" style="padding: 6px; font-size: 0.82rem; width: 100px; border: 1px solid #ccc; border-radius: 4px;">
-              <option value="SIM" ${c.ativo === 'SIM' ? 'selected' : ''}>🟢 Ativo</option><option value="NÃO" ${c.ativo === 'NÃO' ? 'selected' : ''}>🔴 Inativo</option>
-            </select>
-          </td>
+          <td class="fit"><select onchange="updateDbLinear(${i}, 'ativo', this.value)" style="padding: 6px; font-size: 0.82rem; width: 100px; border: 1px solid #ccc; border-radius: 4px;"><option value="SIM" ${c.ativo === 'SIM' ? 'selected' : ''}>🟢 Ativo</option><option value="NÃO" ${c.ativo === 'NÃO' ? 'selected' : ''}>🔴 Inativo</option></select></td>
           <td><strong style="font-size: 0.95rem;">${c.inquilino || 'Não informado'}</strong><br><span style="font-size: 0.75rem; color: #64748b;">Locador: ${c.proprietario || '-'}</span><br><button class="btn-edit-pix" onclick="editarPix(${i})">✏️ Editar PIX Titular</button></td>
           <td>${c.endereco || 'Endereço não informado'}</td>
           <td class="fit" style="text-align: center; vertical-align: middle;">${venc.html}${venc.btn}</td>
@@ -1026,226 +691,92 @@ ${fullText.substring(0, 8000)}`;
 
   let isLoadingImoveis = false;
   async function carregarImoveis(forceUI = true) {
-    if (isLoadingImoveis) return; 
-    isLoadingImoveis = true;
+    if (isLoadingImoveis) return; isLoadingImoveis = true;
     const tbody = document.getElementById('tabela-imoveis-linear-body');
-    if (forceUI && tbody && contratosDB.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: #64748b;">Carregando dados do banco de dados...</td></tr>';
-    }
+    if (forceUI && tbody && contratosDB.length === 0) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: #64748b;">Carregando dados do banco de dados...</td></tr>';
     try {
       const resp = await supabaseFetchWithRefresh('/rest/v1/locacoes?select=*&order=created_at.desc', { method: 'GET' });
-      if (resp.ok) { 
-          contratosDB = await resp.json(); 
-          renderizarTabelaLinear(); 
-          renderizarTaxasCondominiais(); 
-      }
-    } catch(e) { 
-        if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: red;">${e.message}</td></tr>`; 
-    } finally { 
-        isLoadingImoveis = false; 
-    }
+      if (resp.ok) { contratosDB = await resp.json(); atualizarInterfaceGeral(); }
+    } catch(e) { if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: red;">${e.message}</td></tr>`; } finally { isLoadingImoveis = false; }
   }
 
   async function updateDbLinear(index, field, value) {
-    contratosDB[index][field] = value;
-    renderizarTabelaLinear(); 
-    renderizarTaxasCondominiais();
-    if (document.getElementById('tab-resumo_cobranca').classList.contains('active')) gerarTextosCobranca();
-    if (document.getElementById('tab-repasse').classList.contains('active')) gerarTextosRepasse();
-    
+    contratosDB[index][field] = value; atualizarInterfaceGeral();
     const id = contratosDB[index].id; if(!id) return;
-    try { 
-        await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { 
-            method: 'PATCH', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ [field]: value }) 
-        }); 
-    } catch(e) {}
+    try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); } catch(e) {}
   }
 
   async function excluirImovel(idReg) {
     if (!confirm("Tem certeza que deseja remover este contrato da tela de imóveis administrados?\nEle continuará salvo no banco de dados para segurança financeira.")) return;
     const idx = contratosDB.findIndex(x => (x.id || x._tempId) == idReg);
     if(idx > -1) {
-      contratosDB[idx].ativo = 'EXCLUIDO'; 
-      contratosMarcados.delete(String(idReg)); 
-      renderizarTabelaLinear(); 
-      renderizarTaxasCondominiais();
+      contratosDB[idx].ativo = 'EXCLUIDO'; contratosMarcados.delete(String(idReg)); atualizarInterfaceGeral();
       const idBanco = contratosDB[idx].id;
-      if (idBanco) { 
-          try { 
-              await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${idBanco}`, { 
-                  method: 'PATCH', 
-                  headers: { 'Content-Type': 'application/json' }, 
-                  body: JSON.stringify({ ativo: 'EXCLUIDO' }) 
-              }); 
-          } catch(e) {} 
-      }
+      if (idBanco) { try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${idBanco}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ativo: 'EXCLUIDO' }) }); } catch(e) {} }
     }
   }
 
-
-  // =======================================================
-  // SALVAR NOVO CONTRATO NO SUPABASE
-  // =======================================================
   async function gravarNovoContrato() {
-    const btn = document.getElementById('btn-gravar-novo'); 
-    btn.disabled = true; 
-    btn.innerText = 'A gravar no banco de dados...';
-    
+    const btn = document.getElementById('btn-gravar-novo'); btn.disabled = true; btn.innerText = 'A gravar no banco de dados...';
     let urlPdf = null;
     if (selectedPdfFile) {
-      const safeInq = (document.getElementById('inquilino').value || 'inquilino').replace(/[^a-zA-Z0-9]/g, '_');
-      const filePath = `contratos/${Date.now()}_${safeInq}.pdf`;
-      try {
-        const uRes = await supabaseFetchWithRefresh(`/storage/v1/object/contratos/${filePath}`, { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/pdf' }, 
-            body: selectedPdfFile 
-        });
-        if (uRes.ok) urlPdf = `${SUPABASE_BASE_URL}/storage/v1/object/public/contratos/${filePath}`;
-      } catch(e) {}
+      const safeInq = (document.getElementById('inquilino').value || 'inquilino').replace(/[^a-zA-Z0-9]/g, '_'); const filePath = `contratos/${Date.now()}_${safeInq}.pdf`;
+      try { const uRes = await supabaseFetchWithRefresh(`/storage/v1/object/contratos/${filePath}`, { method: 'POST', headers: { 'Content-Type': 'application/pdf' }, body: selectedPdfFile }); if (uRes.ok) urlPdf = `${SUPABASE_BASE_URL}/storage/v1/object/public/contratos/${filePath}`; } catch(e) {}
     }
-    
-    const s = getLocalSession(); 
-    let emailUser = 'chalfouncorretor@gmail.com';
-    if (s && s.user && s.user.email) {
-        emailUser = s.user.email; 
-    } else { 
-        const inputEmail = document.getElementById('auth-email').value; 
-        if (inputEmail) emailUser = inputEmail; 
-    }
+    const s = getLocalSession(); let emailUser = 'chalfouncorretor@gmail.com'; if (s && s.user && s.user.email) emailUser = s.user.email; else { const inputEmail = document.getElementById('auth-email').value; if (inputEmail) emailUser = inputEmail; }
 
     const payload = {
-      user_email: emailUser, 
-      proprietario: document.getElementById('proprietario').value,
-      telefone_proprietario: document.getElementById('telProprietario').value, 
-      pix_proprietario: document.getElementById('pixProprietario').value,
-      titular_pix: document.getElementById('titularPix').value || document.getElementById('proprietario').value,
-      inquilino: document.getElementById('inquilino').value, 
-      email_inquilino: document.getElementById('emailInquilino').value,
-      telefone_inquilino: document.getElementById('telInquilino').value, 
-      endereco: document.getElementById('endereco').value,
-      data_inicio: document.getElementById('dataInicio').value || null, 
-      data_fim: document.getElementById('dataFim').value || null,
-      aluguel_base: parseMoedaToFloat(document.getElementById('aluguelBase').value), 
-      condominio_base: parseMoedaToFloat(document.getElementById('condominioBase').value),
-      taxa_adm_fixa: parseMoedaToFloat(document.getElementById('valorTaxaAdm').value), 
-      taxa_adm_pct: 10, 
-      regra_condominio: document.getElementById('regraCond').value || 'N',
-      contrato_url: urlPdf, 
-      ativo: 'SIM', 
-      reajuste_aplicado: 'NAO'
+      user_email: emailUser, proprietario: document.getElementById('proprietario').value, telefone_proprietario: document.getElementById('telProprietario').value, pix_proprietario: document.getElementById('pixProprietario').value,
+      titular_pix: document.getElementById('titularPix').value || document.getElementById('proprietario').value, inquilino: document.getElementById('inquilino').value, email_inquilino: document.getElementById('emailInquilino').value,
+      telefone_inquilino: document.getElementById('telInquilino').value, endereco: document.getElementById('endereco').value, data_inicio: document.getElementById('dataInicio').value || null, data_fim: document.getElementById('dataFim').value || null,
+      aluguel_base: parseMoedaToFloat(document.getElementById('aluguelBase').value), condominio_base: parseMoedaToFloat(document.getElementById('condominioBase').value), taxa_adm_fixa: parseMoedaToFloat(document.getElementById('valorTaxaAdm').value), taxa_adm_pct: 10, regra_condominio: document.getElementById('regraCond').value || 'N',
+      contrato_url: urlPdf, ativo: 'SIM', reajuste_aplicado: 'NAO'
     };
 
     try {
-      const r = await supabaseFetchWithRefresh(`/rest/v1/locacoes`, { 
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/json', 'Prefer': 'return=representation' }, 
-          body: JSON.stringify(payload) 
-      });
+      const r = await supabaseFetchWithRefresh(`/rest/v1/locacoes`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Prefer': 'return=representation' }, body: JSON.stringify(payload) });
       if (r.ok) {
-        const dadosGravados = await r.json(); 
-        if (dadosGravados && dadosGravados.length > 0) payload.id = dadosGravados[0].id; 
-        else payload._tempId = Date.now();
-        
-        contratosDB.unshift(payload); 
-        renderizarTabelaLinear(); 
-        alert('✓ Dados gravados com sucesso na base de dados!');
-        
-        document.querySelectorAll('#tab-resumo input, #tab-resumo select').forEach(el => { 
-            if(el.type !== 'file') el.value = ''; 
-            el.classList.remove('field-ok'); 
-        });
-        
-        document.getElementById('contratoFile').value = ''; 
-        selectedPdfFile = null; 
-        document.getElementById('file-name-pill').style.display = 'none';
-        
-        const canvas = document.getElementById('pdf-thumb-canvas'); 
-        const ctx = canvas.getContext('2d'); 
-        ctx.clearRect(0, 0, canvas.width, canvas.height); 
-        canvas.style.display = 'none'; 
-        document.getElementById('thumb-placeholder').style.display = 'block';
-        
-        setTab('imoveis', document.querySelectorAll('.tab-btn')[1]);
-      } else { 
-          alert('Erro ao gravar no banco de dados. ' + JSON.stringify(await r.json())); 
-      }
-    } catch(e) { 
-        alert('Falha de conexão com o banco de dados: ' + e.message); 
-    } finally { 
-        btn.disabled = false; 
-        btn.innerText = '💾 Gravar dados do novo contrato'; 
-    }
+        const dadosGravados = await r.json(); if (dadosGravados && dadosGravados.length > 0) payload.id = dadosGravados[0].id; else payload._tempId = Date.now();
+        contratosDB.unshift(payload); atualizarInterfaceGeral(); alert('✓ Dados gravados com sucesso na base de dados!');
+        document.querySelectorAll('#tab-resumo input, #tab-resumo select').forEach(el => { if(el.type !== 'file') el.value = ''; el.classList.remove('field-ok'); }); document.getElementById('contratoFile').value = ''; selectedPdfFile = null; document.getElementById('file-name-pill').style.display = 'none';
+        const canvas = document.getElementById('pdf-thumb-canvas'); const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; document.getElementById('thumb-placeholder').style.display = 'block'; setTab('imoveis', document.querySelectorAll('.tab-btn')[1]);
+      } else { alert('Erro ao gravar no banco de dados. ' + JSON.stringify(await r.json())); }
+    } catch(e) { alert('Falha: ' + e.message); } finally { btn.disabled = false; btn.innerText = '💾 Gravar dados do novo contrato'; }
   }
 
 
   // =======================================================
-  // ABA: TAXAS CONDOMINIAIS
+  // ABA: TAXAS CONDOMINIAIS E COBRANÇAS
   // =======================================================
-  function editarProporcional(el) {
-    if (el.readOnly && confirm('Deseja editar manualmente este campo?\n(O cálculo automático deixará de agir nesta célula)')) { 
-        el.readOnly = false; 
-        el.style.backgroundColor = '#fff'; 
-        el.focus(); 
-    }
-  }
-
+  function editarProporcional(el) { if (el.readOnly && confirm('Deseja editar manualmente este campo?')) { el.readOnly = false; el.style.backgroundColor = '#fff'; el.focus(); } }
   function calcularProp(valorBase, dataInicio, mesRef) {
     if (!valorBase || !dataInicio || !mesRef) return 'Não';
-    const [anoRefStr, mesRefStr] = mesRef.split('-'); 
-    let anoRef = parseInt(anoRefStr); 
-    let mesRefInt = parseInt(mesRefStr);
-    let mesCompInt = mesRefInt - 1; 
-    let anoComp = anoRef; 
-    if (mesCompInt === 0) { mesCompInt = 12; anoComp -= 1; }
-    
+    const [anoRefStr, mesRefStr] = mesRef.split('-'); let anoRef = parseInt(anoRefStr); let mesRefInt = parseInt(mesRefStr);
+    let mesCompInt = mesRefInt - 1; let anoComp = anoRef; if (mesCompInt === 0) { mesCompInt = 12; anoComp -= 1; }
     const [anoIn, mesIn, diaIn] = dataInicio.split('-');
     if (anoComp === parseInt(anoIn) && mesCompInt === parseInt(mesIn)) {
-      const dia = parseInt(diaIn); 
-      if (dia <= 1) return 'Não'; 
-      const daysInMonth = new Date(anoComp, mesCompInt, 0).getDate(); 
-      const usedDays = daysInMonth - dia + 1;
-      const valNum = typeof valorBase === 'number' ? valorBase : parseFloat(String(valorBase).replace(/\./g,'').replace(',','.'));
-      return formatadorStr((valNum / daysInMonth) * usedDays);
-    } 
-    return 'Não';
+      const dia = parseInt(diaIn); if (dia <= 1) return 'Não'; const daysInMonth = new Date(anoComp, mesCompInt, 0).getDate(); const usedDays = daysInMonth - dia + 1;
+      const valNum = typeof valorBase === 'number' ? valorBase : parseFloat(String(valorBase).replace(/\./g,'').replace(',','.')); return formatadorStr((valNum / daysInMonth) * usedDays);
+    } return 'Não';
   }
-
   function calcularTotalCobrancaLinha(c, alugPropVal, condPropVal, alugMesVal) {
-    let total = parseMoedaToFloat(alugPropVal) + parseMoedaToFloat(alugMesVal) + parseMoedaToFloat(condPropVal) + parseMoedaToFloat(c.cond_mes) + parseMoedaToFloat(c.iptu) + parseMoedaToFloat(c.bombeiro) + parseMoedaToFloat(c.seguro) + parseMoedaToFloat(c.outras_taxas) - parseMoedaToFloat(c.desconto);
-    return fmtMoeda(total);
+    let total = parseMoedaToFloat(alugPropVal) + parseMoedaToFloat(alugMesVal) + parseMoedaToFloat(condPropVal) + parseMoedaToFloat(c.cond_mes) + parseMoedaToFloat(c.iptu) + parseMoedaToFloat(c.bombeiro) + parseMoedaToFloat(c.seguro) + parseMoedaToFloat(c.outras_taxas) - parseMoedaToFloat(c.desconto); return fmtMoeda(total);
   }
 
   function renderizarTaxasCondominiais() {
-    const tbody = document.getElementById('tabela-taxas-body'); 
-    if(!tbody) return;
-    
+    const tbody = document.getElementById('tabela-taxas-body'); if(!tbody) return;
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
-    if (marcados.length === 0) { 
-        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel Ativo marcado na aba anterior.</td></tr>'; 
-        return; 
-    }
-    
-    tbody.innerHTML = ''; 
-    const mesRef = document.getElementById('filtro-mes').value;
-
+    if (marcados.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel Ativo marcado na aba anterior.</td></tr>'; return; }
+    tbody.innerHTML = ''; const mesRef = document.getElementById('filtro-mes').value;
     marcados.forEach(c => {
       const i = contratosDB.indexOf(c); 
       let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
       let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
-      let alugMesDefault = (alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base);
-      let alugMes = (c.aluguel_mes !== undefined && c.aluguel_mes !== null) ? c.aluguel_mes : alugMesDefault;
-      
+      let alugMesDefault = (alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base); let alugMes = (c.aluguel_mes !== undefined && c.aluguel_mes !== null) ? c.aluguel_mes : alugMesDefault;
       const totalCalculado = calcularTotalCobrancaLinha(c, alugProp, condProp, alugMes);
-      const isOutrasVisible = parseMoedaToFloat(c.outras_taxas) > 0 ? 'block' : 'none';
-      const isDescVisible = parseMoedaToFloat(c.desconto) > 0 ? 'block' : 'none';
-
-      tbody.innerHTML += `
-        <tr>
-          <td><strong style="font-size:0.85rem;">${c.inquilino}</strong></td>
-          <td style="font-size:0.75rem;">${c.endereco}</td>
+      const isOutrasVisible = parseMoedaToFloat(c.outras_taxas) > 0 ? 'block' : 'none'; const isDescVisible = parseMoedaToFloat(c.desconto) > 0 ? 'block' : 'none';
+      tbody.innerHTML += `<tr>
+          <td><strong style="font-size:0.85rem;">${c.inquilino}</strong></td><td style="font-size:0.75rem;">${c.endereco}</td>
           <td class="fit"><input type="text" value="${alugProp}" readonly onclick="editarProporcional(this)" onchange="updateDbLinear(${i}, 'aluguel_prop', this.value)" class="input-calc"></td>
           <td class="fit"><input type="text" value="${condProp}" readonly onclick="editarProporcional(this)" onchange="updateDbLinear(${i}, 'cond_prop', this.value)" class="input-calc"></td>
           <td class="fit"><input type="text" value="${alugMes}" onchange="updateDbLinear(${i}, 'aluguel_mes', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"></td>
@@ -1255,360 +786,181 @@ ${fullText.substring(0, 8000)}`;
           <td class="fit"><input type="text" value="${c.seguro || ''}" onchange="updateDbLinear(${i}, 'seguro', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"></td>
           <td class="fit" style="vertical-align: top;"><input type="text" value="${c.outras_taxas || ''}" onchange="updateDbLinear(${i}, 'outras_taxas', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"><textarea rows="2" maxlength="300" placeholder="Motivo..." class="input-desc" style="display:${isOutrasVisible};" onchange="updateDbLinear(${i}, 'desc_outras', this.value)">${c.desc_outras || ''}</textarea></td>
           <td class="fit" style="vertical-align: top;"><input type="text" value="${c.desconto || ''}" onchange="updateDbLinear(${i}, 'desconto', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"><textarea rows="2" maxlength="300" placeholder="Motivo..." class="input-desc" style="display:${isDescVisible};" onchange="updateDbLinear(${i}, 'desc_desconto', this.value)">${c.desc_desconto || ''}</textarea></td>
-          <td class="fit" style="background-color:#f8fafc; text-align:center; vertical-align: middle;"><strong style="color:var(--danger); font-size:0.95rem;">${totalCalculado}</strong></td>
-        </tr>
-      `;
+          <td class="fit" style="background-color:#f8fafc; text-align:center; vertical-align: middle;"><strong style="color:var(--danger); font-size:0.95rem;">${totalCalculado}</strong></td></tr>`;
     });
   }
 
+  function getNomeMesAtual(mesRef) { if(!mesRef) return ''; const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; return meses[parseInt(mesRef.split('-')[1]) - 1]; }
+  function getNomeMesAnterior(mesRef) { if(!mesRef) return ''; const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; let m = parseInt(mesRef.split('-')[1]) - 2; if(m < 0) m = 11; return meses[m]; }
+  function capitalizeFirstLetter(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+  function formatarMesAno(mesRef) { if(!mesRef) return ''; const [ano, mes] = mesRef.split('-'); return `${getNomeMesAtual(mesRef)} de ${ano}`; }
 
-  // =======================================================
-  // ABA: RESUMO PARA COBRANÇA E REPASSE (Com Imagens html2canvas)
-  // =======================================================
-  function getNomeMesAtual(mesRef) { 
-      if(!mesRef) return ''; 
-      const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; 
-      return meses[parseInt(mesRef.split('-')[1]) - 1]; 
-  }
-  
-  function getNomeMesAnterior(mesRef) { 
-      if(!mesRef) return ''; 
-      const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; 
-      let m = parseInt(mesRef.split('-')[1]) - 2; 
-      if(m < 0) m = 11; 
-      return meses[m]; 
-  }
-  
-  function capitalizeFirstLetter(s) { 
-      return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; 
-  }
-  
-  function formatarMesAno(mesRef) { 
-      if(!mesRef) return ''; 
-      const [ano, mes] = mesRef.split('-'); 
-      return `${getNomeMesAtual(mesRef)} de ${ano}`; 
-  }
+  function baixarImagem(idHtml, fileName) { const el = document.getElementById(idHtml); html2canvas(el, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => { let a = document.createElement('a'); a.href = canvas.toDataURL("image/jpeg", 0.9); a.download = fileName + '.jpg'; a.click(); }); }
+  function copiarTextoCob(idTextArea) { const el = document.getElementById(idTextArea); el.style.display = 'block'; el.select(); document.execCommand('copy'); el.style.display = 'none'; alert('✓ Texto copiado com sucesso!'); }
 
-  function baixarImagem(idHtml, fileName) {
-     const el = document.getElementById(idHtml);
-     html2canvas(el, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
-         let a = document.createElement('a'); 
-         a.href = canvas.toDataURL("image/jpeg", 0.9); 
-         a.download = fileName + '.jpg'; 
-         a.click();
-     });
-  }
-
-  function copiarTextoCob(idTextArea) {
-    const el = document.getElementById(idTextArea);
-    el.style.display = 'block'; 
-    el.select(); 
-    document.execCommand('copy'); 
-    el.style.display = 'none';
-    alert('✓ Texto copiado com sucesso!');
-  }
-
-  function avancarStatusCobranca(idReg, currentStatus) {
-    const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); 
-    if (idx === -1) return;
-    const mesRef = document.getElementById('filtro-mes').value; 
-    let statusObj = {};
-    try { statusObj = JSON.parse(contratosDB[idx].status_cobranca || '{}'); } catch(e) {}
-    if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; 
-    else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida';
-    updateDbLinear(idx, 'status_cobranca', JSON.stringify(statusObj));
-  }
-
-  function avancarStatusRepasse(idReg, currentStatus) {
-    const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); 
-    if (idx === -1) return;
-    const mesRef = document.getElementById('filtro-mes').value; 
-    let statusObj = {};
-    try { statusObj = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e) {}
-    if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; 
-    else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida';
-    updateDbLinear(idx, 'status_repasse', JSON.stringify(statusObj));
-  }
+  function avancarStatusCobranca(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_cobranca || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_cobranca', JSON.stringify(statusObj)); }
+  function avancarStatusRepasse(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_repasse', JSON.stringify(statusObj)); }
 
   function gerarTextosCobranca() {
-    const container = document.getElementById('cobrancas-container'); 
-    if (!container) return;
-    
+    const container = document.getElementById('cobrancas-container'); if (!container) return;
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
-    if (marcados.length === 0) { 
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:20px;">Nenhum imóvel Ativo marcado na aba de Imóveis Administrados.</div>'; 
-        return; 
-    }
-
-    container.innerHTML = ''; 
-    const mesRef = document.getElementById('filtro-mes').value;
-    const nomeMesAtual = capitalizeFirstLetter(getNomeMesAtual(mesRef)); 
-    const nomeMesAnterior = capitalizeFirstLetter(getNomeMesAnterior(mesRef));
-    
-    const [anoRef, mesRefStr] = mesRef.split('-'); 
-    let dVenc = new Date(anoRef, parseInt(mesRefStr) - 1, 1); 
-    let contUteis = 0;
-    while (contUteis < 5) { 
-        const ds = dVenc.getDay(); 
-        if (ds !== 0 && ds !== 6) contUteis++; 
-        if (contUteis < 5) dVenc.setDate(dVenc.getDate() + 1); 
-    }
-    const dataVencStr = dVenc.toLocaleDateString('pt-BR');
+    if (marcados.length === 0) { container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:20px;">Nenhum imóvel Ativo marcado.</div>'; return; }
+    container.innerHTML = ''; const mesRef = document.getElementById('filtro-mes').value;
+    const nomeMesAtual = capitalizeFirstLetter(getNomeMesAtual(mesRef)); const nomeMesAnterior = capitalizeFirstLetter(getNomeMesAnterior(mesRef));
+    const [anoRef, mesRefStr] = mesRef.split('-'); let dVenc = new Date(anoRef, parseInt(mesRefStr) - 1, 1); let contUteis = 0; while (contUteis < 5) { const ds = dVenc.getDay(); if (ds !== 0 && ds !== 6) contUteis++; if (contUteis < 5) dVenc.setDate(dVenc.getDate() + 1); } const dataVencStr = dVenc.toLocaleDateString('pt-BR');
 
     marcados.forEach(c => {
-      const idReg = c.id || c._tempId;
-      const vencInfo = getAvisoVencimento(c);
-
+      const idReg = c.id || c._tempId; const vencInfo = getAvisoVencimento(c);
       let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
       let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
       let alugMes = (c.aluguel_mes !== undefined && c.aluguel_mes !== null) ? c.aluguel_mes : ((alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base));
-
-      let vAlugProp = parseMoedaToFloat(alugProp); 
-      let vCondProp = parseMoedaToFloat(condProp); 
-      let vAlugMes = parseMoedaToFloat(alugMes);
-      let vCondMes = parseMoedaToFloat(c.cond_mes); 
-      let vIptu = parseMoedaToFloat(c.iptu); 
-      let vBombeiro = parseMoedaToFloat(c.bombeiro);
-      let vSeguro = parseMoedaToFloat(c.seguro); 
-      let vOutras = parseMoedaToFloat(c.outras_taxas); 
-      let vDesconto = parseMoedaToFloat(c.desconto);
+      let vAlugProp = parseMoedaToFloat(alugProp); let vCondProp = parseMoedaToFloat(condProp); let vAlugMes = parseMoedaToFloat(alugMes);
+      let vCondMes = parseMoedaToFloat(c.cond_mes); let vIptu = parseMoedaToFloat(c.iptu); let vBombeiro = parseMoedaToFloat(c.bombeiro);
+      let vSeguro = parseMoedaToFloat(c.seguro); let vOutras = parseMoedaToFloat(c.outras_taxas); let vDesconto = parseMoedaToFloat(c.desconto);
       let total = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
 
-      let texto = `Prezado(a) ${c.inquilino}, tudo bem?\n\nSegue o demonstrativo de locação com vencimento em *${dataVencStr}*:\n\n`;
-      let linhasCard = '';
-      
-      if (vAlugProp > 0) { 
-          texto += `🔹 Aluguel Proporcional (${nomeMesAnterior}): ${fmtMoeda(vAlugProp)}\n`; 
-          linhasCard += `<div class="comp-line"><span>Aluguel Proporcional (${nomeMesAnterior})</span> <span>${fmtMoeda(vAlugProp)}</span></div>`; 
-      }
-      if (vAlugMes > 0) { 
-          texto += `🔹 Aluguel (${nomeMesAnterior}): ${fmtMoeda(vAlugMes)}\n`; 
-          linhasCard += `<div class="comp-line"><span>Aluguel (${nomeMesAnterior})</span> <span>${fmtMoeda(vAlugMes)}</span></div>`; 
-      }
-      if (vCondProp > 0) { 
-          texto += `🔹 Condomínio Proporcional (${nomeMesAtual}): ${fmtMoeda(vCondProp)}\n`; 
-          linhasCard += `<div class="comp-line"><span>Condomínio Prop. (${nomeMesAtual})</span> <span>${fmtMoeda(vCondProp)}</span></div>`; 
-      }
-      if (vCondMes > 0) { 
-          texto += `🔹 Condomínio Mensal (${nomeMesAtual}): ${fmtMoeda(vCondMes)}\n`; 
-          linhasCard += `<div class="comp-line"><span>Condomínio (${nomeMesAtual})</span> <span>${fmtMoeda(vCondMes)}</span></div>`; 
-      }
-      if (vIptu > 0) { 
-          texto += `🔹 IPTU: ${fmtMoeda(vIptu)}\n`; 
-          linhasCard += `<div class="comp-line"><span>IPTU</span> <span>${fmtMoeda(vIptu)}</span></div>`; 
-      }
-      if (vBombeiro > 0) { 
-          texto += `🔹 Taxa de Incêndio/Bombeiro: ${fmtMoeda(vBombeiro)}\n`; 
-          linhasCard += `<div class="comp-line"><span>Taxa de Incêndio</span> <span>${fmtMoeda(vBombeiro)}</span></div>`; 
-      }
-      if (vSeguro > 0) { 
-          texto += `🔹 Seguro: ${fmtMoeda(vSeguro)}\n`; 
-          linhasCard += `<div class="comp-line"><span>Seguro</span> <span>${fmtMoeda(vSeguro)}</span></div>`; 
-      }
-      if (vOutras > 0) { 
-          texto += `🔹 Outras Taxas: ${fmtMoeda(vOutras)}`; 
-          if (c.desc_outras) texto += ` (${c.desc_outras})`; texto += `\n`; 
-          linhasCard += `<div class="comp-line"><span>Outras ${c.desc_outras?`(${c.desc_outras})`:''}</span> <span>${fmtMoeda(vOutras)}</span></div>`; 
-      }
-      if (vDesconto > 0) { 
-          texto += `🔹 Desconto: -${fmtMoeda(vDesconto)}`; 
-          if (c.desc_desconto) texto += ` (${c.desc_desconto})`; texto += `\n`; 
-          linhasCard += `<div class="comp-line" style="color:var(--danger);"><span>Desconto ${c.desc_desconto?`(${c.desc_desconto})`:''}</span> <span>-${fmtMoeda(vDesconto)}</span></div>`; 
-      }
+      let texto = `Prezado(a) ${c.inquilino}, tudo bem?\n\nSegue o demonstrativo de locação com vencimento em *${dataVencStr}*:\n\n`; let linhasCard = '';
+      if (vAlugProp > 0) { texto += `🔹 Aluguel Proporcional (${nomeMesAnterior}): ${fmtMoeda(vAlugProp)}\n`; linhasCard += `<div class="comp-line"><span>Aluguel Proporcional (${nomeMesAnterior})</span> <span>${fmtMoeda(vAlugProp)}</span></div>`; }
+      if (vAlugMes > 0) { texto += `🔹 Aluguel (${nomeMesAnterior}): ${fmtMoeda(vAlugMes)}\n`; linhasCard += `<div class="comp-line"><span>Aluguel (${nomeMesAnterior})</span> <span>${fmtMoeda(vAlugMes)}</span></div>`; }
+      if (vCondProp > 0) { texto += `🔹 Condomínio Proporcional (${nomeMesAtual}): ${fmtMoeda(vCondProp)}\n`; linhasCard += `<div class="comp-line"><span>Condomínio Prop. (${nomeMesAtual})</span> <span>${fmtMoeda(vCondProp)}</span></div>`; }
+      if (vCondMes > 0) { texto += `🔹 Condomínio Mensal (${nomeMesAtual}): ${fmtMoeda(vCondMes)}\n`; linhasCard += `<div class="comp-line"><span>Condomínio (${nomeMesAtual})</span> <span>${fmtMoeda(vCondMes)}</span></div>`; }
+      if (vIptu > 0) { texto += `🔹 IPTU: ${fmtMoeda(vIptu)}\n`; linhasCard += `<div class="comp-line"><span>IPTU</span> <span>${fmtMoeda(vIptu)}</span></div>`; }
+      if (vBombeiro > 0) { texto += `🔹 Taxa de Incêndio/Bombeiro: ${fmtMoeda(vBombeiro)}\n`; linhasCard += `<div class="comp-line"><span>Taxa de Incêndio</span> <span>${fmtMoeda(vBombeiro)}</span></div>`; }
+      if (vSeguro > 0) { texto += `🔹 Seguro: ${fmtMoeda(vSeguro)}\n`; linhasCard += `<div class="comp-line"><span>Seguro</span> <span>${fmtMoeda(vSeguro)}</span></div>`; }
+      if (vOutras > 0) { texto += `🔹 Outras Taxas: ${fmtMoeda(vOutras)}`; if (c.desc_outras) texto += ` (${c.desc_outras})`; texto += `\n`; linhasCard += `<div class="comp-line"><span>Outras ${c.desc_outras?`(${c.desc_outras})`:''}</span> <span>${fmtMoeda(vOutras)}</span></div>`; }
+      if (vDesconto > 0) { texto += `🔹 Desconto: -${fmtMoeda(vDesconto)}`; if (c.desc_desconto) texto += ` (${c.desc_desconto})`; texto += `\n`; linhasCard += `<div class="comp-line" style="color:var(--danger);"><span>Desconto ${c.desc_desconto?`(${c.desc_desconto})`:''}</span> <span>-${fmtMoeda(vDesconto)}</span></div>`; }
 
-      texto += vencInfo.textoCob;
-      texto += `\n💰 *TOTAL A PAGAR: ${fmtMoeda(total)}*\n\nFavor enviar o comprovante assim que efetuar o pagamento.`;
+      texto += vencInfo.textoCob; texto += `\n💰 *TOTAL A PAGAR: ${fmtMoeda(total)}*\n\nFavor enviar o comprovante assim que efetuar o pagamento.`;
+      let statusObj = {}; try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {} let statusAtual = statusObj[mesRef] || 'pendente';
+      let bgPainel = '#f8fafc'; let acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusCobranca('${idReg}', 'pendente')">📤 Cobrança Enviada</button>`; let msgFinal = '';
+      if (statusAtual === 'enviada') { bgPainel = '#fef08a'; acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusCobranca('${idReg}', 'enviada')">📥 Cobrança Recebida</button>`; } 
+      else if (statusAtual === 'recebida') { bgPainel = '#bbf7d0'; acaoHtml = ''; msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:900; color:#166534; font-size:0.9rem;">✅ Processo concluído com sucesso</div>`; }
 
-      let statusObj = {}; 
-      try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
-      let statusAtual = statusObj[mesRef] || 'pendente';
-
-      let bgPainel = '#f8fafc'; 
-      let acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusCobranca('${idReg}', 'pendente')">📤 Cobrança Enviada</button>`; 
-      let msgFinal = '';
-      
-      if (statusAtual === 'enviada') { 
-          bgPainel = '#fef08a'; 
-          acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusCobranca('${idReg}', 'enviada')">📥 Cobrança Recebida</button>`; 
-      } else if (statusAtual === 'recebida') { 
-          bgPainel = '#bbf7d0'; 
-          acaoHtml = ''; 
-          msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:900; color:#166534; font-size:0.9rem;">✅ Processo concluído com sucesso</div>`; 
-      }
-
-      const idTextArea = `txt-cob-${idReg}`; 
-      const idCard = `img-cob-${idReg}`;
-
+      const idTextArea = `txt-cob-${idReg}`; const idCard = `img-cob-${idReg}`;
       container.innerHTML += `
         <div style="background: ${bgPainel}; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.3s;">
-           <div id="${idCard}" class="receipt-box">
-              <div class="receipt-header">
-                 <img src="/Loga%20marca%20nova.png" style="max-height:46px; border-radius:4px; padding:2px; background:#000; margin-bottom:10px;" onerror="this.style.display='none'">
-                 <div style="font-weight:900; font-size:1.1rem; color:var(--primary);">DEMONSTRATIVO DE LOCAÇÃO</div>
-                 <div style="font-size:0.8rem; color:#64748b; margin-top:4px; font-weight:bold;">Vencimento: ${dataVencStr}</div>
-              </div>
-              <p style="font-size:0.9rem; margin-bottom:12px;"><strong>Inquilino:</strong> ${c.inquilino}</p>
-              <hr style="border:1px dashed #e2e8f0; margin:10px 0;">
-              ${linhasCard}
-              ${vencInfo.htmlCard || ''}
-              <div class="comp-total"><span>TOTAL A PAGAR:</span> <span>${fmtMoeda(total)}</span></div>
-              <div style="font-size:0.75rem; color:#64748b; margin-top:20px; text-align:center;">Envie o comprovante após o pagamento.<br>M&IC Corretores de Imóveis</div>
-           </div>
-           
+           <div id="${idCard}" class="receipt-box"><div class="receipt-header"><img src="/Loga%20marca%20nova.png" style="max-height:46px; border-radius:4px; padding:2px; background:#000; margin-bottom:10px;" onerror="this.style.display='none'">
+                 <div style="font-weight:900; font-size:1.1rem; color:var(--primary);">DEMONSTRATIVO DE LOCAÇÃO</div><div style="font-size:0.8rem; color:#64748b; margin-top:4px; font-weight:bold;">Vencimento: ${dataVencStr}</div></div>
+              <p style="font-size:0.9rem; margin-bottom:12px;"><strong>Inquilino:</strong> ${c.inquilino}</p><hr style="border:1px dashed #e2e8f0; margin:10px 0;">
+              ${linhasCard}${vencInfo.htmlCard || ''}<div class="comp-total"><span>TOTAL A PAGAR:</span> <span>${fmtMoeda(total)}</span></div>
+              <div style="font-size:0.75rem; color:#64748b; margin-top:20px; text-align:center;">Envie o comprovante após o pagamento.<br>M&IC Corretores de Imóveis</div></div>
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
-           
-           <div style="display: flex; gap: 8px; margin-top: 16px;">
-              <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="baixarImagem('${idCard}', 'Cobranca_${c.inquilino.replace(/\s+/g,'_')}')">⬇️ Imagem</button>
+           <div style="display: flex; gap: 8px; margin-top: 16px;"><button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="baixarImagem('${idCard}', 'Cobranca_${c.inquilino.replace(/\s+/g,'_')}')">⬇️ Imagem</button>
               <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Texto</button>
-              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.8rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a>
-           </div>
-           <div style="display: flex; gap: 8px; margin-top: 8px;">${acaoHtml}</div>
-           ${msgFinal}
-        </div>
-      `;
+              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.8rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a></div>
+           <div style="display: flex; gap: 8px; margin-top: 8px;">${acaoHtml}</div>${msgFinal}
+        </div>`;
     });
   }
 
   function gerarTextosRepasse() {
-    const container = document.getElementById('repasses-container'); 
-    if (!container) return;
-    
+    const container = document.getElementById('repasses-container'); if (!container) return;
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
-    if (marcados.length === 0) { 
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:20px;">Nenhum imóvel Ativo marcado.</div>'; 
-        return; 
-    }
-
-    container.innerHTML = ''; 
-    const mesRef = document.getElementById('filtro-mes').value;
-    const repasseMesTexto = formatarMesAno(mesRef);
-    const nomeMesAtual = capitalizeFirstLetter(getNomeMesAtual(mesRef)); 
-    const nomeMesAnterior = capitalizeFirstLetter(getNomeMesAnterior(mesRef));
+    if (marcados.length === 0) { container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:20px;">Nenhum imóvel Ativo marcado.</div>'; return; }
+    container.innerHTML = ''; const mesRef = document.getElementById('filtro-mes').value;
+    const repasseMesTexto = formatarMesAno(mesRef); const nomeMesAtual = capitalizeFirstLetter(getNomeMesAtual(mesRef)); const nomeMesAnterior = capitalizeFirstLetter(getNomeMesAnterior(mesRef));
 
     marcados.forEach(c => {
       const idReg = c.id || c._tempId;
-
       let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
       let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
       let alugMes = (c.aluguel_mes !== undefined && c.aluguel_mes !== null) ? c.aluguel_mes : ((alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base));
-
-      let vAlugProp = parseMoedaToFloat(alugProp); 
-      let vCondProp = parseMoedaToFloat(condProp); 
-      let vAlugMes = parseMoedaToFloat(alugMes);
-      let vCondMes = parseMoedaToFloat(c.cond_mes); 
-      let vIptu = parseMoedaToFloat(c.iptu); 
-      let vBombeiro = parseMoedaToFloat(c.bombeiro);
-      let vSeguro = parseMoedaToFloat(c.seguro); 
-      let vOutras = parseMoedaToFloat(c.outras_taxas); 
-      let vDesconto = parseMoedaToFloat(c.desconto);
-      let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa); 
-      let repassaCond = c.regra_condominio === 'S';
+      let vAlugProp = parseMoedaToFloat(alugProp); let vCondProp = parseMoedaToFloat(condProp); let vAlugMes = parseMoedaToFloat(alugMes);
+      let vCondMes = parseMoedaToFloat(c.cond_mes); let vIptu = parseMoedaToFloat(c.iptu); let vBombeiro = parseMoedaToFloat(c.bombeiro);
+      let vSeguro = parseMoedaToFloat(c.seguro); let vOutras = parseMoedaToFloat(c.outras_taxas); let vDesconto = parseMoedaToFloat(c.desconto);
+      let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa); let repassaCond = c.regra_condominio === 'S';
       
       let totalReceitas = vAlugProp + vAlugMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
-      let totalRepasseFinal = totalReceitas - vTaxaAdm; 
-      if (repassaCond) totalRepasseFinal += (vCondProp + vCondMes);
+      let totalRepasseFinal = totalReceitas - vTaxaAdm; if (repassaCond) totalRepasseFinal += (vCondProp + vCondMes);
 
-      let texto = `Prezado(a) ${c.proprietario}, tudo bem?\n\nSegue o demonstrativo de repasse referente ao imóvel locado por ${c.inquilino}, competência de *${repasseMesTexto}*:\n\n`;
-      let linhasCard = '';
-      
-      if (vAlugProp > 0) { 
-          texto += `🔹 Aluguel Proporcional (${nomeMesAnterior}): ${fmtMoeda(vAlugProp)}\n`; 
-          linhasCard += `<div class="comp-line"><span>Aluguel Prop. (${nomeMesAnterior})</span> <span>${fmtMoeda(vAlugProp)}</span></div>`; 
-      }
-      if (vAlugMes > 0) { 
-          texto += `🔹 Aluguel (${nomeMesAnterior}): ${fmtMoeda(vAlugMes)}\n`; 
-          linhasCard += `<div class="comp-line"><span>Aluguel (${nomeMesAnterior})</span> <span>${fmtMoeda(vAlugMes)}</span></div>`; 
-      }
-      
-      if (vCondProp > 0) { 
-          texto += `🔹 Condomínio Proporcional (${nomeMesAtual}): ${fmtMoeda(vCondProp)} ${repassaCond ? '' : '(Direto ao síndico/condomínio)'}\n`; 
-          linhasCard += `<div class="comp-line"><span>Condomínio Prop. (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico/condomínio)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondProp)}</span></div>`; 
-      }
-      if (vCondMes > 0) { 
-          texto += `🔹 Condomínio Mensal (${nomeMesAtual}): ${fmtMoeda(vCondMes)} ${repassaCond ? '' : '(Direto ao síndico/condomínio)'}\n`; 
-          linhasCard += `<div class="comp-line"><span>Condomínio (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico/condomínio)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondMes)}</span></div>`; 
-      }
-      
-      if (vIptu > 0) { 
-          texto += `🔹 IPTU: ${fmtMoeda(vIptu)}\n`; 
-          linhasCard += `<div class="comp-line"><span>IPTU</span> <span>${fmtMoeda(vIptu)}</span></div>`; 
-      }
-      if (vBombeiro > 0) { 
-          texto += `🔹 Taxa de Incêndio/Bombeiro: ${fmtMoeda(vBombeiro)}\n`; 
-          linhasCard += `<div class="comp-line"><span>Taxa de Incêndio</span> <span>${fmtMoeda(vBombeiro)}</span></div>`; 
-      }
-      if (vSeguro > 0) { 
-          texto += `🔹 Seguro: ${fmtMoeda(vSeguro)}\n`; 
-          linhasCard += `<div class="comp-line"><span>Seguro</span> <span>${fmtMoeda(vSeguro)}</span></div>`; 
-      }
-      if (vOutras > 0) { 
-          texto += `🔹 Outras Taxas: ${fmtMoeda(vOutras)}`; 
-          if (c.desc_outras) texto += ` (${c.desc_outras})`; texto += `\n`; 
-          linhasCard += `<div class="comp-line"><span>Outras ${c.desc_outras?`(${c.desc_outras})`:''}</span> <span>${fmtMoeda(vOutras)}</span></div>`; 
-      }
-      if (vDesconto > 0) { 
-          texto += `🔹 Desconto Concedido: -${fmtMoeda(vDesconto)}`; 
-          if (c.desc_desconto) texto += ` (${c.desc_desconto})`; texto += `\n`; 
-          linhasCard += `<div class="comp-line" style="color:var(--danger);"><span>Desconto ${c.desc_desconto?`(${c.desc_desconto})`:''}</span> <span>-${fmtMoeda(vDesconto)}</span></div>`; 
-      }
+      let texto = `Prezado(a) ${c.proprietario}, tudo bem?\n\nSegue o demonstrativo de repasse referente ao imóvel locado por ${c.inquilino}, competência de *${repasseMesTexto}*:\n\n`; let linhasCard = '';
+      if (vAlugProp > 0) { texto += `🔹 Aluguel Proporcional (${nomeMesAnterior}): ${fmtMoeda(vAlugProp)}\n`; linhasCard += `<div class="comp-line"><span>Aluguel Prop. (${nomeMesAnterior})</span> <span>${fmtMoeda(vAlugProp)}</span></div>`; }
+      if (vAlugMes > 0) { texto += `🔹 Aluguel (${nomeMesAnterior}): ${fmtMoeda(vAlugMes)}\n`; linhasCard += `<div class="comp-line"><span>Aluguel (${nomeMesAnterior})</span> <span>${fmtMoeda(vAlugMes)}</span></div>`; }
+      if (vCondProp > 0) { texto += `🔹 Condomínio Proporcional (${nomeMesAtual}): ${fmtMoeda(vCondProp)} ${repassaCond ? '' : '(Direto ao síndico/condomínio)'}\n`; linhasCard += `<div class="comp-line"><span>Condomínio Prop. (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondProp)}</span></div>`; }
+      if (vCondMes > 0) { texto += `🔹 Condomínio Mensal (${nomeMesAtual}): ${fmtMoeda(vCondMes)} ${repassaCond ? '' : '(Direto ao síndico/condomínio)'}\n`; linhasCard += `<div class="comp-line"><span>Condomínio (${nomeMesAtual}) ${repassaCond ? '' : '<br><span style="font-size:0.75rem; color:#64748b;">(Direto ao síndico)</span>'}</span> <span style="${!repassaCond?'color:#64748b;':''}">${fmtMoeda(vCondMes)}</span></div>`; }
+      if (vIptu > 0) { texto += `🔹 IPTU: ${fmtMoeda(vIptu)}\n`; linhasCard += `<div class="comp-line"><span>IPTU</span> <span>${fmtMoeda(vIptu)}</span></div>`; }
+      if (vBombeiro > 0) { texto += `🔹 Taxa de Incêndio/Bombeiro: ${fmtMoeda(vBombeiro)}\n`; linhasCard += `<div class="comp-line"><span>Taxa de Incêndio</span> <span>${fmtMoeda(vBombeiro)}</span></div>`; }
+      if (vSeguro > 0) { texto += `🔹 Seguro: ${fmtMoeda(vSeguro)}\n`; linhasCard += `<div class="comp-line"><span>Seguro</span> <span>${fmtMoeda(vSeguro)}</span></div>`; }
+      if (vOutras > 0) { texto += `🔹 Outras Taxas: ${fmtMoeda(vOutras)}`; if (c.desc_outras) texto += ` (${c.desc_outras})`; texto += `\n`; linhasCard += `<div class="comp-line"><span>Outras ${c.desc_outras?`(${c.desc_outras})`:''}</span> <span>${fmtMoeda(vOutras)}</span></div>`; }
+      if (vDesconto > 0) { texto += `🔹 Desconto Concedido: -${fmtMoeda(vDesconto)}`; if (c.desc_desconto) texto += ` (${c.desc_desconto})`; texto += `\n`; linhasCard += `<div class="comp-line" style="color:var(--danger);"><span>Desconto ${c.desc_desconto?`(${c.desc_desconto})`:''}</span> <span>-${fmtMoeda(vDesconto)}</span></div>`; }
 
-      texto += `\n🔻 *Deduções:*\n🔸 Taxa de Administração: -${fmtMoeda(vTaxaAdm)}\n`;
-      linhasCard += `<div class="comp-line" style="margin-top:10px; color:var(--danger);"><span><strong>Taxa de Administração</strong></span> <span><strong>-${fmtMoeda(vTaxaAdm)}</strong></span></div>`;
-
+      texto += `\n🔻 *Deduções:*\n🔸 Taxa de Administração: -${fmtMoeda(vTaxaAdm)}\n`; linhasCard += `<div class="comp-line" style="margin-top:10px; color:var(--danger);"><span><strong>Taxa de Administração</strong></span> <span><strong>-${fmtMoeda(vTaxaAdm)}</strong></span></div>`;
       let titularStr = c.titular_pix ? `\nTitular: ${c.titular_pix}` : `\nTitular: ${c.proprietario}`;
       texto += `\n💰 *TOTAL REPASSADO: ${fmtMoeda(totalRepasseFinal)}*\n\nO valor foi transferido para a chave PIX: ${c.pix_proprietario || 'Não informada'}${titularStr}\nQualquer dúvida, estamos à disposição!\n\n*M&IC Corretores de Imóveis*`;
 
-      let statusObj = {}; 
-      try { statusObj = JSON.parse(c.status_repasse || '{}'); } catch(e) {}
-      let statusAtual = statusObj[mesRef] || 'pendente';
+      let statusObj = {}; try { statusObj = JSON.parse(c.status_repasse || '{}'); } catch(e) {} let statusAtual = statusObj[mesRef] || 'pendente';
+      let bgPainel = '#f8fafc'; let acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusRepasse('${idReg}', 'pendente')">📤 Repasse Enviado</button>`; let msgFinal = '';
+      if (statusAtual === 'enviada') { bgPainel = '#fef08a'; acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusRepasse('${idReg}', 'enviada')">✅ Repasse Confirmado</button>`; } 
+      else if (statusAtual === 'recebida') { bgPainel = '#bbf7d0'; acaoHtml = ''; msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:900; color:#166534; font-size:0.9rem;">✅ Repasse concluído com sucesso</div>`; }
 
-      let bgPainel = '#f8fafc'; 
-      let acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusRepasse('${idReg}', 'pendente')">📤 Repasse Enviado</button>`; 
-      let msgFinal = '';
-      
-      if (statusAtual === 'enviada') { 
-          bgPainel = '#fef08a'; 
-          acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusRepasse('${idReg}', 'enviada')">✅ Repasse Confirmado</button>`; 
-      } else if (statusAtual === 'recebida') { 
-          bgPainel = '#bbf7d0'; 
-          acaoHtml = ''; 
-          msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:900; color:#166534; font-size:0.9rem;">✅ Repasse concluído com sucesso</div>`; 
-      }
-
-      const idTextArea = `txt-rep-${idReg}`; 
-      const idCard = `img-rep-${idReg}`;
-
+      const idTextArea = `txt-rep-${idReg}`; const idCard = `img-rep-${idReg}`;
       container.innerHTML += `
         <div style="background: ${bgPainel}; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.3s;">
-           <div id="${idCard}" class="receipt-box">
-              <div class="receipt-header">
-                 <img src="/Loga%20marca%20nova.png" style="max-height:46px; border-radius:4px; padding:2px; background:#000; margin-bottom:10px;" onerror="this.style.display='none'">
-                 <div style="font-weight:900; font-size:1.1rem; color:var(--primary);">DEMONSTRATIVO DE REPASSE</div>
-                 <div style="font-size:0.8rem; color:#64748b; margin-top:4px; font-weight:bold;">Competência: ${repasseMesTexto}</div>
-              </div>
-              <p style="font-size:0.9rem; margin-bottom:12px;"><strong>Proprietário:</strong> ${c.proprietario}</p>
-              <hr style="border:1px dashed #e2e8f0; margin:10px 0;">
-              ${linhasCard}
-              <div class="comp-total"><span>TOTAL REPASSADO:</span> <span>${fmtMoeda(totalRepasseFinal)}</span></div>
-              <div style="font-size:0.75rem; color:#64748b; margin-top:20px; text-align:center;">
-                  Chave PIX: ${c.pix_proprietario || 'Não informada'}<br>
-                  Titular: ${c.titular_pix || c.proprietario}<br>
-                  M&IC Corretores de Imóveis
-              </div>
-           </div>
-           
+           <div id="${idCard}" class="receipt-box"><div class="receipt-header"><img src="/Loga%20marca%20nova.png" style="max-height:46px; border-radius:4px; padding:2px; background:#000; margin-bottom:10px;" onerror="this.style.display='none'">
+                 <div style="font-weight:900; font-size:1.1rem; color:var(--primary);">DEMONSTRATIVO DE REPASSE</div><div style="font-size:0.8rem; color:#64748b; margin-top:4px; font-weight:bold;">Competência: ${repasseMesTexto}</div></div>
+              <p style="font-size:0.9rem; margin-bottom:12px;"><strong>Proprietário:</strong> ${c.proprietario}</p><hr style="border:1px dashed #e2e8f0; margin:10px 0;">
+              ${linhasCard}<div class="comp-total"><span>TOTAL REPASSADO:</span> <span>${fmtMoeda(totalRepasseFinal)}</span></div>
+              <div style="font-size:0.75rem; color:#64748b; margin-top:20px; text-align:center;">Chave PIX: ${c.pix_proprietario || 'Não informada'}<br>Titular: ${c.titular_pix || c.proprietario}<br>M&IC Corretores de Imóveis</div></div>
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
-           
-           <div style="display: flex; gap: 8px; margin-top: 16px;">
-              <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="baixarImagem('${idCard}', 'Repasse_${c.proprietario.replace(/\s+/g,'_')}')">⬇️ Imagem</button>
+           <div style="display: flex; gap: 8px; margin-top: 16px;"><button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="baixarImagem('${idCard}', 'Repasse_${c.proprietario.replace(/\s+/g,'_')}')">⬇️ Imagem</button>
               <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Texto</button>
-              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.8rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_proprietario).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a>
-           </div>
-           <div style="display: flex; gap: 8px; margin-top: 8px;">${acaoHtml}</div>
-           ${msgFinal}
-        </div>
-      `;
+              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.8rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_proprietario).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a></div>
+           <div style="display: flex; gap: 8px; margin-top: 8px;">${acaoHtml}</div>${msgFinal}
+        </div>`;
     });
+  }
+
+  // =======================================================
+  // ABA: GERENCIAL E EXPORTAÇÃO
+  // =======================================================
+  function renderizarGerencial() {
+      const mesRef = document.getElementById('filtro-mes').value;
+      const ativos = contratosDB.filter(c => c.ativo === 'SIM');
+      let totalAdm = 0; let totalVolume = 0;
+
+      ativos.forEach(c => {
+         let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
+         let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
+         let alugMes = (c.aluguel_mes !== undefined && c.aluguel_mes !== null) ? c.aluguel_mes : ((alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base));
+
+         let volumeLocacao = parseMoedaToFloat(alugProp) + parseMoedaToFloat(alugMes) + parseMoedaToFloat(condProp) + parseMoedaToFloat(c.cond_mes) + parseMoedaToFloat(c.iptu) + parseMoedaToFloat(c.bombeiro) + parseMoedaToFloat(c.seguro) + parseMoedaToFloat(c.outras_taxas);
+         totalVolume += volumeLocacao; totalAdm += parseMoedaToFloat(c.taxa_adm_fixa);
+      });
+
+      document.getElementById('ger-ativos').innerText = ativos.length;
+      document.getElementById('ger-faturamento').innerText = fmtMoeda(totalAdm);
+      document.getElementById('ger-volume').innerText = fmtMoeda(totalVolume);
+  }
+
+  function gerarBackupCSV() {
+      if (contratosDB.length === 0) return alert('Nenhum dado para exportar.');
+      let csv = 'DataRegistro,Ativo,Proprietario,TelefoneProp,PixProp,TitularPix,Inquilino,EmailInq,TelefoneInq,Endereco,Inicio,Fim,AluguelBase,CondominioBase,TaxaAdm\n';
+      contratosDB.forEach(c => {
+        let row = [
+          c.created_at || '', c.ativo || '', c.proprietario || '', c.telefone_proprietario || '', c.pix_proprietario || '', c.titular_pix || '',
+          c.inquilino || '', c.email_inquilino || '', c.telefone_inquilino || '', c.endereco || '',
+          c.data_inicio || '', c.data_fim || '', c.aluguel_base || 0, c.condominio_base || 0, c.taxa_adm_fixa || 0
+        ].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',');
+        csv += row + '\n';
+      });
+      const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
+      a.download = `MIC_Backup_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+  }
+
+  function enviarRelatorioEmail() {
+      const mesRef = formatarMesAno(document.getElementById('filtro-mes').value);
+      const ativos = document.getElementById('ger-ativos').innerText;
+      const fat = document.getElementById('ger-faturamento').innerText;
+      const vol = document.getElementById('ger-volume').innerText;
+
+      let texto = `Prezado Mário Chalfoun Junior,\n\nSegue o resumo gerencial da M&IC Corretores referente ao mês de ${mesRef}:\n\n`;
+      texto += `📈 Imóveis Ativos: ${ativos}\n`;
+      texto += `💰 Faturamento Estimado (Taxa Adm): ${fat}\n`;
+      texto += `📊 Volume Total Transacionado: ${vol}\n\n`;
+      texto += `Este é um relatório automático gerado pelo Sistema de Gestão M&IC.\nO backup completo em CSV encontra-se disponível no painel.`;
+
+      window.location.href = `mailto:chalfouncorretor@gmail.com?subject=Relatorio Mensal M&IC - ${mesRef}&body=${encodeURIComponent(texto)}`;
   }
 </script>
 </body>
