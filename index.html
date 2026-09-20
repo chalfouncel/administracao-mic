@@ -765,6 +765,7 @@ ${fullText.substring(0, 8000)}`;
     if (!tbody) return;
     tbody.innerHTML = '';
     
+    // Filtro invisível para SOFT DELETE
     const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
 
     if (imoveisVisiveis.length === 0) {
@@ -1180,7 +1181,7 @@ ${fullText.substring(0, 8000)}`;
       }
 
       texto += `\n💰 *TOTAL A PAGAR: ${fmtMoeda(total)}*\n`;
-      texto += `\n🔑 *Chave PIX:* ${c.pix_proprietario || 'Não informada'}\n\nFavor enviar o comprovante assim que efetuar o pagamento.\nQualquer dúvida, estamos à disposição!\n\n*M&IC Corretores de Imóveis*`;
+      texto += `\nFavor enviar o comprovante assim que efetuar o pagamento.\nQualquer dúvida, estamos à disposição!\n\n*M&IC Corretores de Imóveis*`;
 
       const idTextArea = `txt-cob-${c.id || c._tempId}`;
 
