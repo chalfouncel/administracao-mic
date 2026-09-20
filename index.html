@@ -49,7 +49,7 @@
 
   label { display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 4px; text-transform: uppercase; }
   input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; transition: 0.2s; }
-  input:focus, select:focus { border-color: var(--accent); }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
   
   .field-ok { background-color: #f0fdf4 !important; border-color: #22c55e !important; color: #047857; font-weight: bold; }
 
@@ -58,6 +58,7 @@
   .btn-gold:hover { opacity: 0.95; }
   .btn-dark { background: var(--secondary); color: #fff; }
   .btn-danger { background: var(--danger); color: #fff; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; }
+  .btn-whatsapp { background: #25D366; color: #fff; }
 
   /* TABELAS LINEARES */
   .table-linear-container { width: 100%; max-height: 75vh; overflow: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
@@ -68,9 +69,11 @@
   table.table-linear tr:hover { background: #f8fafc; }
   .checkbox-marcar { width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent); }
 
-  .input-calc { width: 90px; padding: 6px 8px; font-size: 0.85rem; border: 1px solid #cbd5e1; border-radius: 4px; text-align: right; }
+  .input-calc { width: 95px; padding: 6px 8px; font-size: 0.85rem; border: 1px solid #cbd5e1; border-radius: 4px; text-align: right; }
   .input-calc[readonly] { background-color: #f1f5f9; cursor: pointer; color: #64748b; font-weight: bold; text-align: center; }
+  .input-desc { width: 100px; margin-top: 6px; font-size: 0.72rem; padding: 4px; border: 1px dashed #cbd5e1; border-radius: 4px; resize: none; box-sizing: border-box; background: #fffde7; }
 
+  /* EFEITO THUMBNAIL TABELA LINEAR */
   .row-pdf-btn { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 64px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; overflow: hidden; transition: 0.2s; position: relative; }
   .row-pdf-btn:hover { border-color: var(--accent); transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
   .row-pdf-icon { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
@@ -137,7 +140,7 @@
   <div style="display:flex; justify-content:flex-end; margin-bottom: 12px;">
      <div style="display:flex; align-items:center; gap: 8px;">
         <span style="font-size:0.85rem; font-weight:bold; color:var(--primary);">Mês e Ano de Referência:</span>
-        <input type="month" id="filtro-mes" onchange="renderizarTabelaLinear(); renderizarTaxasCondominiais();" style="width:160px; padding: 6px 12px; font-weight:bold;">
+        <input type="month" id="filtro-mes" onchange="renderizarTabelaLinear(); renderizarTaxasCondominiais(); gerarTextosCobranca();" style="width:160px; padding: 6px 12px; font-weight:bold;">
      </div>
   </div>
 
@@ -145,8 +148,7 @@
     <button class="tab-btn active" onclick="setTab('resumo', this)">📄 Resumo do contrato</button>
     <button class="tab-btn" onclick="setTab('imoveis', this)">🏘️ Imóveis Administrados</button>
     <button class="tab-btn" onclick="setTab('taxas_cond', this)">📊 Taxas Condominiais</button>
-    <button class="tab-btn" onclick="setTab('taxas_extras', this)">📑 Taxas Extras</button>
-    <button class="tab-btn" onclick="setTab('descontos', this)">🏷️ Descontos</button>
+    <button class="tab-btn" onclick="setTab('resumo_cobranca', this)">💬 Resumo para Cobrança</button>
     <button class="tab-btn" onclick="setTab('resumo_gerencial', this)">📈 Resumo Gerencial</button>
   </div>
 
@@ -306,19 +308,15 @@
     </div>
   </div>
 
-  <!-- ABA: LANÇAMENTO DE TAXAS EXTRAS -->
-  <div id="tab-taxas_extras" class="tab-content">
-    <div class="card">
-      <div class="card-title">Lançamento de Taxas Extras (IPTU, Bombeiro, Seguros, Multas)</div>
-      <p style="font-size: 0.85rem; color: #64748b;">As opções de IPTU, Bombeiro, Seguro e Outras foram unificadas na aba "Taxas Condominiais" para facilitar o lançamento mensal.</p>
-    </div>
-  </div>
-
-  <!-- ABA: DESCONTOS -->
-  <div id="tab-descontos" class="tab-content">
-    <div class="card">
-      <div class="card-title">Controle de Descontos Concedidos</div>
-      <p style="font-size: 0.85rem; color: #64748b;">A opção de descontos foi unificada na aba "Taxas Condominiais" para centralizar o lançamento.</p>
+  <!-- ABA: RESUMO PARA COBRANÇA -->
+  <div id="tab-resumo_cobranca" class="tab-content">
+    <div class="card" style="padding: 10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 8px;">
+        <div style="font-weight:800; font-size: 1.1rem; color: var(--primary);">Resumo para Cobrança Automática</div>
+      </div>
+      <div id="cobrancas-container" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 16px;">
+         <!-- Cards Gerados Dinamicamente -->
+      </div>
     </div>
   </div>
 
@@ -339,7 +337,7 @@
   const SUPABASE_KEY = 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_JwOjDkAj';
   let contratosDB = [];
   let selectedPdfFile = null;
-  let contratosMarcados = new Set(); // Memória Local para as marcações
+  let contratosMarcados = new Set(); 
 
   const formatadorStr = val => {
     if(!val) return '';
@@ -644,7 +642,7 @@ ${fullText.substring(0, 8000)}`;
       document.getElementById('auth-modal').style.display = 'none';
       document.getElementById('user-pill').style.display = 'flex';
       document.getElementById('logged-user-email').innerText = s.user.email;
-      carregarImoveis(); // Sempre carrega dados ao fazer login
+      carregarImoveis(); 
     } else {
       document.getElementById('auth-modal').style.display = 'flex';
       document.getElementById('user-pill').style.display = 'none';
@@ -719,10 +717,9 @@ ${fullText.substring(0, 8000)}`;
     document.getElementById('tab-' + name).classList.add('active');
     btn.classList.add('active');
     
-    // Agora não chama carregarImoveis a cada clique para não apagar as marcações locais
-    // As tabelas são atualizadas com base nos dados que já estão na memória
     if (name === 'imoveis') renderizarTabelaLinear();
     if (name === 'taxas_cond') renderizarTaxasCondominiais();
+    if (name === 'resumo_cobranca') gerarTextosCobranca();
   }
 
   // =======================================================
@@ -768,7 +765,6 @@ ${fullText.substring(0, 8000)}`;
     if (!tbody) return;
     tbody.innerHTML = '';
     
-    // Filtro invisível para SOFT DELETE
     const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
 
     if (imoveisVisiveis.length === 0) {
@@ -1058,7 +1054,7 @@ ${fullText.substring(0, 8000)}`;
     const tbody = document.getElementById('tabela-taxas-body');
     if(!tbody) return;
     
-    // Agora verifica através da memória local (contratosMarcados)
+    // Mostra apenas os contratos que foram "Marcados" na aba de Imóveis Administrados
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
 
     if (marcados.length === 0) {
@@ -1076,6 +1072,9 @@ ${fullText.substring(0, 8000)}`;
       let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
 
       const totalCalculado = calcularTotalCobrancaLinha(c, alugProp, condProp);
+      
+      const isOutrasVisible = parseMoedaToFloat(c.outras_taxas) > 0 ? 'block' : 'none';
+      const isDescVisible = parseMoedaToFloat(c.desconto) > 0 ? 'block' : 'none';
 
       tbody.innerHTML += `
         <tr>
@@ -1087,10 +1086,113 @@ ${fullText.substring(0, 8000)}`;
           <td class="fit"><input type="text" value="${c.iptu || ''}" onchange="updateDbLinear(${i}, 'iptu', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"></td>
           <td class="fit"><input type="text" value="${c.bombeiro || ''}" onchange="updateDbLinear(${i}, 'bombeiro', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"></td>
           <td class="fit"><input type="text" value="${c.seguro || ''}" onchange="updateDbLinear(${i}, 'seguro', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"></td>
-          <td class="fit"><input type="text" value="${c.outras_taxas || ''}" onchange="updateDbLinear(${i}, 'outras_taxas', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"></td>
-          <td class="fit"><input type="text" value="${c.desconto || ''}" onchange="updateDbLinear(${i}, 'desconto', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00"></td>
-          <td class="fit" style="background-color:#f8fafc; text-align:center;"><strong style="color:var(--danger); font-size:0.95rem;">${totalCalculado}</strong></td>
+          
+          <td class="fit" style="vertical-align: top;">
+            <input type="text" value="${c.outras_taxas || ''}" onchange="updateDbLinear(${i}, 'outras_taxas', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00">
+            <textarea rows="2" maxlength="300" placeholder="Motivo..." class="input-desc" style="display:${isOutrasVisible};" onchange="updateDbLinear(${i}, 'desc_outras', this.value)">${c.desc_outras || ''}</textarea>
+          </td>
+          
+          <td class="fit" style="vertical-align: top;">
+            <input type="text" value="${c.desconto || ''}" onchange="updateDbLinear(${i}, 'desconto', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc" placeholder="0,00">
+            <textarea rows="2" maxlength="300" placeholder="Motivo..." class="input-desc" style="display:${isDescVisible};" onchange="updateDbLinear(${i}, 'desc_desconto', this.value)">${c.desc_desconto || ''}</textarea>
+          </td>
+          
+          <td class="fit" style="background-color:#f8fafc; text-align:center; vertical-align: middle;"><strong style="color:var(--danger); font-size:0.95rem;">${totalCalculado}</strong></td>
         </tr>
+      `;
+    });
+  }
+
+  // =======================================================
+  // ABA: RESUMO PARA COBRANÇA
+  // =======================================================
+  function copiarTextoCob(idTextArea) {
+    const el = document.getElementById(idTextArea);
+    el.select();
+    document.execCommand('copy');
+    alert('✓ Texto de cobrança copiado com sucesso!');
+  }
+
+  function gerarTextosCobranca() {
+    const container = document.getElementById('cobrancas-container');
+    if (!container) return;
+
+    const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
+
+    if (marcados.length === 0) {
+      container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:20px;">Nenhum imóvel Ativo marcado na aba de Imóveis Administrados.</div>';
+      return;
+    }
+
+    container.innerHTML = '';
+    const mesRef = document.getElementById('filtro-mes').value;
+    
+    // Calcula o 5º dia útil do mês de referência (Mês da cobrança)
+    const [anoRef, mesRefStr] = mesRef.split('-');
+    let dVenc = new Date(anoRef, parseInt(mesRefStr) - 1, 1);
+    let contUteis = 0;
+    while (contUteis < 5) { 
+       const diaSemana = dVenc.getDay(); 
+       if (diaSemana !== 0 && diaSemana !== 6) contUteis++; 
+       if (contUteis < 5) dVenc.setDate(dVenc.getDate() + 1); 
+    }
+    const dataVencStr = dVenc.toLocaleDateString('pt-BR');
+
+    marcados.forEach(c => {
+      let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
+      let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
+
+      let vAlugProp = (alugProp === 'Não' || alugProp === '') ? parseMoedaToFloat(c.aluguel_base) : parseMoedaToFloat(alugProp);
+      let vCondProp = (condProp === 'Não' || condProp === '') ? 0 : parseMoedaToFloat(condProp);
+      let vCondMes = parseMoedaToFloat(c.cond_mes);
+      let vIptu = parseMoedaToFloat(c.iptu);
+      let vBombeiro = parseMoedaToFloat(c.bombeiro);
+      let vSeguro = parseMoedaToFloat(c.seguro);
+      let vOutras = parseMoedaToFloat(c.outras_taxas);
+      let vDesconto = parseMoedaToFloat(c.desconto);
+      let total = vAlugProp + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+
+      let texto = `Prezado(a) ${c.inquilino}, tudo bem?\n\nSegue o demonstrativo de locação com vencimento em *${dataVencStr}*:\n\n`;
+      
+      if (vAlugProp > 0) {
+         if (alugProp !== 'Não' && alugProp !== '') {
+             texto += `🔹 Aluguel Proporcional: ${fmtMoeda(vAlugProp)}\n`;
+         } else {
+             texto += `🔹 Aluguel: ${fmtMoeda(vAlugProp)}\n`;
+         }
+      }
+      
+      if (vCondProp > 0) texto += `🔹 Condomínio Proporcional: ${fmtMoeda(vCondProp)}\n`;
+      if (vCondMes > 0) texto += `🔹 Condomínio Mensal: ${fmtMoeda(vCondMes)}\n`;
+      if (vIptu > 0) texto += `🔹 IPTU: ${fmtMoeda(vIptu)}\n`;
+      if (vBombeiro > 0) texto += `🔹 Taxa de Incêndio/Bombeiro: ${fmtMoeda(vBombeiro)}\n`;
+      if (vSeguro > 0) texto += `🔹 Seguro: ${fmtMoeda(vSeguro)}\n`;
+      
+      if (vOutras > 0) {
+         texto += `🔹 Outras Taxas: ${fmtMoeda(vOutras)}`;
+         if (c.desc_outras) texto += ` (Motivo: ${c.desc_outras})`;
+         texto += `\n`;
+      }
+      if (vDesconto > 0) {
+         texto += `🔹 Desconto: -${fmtMoeda(vDesconto)}`;
+         if (c.desc_desconto) texto += ` (Motivo: ${c.desc_desconto})`;
+         texto += `\n`;
+      }
+
+      texto += `\n💰 *TOTAL A PAGAR: ${fmtMoeda(total)}*\n`;
+      texto += `\n🔑 *Chave PIX:* ${c.pix_proprietario || 'Não informada'}\n\nFavor enviar o comprovante assim que efetuar o pagamento.\nQualquer dúvida, estamos à disposição!\n\n*M&IC Corretores de Imóveis*`;
+
+      const idTextArea = `txt-cob-${c.id || c._tempId}`;
+
+      container.innerHTML += `
+        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+           <h4 style="margin-bottom: 10px; color: var(--primary); font-size: 0.95rem;">Cobrança: ${c.inquilino}</h4>
+           <textarea id="${idTextArea}" rows="14" style="width: 100%; font-family: monospace; font-size: 0.8rem; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; resize: vertical; box-sizing:border-box;" readonly>${texto}</textarea>
+           <div style="display: flex; gap: 8px; margin-top: 10px;">
+              <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Copiar</button>
+              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.8rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WhatsApp</a>
+           </div>
+        </div>
       `;
     });
   }
