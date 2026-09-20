@@ -57,7 +57,6 @@
   .btn-gold { background: linear-gradient(135deg, #c59b27, #dfba48); color: #121315; }
   .btn-gold:hover { opacity: 0.95; }
   .btn-dark { background: var(--secondary); color: #fff; }
-  .btn-dark:hover { background: #000; }
   .btn-danger { background: var(--danger); color: #fff; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; }
   .btn-whatsapp { background: #25D366; color: #fff; }
 
@@ -141,7 +140,7 @@
   <div style="display:flex; justify-content:flex-end; margin-bottom: 12px;">
      <div style="display:flex; align-items:center; gap: 8px;">
         <span style="font-size:0.85rem; font-weight:bold; color:var(--primary);">Mês e Ano de Referência:</span>
-        <input type="month" id="filtro-mes" onchange="renderizarTabelaLinear(); renderizarTaxasCondominiais(); gerarTextosCobranca();" style="width:160px; padding: 6px 12px; font-weight:bold;">
+        <input type="month" id="filtro-mes" onchange="renderizarTabelaLinear(); renderizarTaxasCondominiais(); gerarTextosCobranca(); gerarTextosRepasse();" style="width:160px; padding: 6px 12px; font-weight:bold;">
      </div>
   </div>
 
@@ -149,8 +148,9 @@
     <button class="tab-btn active" onclick="setTab('resumo', this)">📄 Resumo do contrato</button>
     <button class="tab-btn" onclick="setTab('imoveis', this)">🏘️ Imóveis Administrados</button>
     <button class="tab-btn" onclick="setTab('taxas_cond', this)">📊 Taxas Condominiais</button>
-    <button class="tab-btn" onclick="setTab('resumo_cobranca', this)">💬 Resumo para Cobrança</button>
-    <button class="tab-btn" onclick="setTab('resumo_gerencial', this)">📈 Resumo Gerencial</button>
+    <button class="tab-btn" onclick="setTab('resumo_cobranca', this)">💬 Cobrança</button>
+    <button class="tab-btn" onclick="setTab('repasse', this)">💸 Repasse</button>
+    <button class="tab-btn" onclick="setTab('resumo_gerencial', this)">📈 Gerencial</button>
   </div>
 
   <!-- ABA: RESUMO DO CONTRATO — NÃO ALTERAR -->
@@ -314,9 +314,21 @@
   <div id="tab-resumo_cobranca" class="tab-content">
     <div class="card" style="padding: 10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 8px;">
-        <div style="font-weight:800; font-size: 1.1rem; color: var(--primary);">Resumo para Cobrança Automática</div>
+        <div style="font-weight:800; font-size: 1.1rem; color: var(--primary);">Resumo para Cobrança (Inquilino)</div>
       </div>
       <div id="cobrancas-container" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 16px;">
+         <!-- Cards Gerados Dinamicamente -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA: REPASSE -->
+  <div id="tab-repasse" class="tab-content">
+    <div class="card" style="padding: 10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 8px;">
+        <div style="font-weight:800; font-size: 1.1rem; color: var(--primary);">Demonstrativo de Repasse (Proprietário)</div>
+      </div>
+      <div id="repasses-container" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 16px;">
          <!-- Cards Gerados Dinamicamente -->
       </div>
     </div>
@@ -730,10 +742,11 @@ ${fullText.substring(0, 8000)}`;
     if (name === 'imoveis') renderizarTabelaLinear();
     if (name === 'taxas_cond') renderizarTaxasCondominiais();
     if (name === 'resumo_cobranca') gerarTextosCobranca();
+    if (name === 'repasse') gerarTextosRepasse();
   }
 
   // =======================================================
-  // TABELA DE IMOVEIS ADMINISTRADOS
+  // TABELA DE IMOVEIS ADMINISTRADOS (Controle de Marcação Local)
   // =======================================================
   
   function toggleMarcar(idString, isChecked) {
@@ -860,6 +873,9 @@ ${fullText.substring(0, 8000)}`;
     if (document.getElementById('tab-resumo_cobranca').classList.contains('active')) {
         gerarTextosCobranca();
     }
+    if (document.getElementById('tab-repasse').classList.contains('active')) {
+        gerarTextosRepasse();
+    }
     const id = contratosDB[index].id; if(!id) return;
     try {
       await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, {
@@ -948,7 +964,8 @@ ${fullText.substring(0, 8000)}`;
       regra_condominio: document.getElementById('regraCond').value || 'N',
       contrato_url: urlPdf, 
       ativo: 'SIM',
-      status_cobranca: '{}'
+      status_cobranca: '{}',
+      status_repasse: '{}'
     };
 
     try {
@@ -992,7 +1009,7 @@ ${fullText.substring(0, 8000)}`;
         setTab('imoveis', document.querySelectorAll('.tab-btn')[1]);
       } else {
         const errData = await r.json();
-        alert('Erro ao gravar no banco de dados. Detalhe: ' + JSON.stringify(errData));
+        alert('Erro ao gravar no banco de dados. A tabela "locacoes" ou algumas de suas colunas podem estar ausentes no Supabase. Detalhe: ' + JSON.stringify(errData));
       }
     } catch(e) {
          alert('Falha de conexão com o banco de dados: ' + e.message);
@@ -1123,33 +1140,46 @@ ${fullText.substring(0, 8000)}`;
   }
 
   // =======================================================
-  // ABA: RESUMO PARA COBRANÇA (Controle de Status Enviado/Recebido)
+  // ABA: RESUMO PARA COBRANÇA E REPASSE
   // =======================================================
   function copiarTextoCob(idTextArea) {
     const el = document.getElementById(idTextArea);
     el.select();
     document.execCommand('copy');
-    alert('✓ Texto de cobrança copiado com sucesso!');
+    alert('✓ Texto copiado com sucesso!');
+  }
+
+  function formatarMesAno(mesRef) {
+    if(!mesRef) return '';
+    const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+    const [ano, mes] = mesRef.split('-');
+    return `${meses[parseInt(mes) - 1]} de ${ano}`;
   }
 
   function avancarStatusCobranca(idReg, currentStatus) {
     const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg));
     if (idx === -1) return;
-    
     const mesRef = document.getElementById('filtro-mes').value;
-    let c = contratosDB[idx];
-    
     let statusObj = {};
-    try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
+    try { statusObj = JSON.parse(contratosDB[idx].status_cobranca || '{}'); } catch(e) {}
     
-    if (currentStatus === 'pendente') {
-        statusObj[mesRef] = 'enviada';
-    } else if (currentStatus === 'enviada') {
-        statusObj[mesRef] = 'recebida';
-    }
+    if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada';
+    else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida';
     
-    // Atualiza banco e re-renderiza a tela automaticamente
     updateDbLinear(idx, 'status_cobranca', JSON.stringify(statusObj));
+  }
+
+  function avancarStatusRepasse(idReg, currentStatus) {
+    const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg));
+    if (idx === -1) return;
+    const mesRef = document.getElementById('filtro-mes').value;
+    let statusObj = {};
+    try { statusObj = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e) {}
+    
+    if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada';
+    else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida';
+    
+    updateDbLinear(idx, 'status_repasse', JSON.stringify(statusObj));
   }
 
   function gerarTextosCobranca() {
@@ -1179,7 +1209,6 @@ ${fullText.substring(0, 8000)}`;
     marcados.forEach(c => {
       const idReg = c.id || c._tempId;
 
-      // Cálculo de Valores
       let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
       let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
       let alugMesDefault = (alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base);
@@ -1196,7 +1225,6 @@ ${fullText.substring(0, 8000)}`;
       let vDesconto = parseMoedaToFloat(c.desconto);
       let total = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
 
-      // Montagem do Texto Base
       let texto = `Prezado(a) ${c.inquilino}, tudo bem?\n\nSegue o demonstrativo de locação com vencimento em *${dataVencStr}*:\n\n`;
       
       if (vAlugProp > 0) texto += `🔹 Aluguel Proporcional: ${fmtMoeda(vAlugProp)}\n`;
@@ -1221,7 +1249,6 @@ ${fullText.substring(0, 8000)}`;
       texto += `\n💰 *TOTAL A PAGAR: ${fmtMoeda(total)}*\n`;
       texto += `\nFavor enviar o comprovante assim que efetuar o pagamento.\nQualquer dúvida, estamos à disposição!\n\n*M&IC Corretores de Imóveis*`;
 
-      // Gestão de Status de Cor e Botões para o Mês de Referência Atual
       let statusObj = {};
       try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
       let statusAtual = statusObj[mesRef] || 'pendente';
@@ -1232,13 +1259,13 @@ ${fullText.substring(0, 8000)}`;
       let msgFinal = '';
 
       if (statusAtual === 'enviada') {
-          bgCard = '#fef08a'; // Fundo Amarelo
+          bgCard = '#fef08a'; 
           bgTextarea = '#fef9c3';
           acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusCobranca('${idReg}', 'enviada')">📥 Cobrança Recebida</button>`;
       } else if (statusAtual === 'recebida') {
-          bgCard = '#bbf7d0'; // Fundo Verde
+          bgCard = '#bbf7d0'; 
           bgTextarea = '#dcfce7';
-          acaoHtml = ''; // Remove o botão de envio
+          acaoHtml = ''; 
           msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:900; color:#166534; font-size:0.9rem;">✅ Processo concluído com sucesso</div>`;
       }
 
@@ -1252,6 +1279,117 @@ ${fullText.substring(0, 8000)}`;
            <div style="display: flex; gap: 8px; margin-top: 10px;">
               <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Copiar</button>
               <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.8rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WhatsApp</a>
+              ${acaoHtml}
+           </div>
+           ${msgFinal}
+        </div>
+      `;
+    });
+  }
+
+  function gerarTextosRepasse() {
+    const container = document.getElementById('repasses-container');
+    if (!container) return;
+
+    const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
+
+    if (marcados.length === 0) {
+      container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:20px;">Nenhum imóvel Ativo marcado na aba de Imóveis Administrados.</div>';
+      return;
+    }
+
+    container.innerHTML = '';
+    const mesRef = document.getElementById('filtro-mes').value;
+    const repasseMesTexto = formatarMesAno(mesRef);
+
+    marcados.forEach(c => {
+      const idReg = c.id || c._tempId;
+
+      let alugProp = c.aluguel_prop !== undefined && c.aluguel_prop !== null ? c.aluguel_prop : calcularProp(c.aluguel_base, c.data_inicio, mesRef);
+      let condProp = c.cond_prop !== undefined && c.cond_prop !== null ? c.cond_prop : calcularProp(c.condominio_base, c.data_inicio, mesRef);
+      let alugMesDefault = (alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base);
+      let alugMes = (c.aluguel_mes !== undefined && c.aluguel_mes !== null) ? c.aluguel_mes : alugMesDefault;
+
+      let vAlugProp = parseMoedaToFloat(alugProp);
+      let vCondProp = parseMoedaToFloat(condProp);
+      let vAlugMes = parseMoedaToFloat(alugMes);
+      let vCondMes = parseMoedaToFloat(c.cond_mes);
+      let vIptu = parseMoedaToFloat(c.iptu);
+      let vBombeiro = parseMoedaToFloat(c.bombeiro);
+      let vSeguro = parseMoedaToFloat(c.seguro);
+      let vOutras = parseMoedaToFloat(c.outras_taxas);
+      let vDesconto = parseMoedaToFloat(c.desconto);
+      let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa);
+
+      let repassaCond = c.regra_condominio === 'S';
+      
+      let totalReceitasCobradas = vAlugProp + vAlugMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+      let totalCondominio = vCondProp + vCondMes;
+      
+      let totalRepasseFinal = totalReceitasCobradas - vTaxaAdm;
+      if (repassaCond) {
+          totalRepasseFinal += totalCondominio;
+      }
+
+      let texto = `Prezado(a) ${c.proprietario}, tudo bem?\n\nSegue o demonstrativo de repasse referente ao imóvel locado por ${c.inquilino}, competência de *${repasseMesTexto}*:\n\n`;
+      
+      if (vAlugProp > 0) texto += `🔹 Aluguel Proporcional: ${fmtMoeda(vAlugProp)}\n`;
+      if (vAlugMes > 0) texto += `🔹 Aluguel: ${fmtMoeda(vAlugMes)}\n`;
+      
+      if (vCondProp > 0) texto += `🔹 Condomínio Proporcional: ${fmtMoeda(vCondProp)} ${repassaCond ? '' : '(Repassado ao síndico/condomínio)'}\n`;
+      if (vCondMes > 0) texto += `🔹 Condomínio Mensal: ${fmtMoeda(vCondMes)} ${repassaCond ? '' : '(Repassado ao síndico/condomínio)'}\n`;
+      
+      if (vIptu > 0) texto += `🔹 IPTU: ${fmtMoeda(vIptu)}\n`;
+      if (vBombeiro > 0) texto += `🔹 Taxa de Incêndio/Bombeiro: ${fmtMoeda(vBombeiro)}\n`;
+      if (vSeguro > 0) texto += `🔹 Seguro: ${fmtMoeda(vSeguro)}\n`;
+      
+      if (vOutras > 0) {
+         texto += `🔹 Outras Taxas: ${fmtMoeda(vOutras)}`;
+         if (c.desc_outras) texto += ` (Motivo: ${c.desc_outras})`;
+         texto += `\n`;
+      }
+      if (vDesconto > 0) {
+         texto += `🔹 Desconto Concedido: -${fmtMoeda(vDesconto)}`;
+         if (c.desc_desconto) texto += ` (Motivo: ${c.desc_desconto})`;
+         texto += `\n`;
+      }
+
+      texto += `\n🔻 *Deduções:*\n`;
+      texto += `🔸 Taxa de Administração: -${fmtMoeda(vTaxaAdm)}\n`;
+
+      texto += `\n💰 *TOTAL REPASSADO: ${fmtMoeda(totalRepasseFinal)}*\n`;
+      texto += `\nO valor foi transferido para a sua chave PIX: ${c.pix_proprietario || 'Não informada'}.\nQualquer dúvida, estamos à disposição!\n\n*M&IC Corretores de Imóveis*`;
+
+      let statusObj = {};
+      try { statusObj = JSON.parse(c.status_repasse || '{}'); } catch(e) {}
+      let statusAtual = statusObj[mesRef] || 'pendente';
+
+      let bgCard = '#f8fafc';
+      let bgTextarea = '#ffffff';
+      let acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusRepasse('${idReg}', 'pendente')">📤 Repasse Enviado</button>`;
+      let msgFinal = '';
+
+      if (statusAtual === 'enviada') {
+          bgCard = '#fef08a'; 
+          bgTextarea = '#fef9c3';
+          acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusRepasse('${idReg}', 'enviada')">✅ Repasse Confirmado</button>`;
+      } else if (statusAtual === 'recebida') {
+          bgCard = '#bbf7d0'; 
+          bgTextarea = '#dcfce7';
+          acaoHtml = ''; 
+          msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:900; color:#166534; font-size:0.9rem;">✅ Repasse concluído com sucesso</div>`;
+      }
+
+      const idTextArea = `txt-rep-${idReg}`;
+
+      container.innerHTML += `
+        <div style="background: ${bgCard}; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.3s;">
+           <h4 style="margin-bottom: 10px; color: var(--primary); font-size: 0.95rem;">Repasse: ${c.proprietario}</h4>
+           <textarea id="${idTextArea}" rows="14" style="width: 100%; font-family: monospace; font-size: 0.8rem; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; resize: vertical; box-sizing:border-box; background: ${bgTextarea};" readonly>${texto}</textarea>
+           
+           <div style="display: flex; gap: 8px; margin-top: 10px;">
+              <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Copiar</button>
+              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.8rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_proprietario).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WhatsApp</a>
               ${acaoHtml}
            </div>
            ${msgFinal}
