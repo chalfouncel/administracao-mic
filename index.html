@@ -150,7 +150,7 @@
     <button class="tab-btn" onclick="setTab('resumo_gerencial', this)">📈 Resumo Gerencial</button>
   </div>
 
-  <!-- ABA: RESUMO DO CONTRATO — NÃO ALTERAR -->
+  <!-- ABA: RESUMO DO CONTRATO — NÃO ALTERAR (Mantido Intacto) -->
   <div id="tab-resumo" class="tab-content active">
     <div class="resumo-layout">
       
@@ -339,6 +339,7 @@
   const SUPABASE_KEY = 'sb_publishable_6qMW1bPQ5_sV31xyUKHfzw_JwOjDkAj';
   let contratosDB = [];
   let selectedPdfFile = null;
+  let contratosMarcados = new Set(); // Memória Local para as marcações
 
   const formatadorStr = val => {
     if(!val) return '';
@@ -350,6 +351,8 @@
     let s = String(str).replace(/[^\d,-]/g, '').replace(',', '.');
     return parseFloat(s) || 0;
   };
+  const fmtMoeda = val => parseFloat(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  
   function formatarMoedaInput(i) {
     let v = i.value.replace(/\D/g,'');
     if(v === '') { i.value = ''; return; }
@@ -446,7 +449,7 @@
   }
 
   // =======================================================
-  // RENOVAÇÃO DO SUPABASE (Tratamento para erro 23502 / JWT Expired)
+  // RENOVAÇÃO DO SUPABASE (Tratamento para erro JWT Expired)
   // =======================================================
   async function refreshSession() {
     const s = getLocalSession();
@@ -696,6 +699,7 @@ ${fullText.substring(0, 8000)}`;
     document.getElementById('btn-register').addEventListener('click', doRegister);
     document.getElementById('btn-logout-action').addEventListener('click', doLogout);
     
+    // O Mês de Referência é sempre o PRÓXIMO MÊS.
     const hoje = new Date();
     let proxMes = hoje.getMonth() + 2; 
     let anoVenc = hoje.getFullYear();
@@ -715,13 +719,25 @@ ${fullText.substring(0, 8000)}`;
     document.getElementById('tab-' + name).classList.add('active');
     btn.classList.add('active');
     
-    if (name === 'imoveis') carregarImoveis(false);
+    // Agora não chama carregarImoveis a cada clique para não apagar as marcações locais
+    // As tabelas são atualizadas com base nos dados que já estão na memória
+    if (name === 'imoveis') renderizarTabelaLinear();
     if (name === 'taxas_cond') renderizarTaxasCondominiais();
   }
 
   // =======================================================
-  // TABELA DE IMOVEIS ADMINISTRADOS
+  // TABELA DE IMOVEIS ADMINISTRADOS (Controle de Marcação Local)
   // =======================================================
+  
+  function toggleMarcar(idString, isChecked) {
+    if(isChecked) {
+      contratosMarcados.add(String(idString));
+    } else {
+      contratosMarcados.delete(String(idString));
+    }
+    renderizarTaxasCondominiais(); // Atualiza a outra tabela imediatamente
+  }
+
   async function loadTableThumbnails() {
     const canvases = document.querySelectorAll('.table-pdf-thumb');
     for (let canvas of canvases) {
@@ -747,18 +763,12 @@ ${fullText.substring(0, 8000)}`;
     }
   }
 
-  function toggleMarcar(idString, isChecked) {
-    const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idString));
-    if(idx > -1) {
-      updateDbLinear(idx, 'marcado', isChecked);
-    }
-  }
-
   function renderizarTabelaLinear() {
     const tbody = document.getElementById('tabela-imoveis-linear-body');
     if (!tbody) return;
     tbody.innerHTML = '';
     
+    // Filtro invisível para SOFT DELETE
     const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
 
     if (imoveisVisiveis.length === 0) {
@@ -767,9 +777,10 @@ ${fullText.substring(0, 8000)}`;
     }
 
     imoveisVisiveis.forEach((c) => {
-      const i = contratosDB.indexOf(c); // Indice real
+      const i = contratosDB.indexOf(c); // Indice real na base
       const idReg = c.id || c._tempId;
       const statusVal = c.ativo || 'SIM';
+      const isMarcado = contratosMarcados.has(String(idReg)) ? 'checked' : '';
       
       const btnPdf = c.contrato_url 
         ? `<div onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')" class="row-pdf-btn" title="Visualizar Contrato">
@@ -787,7 +798,7 @@ ${fullText.substring(0, 8000)}`;
             <button class="btn btn-danger" onclick="excluirImovel('${idReg}')">🗑️ Excluir</button>
           </td>
           <td class="fit" style="text-align: center;">
-            <input type="checkbox" class="checkbox-marcar" onchange="toggleMarcar('${idReg}', this.checked)" ${c.marcado ? 'checked' : ''}>
+            <input type="checkbox" class="checkbox-marcar" onchange="toggleMarcar('${idReg}', this.checked)" ${isMarcado}>
           </td>
           <td class="fit">
             <select onchange="updateDbLinear(${i}, 'ativo', this.value)" style="padding: 6px; font-size: 0.82rem; width: 100px; border: 1px solid #ccc; border-radius: 4px;">
@@ -856,6 +867,7 @@ ${fullText.substring(0, 8000)}`;
     const idx = contratosDB.findIndex(x => (x.id || x._tempId) == idReg);
     if(idx > -1) {
       contratosDB[idx].ativo = 'EXCLUIDO';
+      contratosMarcados.delete(String(idReg)); // Tira da seleção
       renderizarTabelaLinear();
       renderizarTaxasCondominiais();
 
@@ -926,8 +938,7 @@ ${fullText.substring(0, 8000)}`;
       taxa_adm_pct: 10, 
       regra_condominio: document.getElementById('regraCond').value || 'N',
       contrato_url: urlPdf, 
-      ativo: 'SIM',
-      marcado: false
+      ativo: 'SIM'
     };
 
     try {
@@ -1047,7 +1058,8 @@ ${fullText.substring(0, 8000)}`;
     const tbody = document.getElementById('tabela-taxas-body');
     if(!tbody) return;
     
-    const marcados = contratosDB.filter(c => c.marcado && c.ativo === 'SIM');
+    // Agora verifica através da memória local (contratosMarcados)
+    const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
 
     if (marcados.length === 0) {
       tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel Ativo marcado na aba anterior.</td></tr>';
