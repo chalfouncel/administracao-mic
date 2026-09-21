@@ -852,9 +852,12 @@
   // =======================================================
   // ASAAS E WPP - COBRANÇA
   // =======================================================
-  async function gerarCobrancaAsaas(idReg, valorTotal) {
+  async function gerarCobrancaAsaas(idReg, valorTotalBase) {
       const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
       if (!c.cpf_inquilino) { alert('Erro: Preencha o CPF do Inquilino na aba Imóveis.'); return; }
+
+      // Adiciona R$ 1,99 para cobrir o custo da emissão bancária
+      const valorTotal = valorTotalBase + 1.99;
 
       const mesRef = document.getElementById('filtro-mes').value; const [anoRef, mesRefStr] = mesRef.split('-');
       let dVenc = new Date(anoRef, parseInt(mesRefStr) - 1, 1); let contUteis = 0;
@@ -892,6 +895,40 @@
      });
   }
 
+  function fallbackCopiaImagem(blob, btn, txtOrig) {
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => {
+          btn.innerText = "✓ Só Imagem";
+          setTimeout(() => btn.innerText = txtOrig, 2000);
+          alert('O seu navegador ou telemóvel não suporta copiar imagem e texto juntos.\n\nCopiámos APENAS a imagem. Terá de copiar o texto no botão azul "Só Texto".');
+      }).catch(e => {
+          btn.innerText = txtOrig;
+          alert('Erro crítico: O navegador bloqueou a cópia para a área de transferência.');
+      });
+  }
+
+  function copiarTextoCob(idTextArea) { const el = document.getElementById(idTextArea); el.style.display = 'block'; el.select(); document.execCommand('copy'); el.style.display = 'none'; alert('✓ Texto copiado com sucesso!'); }
+
+  async function dispararWppMassa(tipo) {
+     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
+     if(marcados.length === 0) return alert('Nenhum imóvel marcado para envio.');
+     if(!confirm(`Deseja abrir o WhatsApp Web em sequência para os ${marcados.length} contatos marcados?\nCertifique-se de que as janelas pop-up estão liberadas no seu navegador.`)) return;
+
+     for(let i = 0; i < marcados.length; i++) {
+         const c = marcados[i];
+         const idTextArea = tipo === 'cobranca' ? `txt-cob-${c.id || c._tempId}` : `txt-rep-${c.id || c._tempId}`;
+         const el = document.getElementById(idTextArea);
+         if(el) {
+             const telefone = tipo === 'cobranca' ? String(c.telefone_inquilino).replace(/\D/g,'') : String(c.telefone_proprietario).replace(/\D/g,'');
+             const url = `https://api.whatsapp.com/send?phone=55${telefone}&text=${encodeURIComponent(el.value)}`;
+             window.open(url, '_blank');
+             await new Promise(r => setTimeout(r, 1500));
+         }
+     }
+  }
+
+  function avancarStatusCobranca(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_cobranca || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_cobranca', JSON.stringify(statusObj)); }
+  function avancarStatusRepasse(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_repasse', JSON.stringify(statusObj)); }
+
   function gerarTextosCobranca() {
     const container = document.getElementById('cobrancas-container'); if (!container) return;
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
@@ -900,9 +937,27 @@
 
     marcados.forEach(c => {
       const idReg = c.id || c._tempId; const v = getVariaveisMes(c, mesRef);
-      const total = parseMoedaToFloat(v.alugProp) + parseMoedaToFloat(v.alugMes) + parseMoedaToFloat(v.condProp) + parseMoedaToFloat(v.condMes) + parseMoedaToFloat(v.iptu) + parseMoedaToFloat(v.bombeiro) + parseMoedaToFloat(v.seguro) + parseMoedaToFloat(v.outras_taxas) - parseMoedaToFloat(v.desconto);
+      let vTarifaBancaria = 1.99;
+      const baseTotal = parseMoedaToFloat(v.alugProp) + parseMoedaToFloat(v.alugMes) + parseMoedaToFloat(v.condProp) + parseMoedaToFloat(v.condMes) + parseMoedaToFloat(v.iptu) + parseMoedaToFloat(v.bombeiro) + parseMoedaToFloat(v.seguro) + parseMoedaToFloat(v.outras_taxas) - parseMoedaToFloat(v.desconto);
+      const totalComTarifa = baseTotal + vTarifaBancaria;
 
-      let texto = `Prezado(a) ${c.inquilino}, \nSegue a locação de *${formatarMesAno(mesRef)}*:\nTOTAL A PAGAR: ${fmtMoeda(total)}`;
+      let texto = `Prezado(a) ${c.inquilino}, \nSegue a locação de *${formatarMesAno(mesRef)}*:\n\n`;
+      let linhasCard = '';
+      if (parseMoedaToFloat(v.alugProp) > 0) { texto += `🔹 Aluguel Prop.: ${fmtMoeda(parseMoedaToFloat(v.alugProp))}\n`; linhasCard += `<div class="comp-line"><span>Aluguel Prop.</span> <span>${fmtMoeda(parseMoedaToFloat(v.alugProp))}</span></div>`; }
+      if (parseMoedaToFloat(v.alugMes) > 0) { texto += `🔹 Aluguel: ${fmtMoeda(parseMoedaToFloat(v.alugMes))}\n`; linhasCard += `<div class="comp-line"><span>Aluguel</span> <span>${fmtMoeda(parseMoedaToFloat(v.alugMes))}</span></div>`; }
+      if (parseMoedaToFloat(v.condProp) > 0) { texto += `🔹 Condomínio Prop.: ${fmtMoeda(parseMoedaToFloat(v.condProp))}\n`; linhasCard += `<div class="comp-line"><span>Condomínio Prop.</span> <span>${fmtMoeda(parseMoedaToFloat(v.condProp))}</span></div>`; }
+      if (parseMoedaToFloat(v.condMes) > 0) { texto += `🔹 Condomínio: ${fmtMoeda(parseMoedaToFloat(v.condMes))}\n`; linhasCard += `<div class="comp-line"><span>Condomínio</span> <span>${fmtMoeda(parseMoedaToFloat(v.condMes))}</span></div>`; }
+      if (parseMoedaToFloat(v.iptu) > 0) { texto += `🔹 IPTU: ${fmtMoeda(parseMoedaToFloat(v.iptu))}\n`; linhasCard += `<div class="comp-line"><span>IPTU</span> <span>${fmtMoeda(parseMoedaToFloat(v.iptu))}</span></div>`; }
+      if (parseMoedaToFloat(v.bombeiro) > 0) { texto += `🔹 Bombeiro: ${fmtMoeda(parseMoedaToFloat(v.bombeiro))}\n`; linhasCard += `<div class="comp-line"><span>Bombeiro</span> <span>${fmtMoeda(parseMoedaToFloat(v.bombeiro))}</span></div>`; }
+      if (parseMoedaToFloat(v.seguro) > 0) { texto += `🔹 Seguro: ${fmtMoeda(parseMoedaToFloat(v.seguro))}\n`; linhasCard += `<div class="comp-line"><span>Seguro</span> <span>${fmtMoeda(parseMoedaToFloat(v.seguro))}</span></div>`; }
+      if (parseMoedaToFloat(v.outras_taxas) > 0) { texto += `🔹 Outras Taxas: ${fmtMoeda(parseMoedaToFloat(v.outras_taxas))}\n`; linhasCard += `<div class="comp-line"><span>Outras Taxas</span> <span>${fmtMoeda(parseMoedaToFloat(v.outras_taxas))}</span></div>`; }
+      if (parseMoedaToFloat(v.desconto) > 0) { texto += `🔹 Desconto: -${fmtMoeda(parseMoedaToFloat(v.desconto))}\n`; linhasCard += `<div class="comp-line" style="color:var(--danger);"><span>Desconto</span> <span>-${fmtMoeda(parseMoedaToFloat(v.desconto))}</span></div>`; }
+      
+      texto += `🔹 Tarifa Bancária (PIX): ${fmtMoeda(vTarifaBancaria)}\n`;
+      linhasCard += `<div class="comp-line" style="color:#64748b; font-size:0.75rem;"><span>Tarifa Bancária (PIX)</span> <span>${fmtMoeda(vTarifaBancaria)}</span></div>`;
+
+      texto += `\nTOTAL A PAGAR: ${fmtMoeda(totalComTarifa)}`;
+
       let statusObj = {}; try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {} 
       let statusAtual = statusObj[mesRef] || 'pendente'; let asaasUrl = statusObj[`${mesRef}_url`];
 
@@ -912,14 +967,15 @@
       if (statusAtual === 'aguardando_asaas') { bgPainel = '#fef08a'; msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:bold; color:#a16207; font-size:0.85rem;">⏳ Aguardando confirmação do Asaas...</div>`; } 
       else if (statusAtual === 'recebida') { bgPainel = '#bbf7d0'; msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:900; color:#166534; font-size:0.9rem;">✅ Recebido via Asaas</div>`; }
 
-      let btnAsaasHtml = !asaasUrl ? `<button id="btn-asaas-${idReg}" class="btn" style="flex: 1; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff;" onclick="gerarCobrancaAsaas('${idReg}', ${total})">⚡ Gerar Link Asaas</button>` : `<a class="btn" style="flex: 1; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff; text-decoration: none; text-align: center;" href="${asaasUrl}" target="_blank">📄 Ver Fatura Oficial</a>`;
+      let btnAsaasHtml = !asaasUrl ? `<button id="btn-asaas-${idReg}" class="btn" style="flex: 1; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff;" onclick="gerarCobrancaAsaas('${idReg}', ${baseTotal})">⚡ Gerar Link Asaas</button>` : `<a class="btn" style="flex: 1; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff; text-decoration: none; text-align: center;" href="${asaasUrl}" target="_blank">📄 Ver Fatura Oficial</a>`;
 
       const idTextArea = `txt-cob-${idReg}`; const idCard = `img-cob-${idReg}`;
       container.innerHTML += `
         <div style="background: ${bgPainel}; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px;">
            <div id="${idCard}" class="receipt-box"><div style="font-weight:900; font-size:1.1rem; color:var(--primary);">COBRANÇA</div>
               <p style="font-size:0.9rem; margin-bottom:12px;"><strong>Inquilino:</strong> ${c.inquilino}</p><hr>
-              <div class="comp-total"><span>TOTAL:</span> <span>${fmtMoeda(total)}</span></div></div>
+              ${linhasCard}
+              <div class="comp-total"><span>TOTAL:</span> <span>${fmtMoeda(totalComTarifa)}</span></div></div>
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
            <div style="display: flex; gap: 8px; margin-top: 16px;">${btnAsaasHtml}</div>
            <div style="display: flex; gap: 8px; margin-top: 8px;">
@@ -980,7 +1036,7 @@
   function gerarTextosRepasse() {
     const container = document.getElementById('repasses-container'); if (!container) return;
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
-    if (marcados.length === 0) { container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:20px;">Nenhum imóvel ativo marcado.</div>'; return; }
+    if (marcados.length === 0) { container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:20px;">Nenhum imóvel ativo marcado.</div>'; return; }
     container.innerHTML = ''; const mesRef = document.getElementById('filtro-mes').value;
     const repasseMesTexto = formatarMesAno(mesRef);
 
@@ -1000,7 +1056,7 @@
       let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
       let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
       let valProprietario = totalReceitas - vTaxaAdm - valCondominioPix - valSeguroMIC;
-      let valMIC = vTaxaAdm + valSeguroMIC; // UI mostra inteiro (o -1.99 ocorre apenas no Asaas)
+      let valMIC = vTaxaAdm + valSeguroMIC; 
 
       let texto = `Prezado(a) ${c.proprietario},\nSegue repasse de *${repasseMesTexto}*:\n`;
       let titularStr = c.titular_pix ? `\nTitular: ${c.titular_pix}` : `\nTitular: ${c.proprietario}`;
@@ -1039,7 +1095,6 @@
                1. Proprietário: ${fmtMoeda(valProprietario)}<br>
                2. M&IC (Taxa + Seguro${repassaSeguro?'':' incluso'}): ${fmtMoeda(valMIC)}<br>
                ${!repassaCond ? `3. Síndico/Condomínio: ${fmtMoeda(valCondominioPix)}<br>` : ''}
-               <span style="font-size:0.65rem;">*O Asaas deduzirá R$ 1,99 da parte da M&IC na transferência.</span>
            </div>
 
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
