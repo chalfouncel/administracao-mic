@@ -219,8 +219,11 @@
           <div><label style="color:#0284c7;">Titular do PIX (Nome do Recebedor)</label><input type="text" id="titularPix" placeholder="Nome na conta PIX"></div>
         </div>
 
-        <div class="grid-3" style="margin-top:14px;">
+        <div class="grid-2" style="margin-top:14px;">
           <div><label>Inquilino (Locatário)</label><input type="text" id="inquilino"></div>
+          <div><label style="color:#0284c7;">CPF do Inquilino (Obrigatório Asaas)</label><input type="text" id="cpfInquilino" placeholder="Somente números"></div>
+        </div>
+        <div class="grid-2" style="margin-top:14px;">
           <div><label>E-mail do Inquilino</label><input type="email" id="emailInquilino"></div>
           <div><label>Telefone do Inquilino</label><input type="text" id="telInquilino"></div>
         </div>
@@ -568,7 +571,7 @@
         }
       }
 
-      let ext = { locador: '', telLocador: '', locatario: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '', titularPix: '' };
+      let ext = { locador: '', telLocador: '', locatario: '', cpfInquilino: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '', titularPix: '' };
       let page1Text = page1RawLines.join(" ");
 
       // 1. TENTATIVA DA BALA DE PRATA (BLOCO OCULTO)
@@ -580,6 +583,7 @@
           ext.pix = (b.match(/PixProprietario:\s*(.+)/i) || [])[1]?.trim() || '';
           ext.titularPix = (b.match(/TitularPix:\s*(.+)/i) || [])[1]?.trim() || '';
           ext.locatario = (b.match(/Inquilino:\s*(.+)/i) || [])[1]?.trim() || '';
+          ext.cpfInquilino = (b.match(/CpfInquilino:\s*(.+)/i) || [])[1]?.trim() || '';
           ext.emailLocatario = (b.match(/EmailInquilino:\s*(.+)/i) || [])[1]?.trim() || '';
           ext.telLocatario = (b.match(/TelInquilino:\s*(.+)/i) || [])[1]?.trim() || '';
           let dIn = (b.match(/DataInicio:\s*(.+)/i) || [])[1]?.trim() || '';
@@ -620,7 +624,7 @@
         } 
       }
       flash('proprietario', decodeAddressOnly(ext.locador)); flash('telProprietario', ext.telLocador); flash('pixProprietario', ext.pix); flash('titularPix', ext.titularPix || decodeAddressOnly(ext.locador));
-      flash('inquilino', decodeAddressOnly(ext.locatario)); flash('emailInquilino', ext.emailLocatario); flash('telInquilino', ext.telLocatario);
+      flash('inquilino', decodeAddressOnly(ext.locatario)); flash('cpfInquilino', ext.cpfInquilino); flash('emailInquilino', ext.emailLocatario); flash('telInquilino', ext.telLocatario);
       flash('endereco', decodeAddressOnly(ext.endereco)); flash('dataInicio', ext.dataIn); flash('dataFim', ext.dataFim);
       if(ext.valor > 0) flash('aluguelBase', formatadorStr(ext.valor));
 
@@ -689,7 +693,7 @@ Texto: ${fullText.substring(0, 8000)}`;
   }
 
   // =======================================================
-  // TABELA MESTRE (IMÓVEIS ADMINISTRADOS)
+  // TABELA MESTRE E FUNÇÕES DE EDIÇÃO
   // =======================================================
   function toggleMarcarTodos(isChecked) {
     const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
@@ -710,6 +714,15 @@ Texto: ${fullText.substring(0, 8000)}`;
     atualizarInterfaceGeral();
     const id = c.id; if(!id) return;
     try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pix_proprietario: c.pix_proprietario, titular_pix: c.titular_pix }) }); alert('PIX e Titular atualizados!'); } catch(e) {}
+  }
+
+  async function editarCPF(index) {
+      const c = contratosDB[index];
+      const novoCpf = prompt(`Informe o CPF de ${c.inquilino} (Apenas números):`, c.cpf_inquilino || '');
+      if (novoCpf === null) return;
+      const cpfLimpo = novoCpf.replace(/\D/g, '');
+      await updateDbLinear(index, 'cpf_inquilino', cpfLimpo);
+      alert('CPF atualizado com sucesso!');
   }
 
   async function loadTableThumbnails() {
@@ -774,7 +787,12 @@ Texto: ${fullText.substring(0, 8000)}`;
           <td class="fit"><button class="btn btn-danger" onclick="excluirImovel('${idReg}')">🗑️ Excluir</button></td>
           <td class="fit" style="text-align: center;"><input type="checkbox" class="checkbox-marcar" onchange="toggleMarcar('${idReg}', this.checked)" ${isMarcado}></td>
           <td class="fit"><select onchange="updateDbLinear(${i}, 'ativo', this.value)" style="padding: 6px; font-size: 0.82rem; width: 100px; border: 1px solid #ccc; border-radius: 4px;"><option value="SIM" ${c.ativo === 'SIM' ? 'selected' : ''}>🟢 Ativo</option><option value="NÃO" ${c.ativo === 'NÃO' ? 'selected' : ''}>🔴 Inativo</option></select></td>
-          <td><strong style="font-size: 0.95rem;">${c.inquilino || 'Não informado'}</strong><br><span style="font-size: 0.75rem; color: #64748b;">Locador: ${c.proprietario || '-'}</span><br><button class="btn-edit-pix" onclick="editarPix(${i})">✏️ Editar PIX Titular</button></td>
+          <td>
+            <strong style="font-size: 0.95rem;">${c.inquilino || 'Não informado'}</strong><br>
+            <span style="font-size: 0.75rem; color: #64748b;">CPF: ${c.cpf_inquilino || 'Não informado'}</span> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarCPF(${i})">✏️</button><br>
+            <span style="font-size: 0.75rem; color: #64748b;">Locador: ${c.proprietario || '-'}</span><br>
+            <button class="btn-edit-pix" onclick="editarPix(${i})">✏️ Editar PIX Titular</button>
+          </td>
           <td>${c.endereco || 'Endereço não informado'}</td>
           <td class="fit" style="text-align: center; vertical-align: middle;">${venc.html}${venc.btn}</td>
           <td class="fit" style="text-align: center;">${btnPdf}</td>
@@ -847,7 +865,7 @@ Texto: ${fullText.substring(0, 8000)}`;
 
     const payload = {
       user_email: emailUser, proprietario: document.getElementById('proprietario').value, telefone_proprietario: document.getElementById('telProprietario').value, pix_proprietario: document.getElementById('pixProprietario').value,
-      titular_pix: document.getElementById('titularPix').value || document.getElementById('proprietario').value, inquilino: document.getElementById('inquilino').value, email_inquilino: document.getElementById('emailInquilino').value,
+      titular_pix: document.getElementById('titularPix').value || document.getElementById('proprietario').value, inquilino: document.getElementById('inquilino').value, cpf_inquilino: document.getElementById('cpfInquilino').value, email_inquilino: document.getElementById('emailInquilino').value,
       telefone_inquilino: document.getElementById('telInquilino').value, endereco: document.getElementById('endereco').value, data_inicio: document.getElementById('dataInicio').value || null, data_fim: document.getElementById('dataFim').value || null,
       aluguel_base: parseMoedaToFloat(document.getElementById('aluguelBase').value), condominio_base: parseMoedaToFloat(document.getElementById('condominioBase').value), taxa_adm_fixa: parseMoedaToFloat(document.getElementById('valorTaxaAdm').value), taxa_adm_pct: 10, regra_condominio: document.getElementById('regraCond').value || 'N',
       contrato_url: urlPdf, ativo: 'SIM', reajuste_aplicado: 'NAO', historico_reajuste: '', lancamentos_mensais: '{}'
@@ -1042,6 +1060,66 @@ Texto: ${fullText.substring(0, 8000)}`;
   }
 
   // =======================================================
+  // ASAAS - GERAÇÃO DE COBRANÇA
+  // =======================================================
+  async function gerarCobrancaAsaas(idReg, valorTotal) {
+      const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
+      if (!c.cpf_inquilino) {
+          alert('Erro: É obrigatório ter o CPF do Inquilino para gerar cobrança oficial no Asaas.\nVá à aba "Imóveis Administrados" e clique no ícone do Lápis ✏️ ao lado do CPF para preencher.');
+          return;
+      }
+
+      const mesRef = document.getElementById('filtro-mes').value;
+      const [anoRef, mesRefStr] = mesRef.split('-');
+      let dVenc = new Date(anoRef, parseInt(mesRefStr) - 1, 1);
+      let contUteis = 0;
+      while (contUteis < 5) {
+          const ds = dVenc.getDay();
+          if (ds !== 0 && ds !== 6) contUteis++;
+          if (contUteis < 5) dVenc.setDate(dVenc.getDate() + 1);
+      }
+      const dataVenc = dVenc.toISOString().split('T')[0]; // Formato YYYY-MM-DD para a API
+
+      const btn = document.getElementById(`btn-asaas-${idReg}`);
+      const originalText = btn.innerText;
+      btn.innerText = 'Gerando...';
+      btn.disabled = true;
+
+      try {
+          const response = await fetch('/api/asaas', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  nomeInquilino: c.inquilino,
+                  cpfInquilino: c.cpf_inquilino,
+                  valor: valorTotal,
+                  vencimento: dataVenc,
+                  descricao: `Aluguel e Encargos M&IC - ${formatarMesAno(mesRef)} - Imóvel: ${c.endereco}`
+              })
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+              alert('Erro do Banco Asaas: ' + (data.error || 'Erro desconhecido'));
+          } else {
+              const url = data.urlFatura;
+              let statusObj = {}; 
+              try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
+              statusObj[`${mesRef}_url`] = url;
+              await updateDbLinear(contratosDB.indexOf(c), 'status_cobranca', JSON.stringify(statusObj));
+
+              alert('✅ Fatura PIX/Boleto gerada com sucesso!\nO link oficial foi injetado automaticamente na mensagem do WhatsApp.');
+              atualizarInterfaceGeral(); 
+          }
+      } catch(e) {
+          alert('Erro de comunicação com o servidor: ' + e.message);
+      } finally {
+          if(btn) { btn.innerText = originalText; btn.disabled = false; }
+      }
+  }
+
+  // =======================================================
   // ABA: RESUMO PARA COBRANÇA E REPASSE
   // =======================================================
   function getNomeMesAtual(mesRef) { if(!mesRef) return ''; const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; return meses[parseInt(mesRef.split('-')[1]) - 1]; }
@@ -1114,12 +1192,29 @@ Texto: ${fullText.substring(0, 8000)}`;
       if (vDesconto > 0) { texto += `🔹 Desconto: -${fmtMoeda(vDesconto)}`; if (v.desc_desconto) texto += ` (${v.desc_desconto})`; texto += `\n`; linhasCard += `<div class="comp-line" style="color:var(--danger);"><span>Desconto ${v.desc_desconto?`(${v.desc_desconto})`:''}</span> <span>-${fmtMoeda(vDesconto)}</span></div>`; }
 
       texto += vencInfo.textoCob;
-      texto += `\n💰 *TOTAL A PAGAR: ${fmtMoeda(total)}*\n\nPor favor, envie o comprovante assim que efetuar o pagamento.`;
 
-      let statusObj = {}; try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {} let statusAtual = statusObj[mesRef] || 'pendente';
+      let statusObj = {}; try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {} 
+      let statusAtual = statusObj[mesRef] || 'pendente';
+      let asaasUrl = statusObj[`${mesRef}_url`];
+
+      // Atualiza o texto do WPP com o link do Asaas (se existir)
+      if (asaasUrl) {
+          texto += `\n💰 *TOTAL A PAGAR: ${fmtMoeda(total)}*\n\n🔗 *Acesse sua fatura oficial aqui:*\n${asaasUrl}\n\nPor favor, envie o comprovante assim que efetuar o pagamento.`;
+      } else {
+          texto += `\n💰 *TOTAL A PAGAR: ${fmtMoeda(total)}*\n\nPor favor, envie o comprovante assim que efetuar o pagamento.`;
+      }
+
       let bgPainel = '#f8fafc'; let acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusCobranca('${idReg}', 'pendente')">📤 Cobrança Enviada</button>`; let msgFinal = '';
       if (statusAtual === 'enviada') { bgPainel = '#fef08a'; acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusCobranca('${idReg}', 'enviada')">📥 Cobrança Recebida</button>`; } 
       else if (statusAtual === 'recebida') { bgPainel = '#bbf7d0'; acaoHtml = ''; msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:900; color:#166534; font-size:0.9rem;">✅ Processo concluído com sucesso</div>`; }
+
+      // Botão Mágico do Asaas
+      let btnAsaasHtml = '';
+      if (!asaasUrl) {
+          btnAsaasHtml = `<button id="btn-asaas-${idReg}" class="btn" style="flex: 1; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff;" onclick="gerarCobrancaAsaas('${idReg}', ${total})">⚡ Gerar Link Asaas</button>`;
+      } else {
+          btnAsaasHtml = `<a class="btn" style="flex: 1; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff; text-decoration: none; text-align: center;" href="${asaasUrl}" target="_blank">📄 Ver Fatura Oficial</a>`;
+      }
 
       const idTextArea = `txt-cob-${idReg}`; const idCard = `img-cob-${idReg}`;
       container.innerHTML += `
@@ -1130,10 +1225,17 @@ Texto: ${fullText.substring(0, 8000)}`;
               ${linhasCard}${vencInfo.htmlCard || ''}<div class="comp-total"><span>TOTAL A PAGAR:</span> <span>${fmtMoeda(total)}</span></div>
               <div style="font-size:0.75rem; color:#64748b; margin-top:20px; text-align:center;">Por favor, envie o comprovante após o pagamento.<br>M&IC Corretores de Imóveis</div></div>
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
+           
            <div style="display: flex; gap: 8px; margin-top: 16px;">
-              <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarImagem('${idCard}', this)">📋 Copiar Imagem</button>
+              ${btnAsaasHtml}
+           </div>
+
+           <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarImagem('${idCard}', this)">📋 Imagem</button>
               <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Texto</button>
-              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.8rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a></div>
+              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.8rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a>
+           </div>
+
            <div style="display: flex; gap: 8px; margin-top: 8px;">${acaoHtml}</div>${msgFinal}
         </div>`;
     });
@@ -1214,7 +1316,7 @@ Texto: ${fullText.substring(0, 8000)}`;
 
       ativos.forEach(c => {
          const v = getVariaveisMes(c, mesRef);
-         let volumeLocacao = parseMoedaToFloat(v.alugProp) + parseMoedaToFloat(v.alugMes) + parseMoedaToFloat(v.condProp) + parseMoedaToFloat(v.condMes) + parseMoedaToFloat(v.iptu) + parseMoedaToFloat(v.bombeiro) + parseMoedaToFloat(v.seguro) + parseMoedaToFloat(v.outras_taxas);
+         let volumeLocacao = parseMoedaToFloat(v.alugProp) + parseMoedaToFloat(v.alugMes) + parseMoedaToFloat(v.condProp) + parseMoedaToFloat(v.condMes) + parseMoedaToFloat(v.iptu) + parseMoedaToFloat(v.bombeiro) + parseMoedaToFloat(v.seguro) + parseMoedaToFloat(v.outras_taxas) - parseMoedaToFloat(v.desconto);
          totalVolume += volumeLocacao; totalAdm += parseMoedaToFloat(c.taxa_adm_fixa);
       });
 
@@ -1225,11 +1327,11 @@ Texto: ${fullText.substring(0, 8000)}`;
 
   function gerarBackupCSV() {
       if (contratosDB.length === 0) return alert('Nenhum dado para exportar.');
-      let csv = 'DataRegistro,Ativo,Proprietario,TelefoneProp,PixProp,TitularPix,Inquilino,EmailInq,TelefoneInq,Endereco,Inicio,Fim,AluguelBase,CondominioBase,TaxaAdm\n';
+      let csv = 'DataRegistro,Ativo,Proprietario,TelefoneProp,PixProp,TitularPix,Inquilino,CpfInquilino,EmailInq,TelefoneInq,Endereco,Inicio,Fim,AluguelBase,CondominioBase,TaxaAdm\n';
       contratosDB.forEach(c => {
         let row = [
           c.created_at || '', c.ativo || '', c.proprietario || '', c.telefone_proprietario || '', c.pix_proprietario || '', c.titular_pix || '',
-          c.inquilino || '', c.email_inquilino || '', c.telefone_inquilino || '', c.endereco || '',
+          c.inquilino || '', c.cpf_inquilino || '', c.email_inquilino || '', c.telefone_inquilino || '', c.endereco || '',
           c.data_inicio || '', c.data_fim || '', c.aluguel_base || 0, c.condominio_base || 0, c.taxa_adm_fixa || 0
         ].map(val => '"' + String(val).replace(/"/g, '""') + '"').join(',');
         csv += row + '\n';
