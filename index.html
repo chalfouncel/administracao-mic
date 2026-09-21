@@ -487,6 +487,39 @@
   });
 
   // =======================================================
+  // MOTOR DE DATAS: QUINTO DIA ÚTIL
+  // =======================================================
+  function getQuintoDiaUtil(mesRef) {
+      const [ano, mes] = mesRef.split('-').map(Number);
+      let data = new Date(ano, mes - 1, 1);
+      let contUteis = 0;
+      
+      const feriadosFixos = ['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '12-25'];
+      
+      while (contUteis < 5) {
+          let diaSemana = data.getDay();
+          let mesDia = String(data.getMonth() + 1).padStart(2, '0') + '-' + String(data.getDate()).padStart(2, '0');
+          
+          let isFeriado = feriadosFixos.includes(mesDia);
+          if (diaSemana !== 0 && diaSemana !== 6 && !isFeriado) {
+              contUteis++;
+          }
+          if (contUteis < 5) {
+              data.setDate(data.getDate() + 1);
+          }
+      }
+      
+      const yyyy = data.getFullYear();
+      const mm = String(data.getMonth() + 1).padStart(2, '0');
+      const dd = String(data.getDate()).padStart(2, '0');
+      
+      return {
+          iso: `${yyyy}-${mm}-${dd}`,
+          formatada: `${dd}/${mm}/${yyyy}`
+      };
+  }
+
+  // =======================================================
   // AUTENTICAÇÃO E COMUNICAÇÃO COM O BANCO DE DADOS
   // =======================================================
   function getLocalSession() { try { return JSON.parse(localStorage.getItem('mic_auth_session')); } catch(e) { return null; } }
@@ -570,9 +603,6 @@
     if (document.getElementById('tab-resumo_gerencial').classList.contains('active')) renderizarGerencial();
   }
 
-  function cleanSearch(text) { return text ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : ""; }
-  function cleanValue(v) { return String(v || '').replace(/^[\s{}]+|[\s{}]+$/g, '').replace(/\s+/g, ' ').trim(); }
-  
   async function renderPdfThumbnail(pdfDoc) {
     try {
       const page = await pdfDoc.getPage(1); const viewport = page.getViewport({ scale: 0.65 });
@@ -1050,7 +1080,7 @@
   function renderizarTaxasCondominiais() {
     const tbody = document.getElementById('tabela-taxas-body'); if(!tbody) return;
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
-    if (marcados.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel ativo marcado.</td></tr>'; return; }
+    if (marcados.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel ativo marcado na aba anterior.</td></tr>'; return; }
     tbody.innerHTML = ''; const mesRef = document.getElementById('filtro-mes').value;
 
     marcados.forEach(c => {
@@ -1100,10 +1130,9 @@
       if (!c.cpf_inquilino) { alert('Erro: Preencha o CPF do Inquilino na aba Imóveis.'); return; }
 
       const valorTotal = valorTotalBase + 2.99; 
-      const mesRef = document.getElementById('filtro-mes').value; const [anoRef, mesRefStr] = mesRef.split('-');
-      let dVenc = new Date(anoRef, parseInt(mesRefStr) - 1, 1); let contUteis = 0;
-      while (contUteis < 5) { const ds = dVenc.getDay(); if (ds !== 0 && ds !== 6) contUteis++; if (contUteis < 5) dVenc.setDate(dVenc.getDate() + 1); }
-      const dataVenc = dVenc.toISOString().split('T')[0];
+      const mesRef = document.getElementById('filtro-mes').value; 
+      const vencimento = getQuintoDiaUtil(mesRef);
+      const dataVenc = vencimento.iso;
 
       const btn = document.getElementById(`btn-asaas-${idReg}`);
       btn.innerText = 'Gerando...'; btn.disabled = true;
@@ -1164,6 +1193,8 @@
     if (marcados.length === 0) { container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:20px;">Nenhum imóvel marcado.</div>'; return; }
     container.innerHTML = ''; const mesRef = document.getElementById('filtro-mes').value;
 
+    const vencimento = getQuintoDiaUtil(mesRef);
+
     marcados.forEach(c => {
       const idReg = c.id || c._tempId; const v = getVariaveisMes(c, mesRef);
       let vTarifaBancaria = 2.99; 
@@ -1181,7 +1212,7 @@
       const baseTotal = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
       const totalComTarifa = baseTotal + vTarifaBancaria;
 
-      let texto = `Prezado(a) ${c.inquilino}, \nSegue a locação de *${formatarMesAno(mesRef)}*:\n\n`;
+      let texto = `Prezado(a) ${c.inquilino}, \nSegue a locação de *${formatarMesAno(mesRef)}* (Venc: ${vencimento.formatada}):\n\n`;
       let linhasCard = '';
       
       let descOutras = v.desc_outras ? ` (${v.desc_outras})` : '';
@@ -1217,8 +1248,11 @@
       const idTextArea = `txt-cob-${idReg}`; const idCard = `img-cob-${idReg}`;
       container.innerHTML += `
         <div style="background: ${bgPainel}; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; max-width: 460px; margin: 0 auto; width: 100%;">
-           <div id="${idCard}" class="receipt-box"><div style="font-weight:900; font-size:1.1rem; color:var(--primary);">COBRANÇA</div>
-              <p style="font-size:0.9rem; margin-bottom:12px;"><strong>Inquilino:</strong> ${c.inquilino}</p><hr>
+           <div id="${idCard}" class="receipt-box">
+              <div style="font-weight:900; font-size:1.1rem; color:var(--primary);">COBRANÇA</div>
+              <p style="font-size:0.9rem; margin-bottom:4px;"><strong>Inquilino:</strong> ${c.inquilino}</p>
+              <p style="font-size:0.85rem; color:#dc2626; font-weight:bold; margin-bottom:12px;">Vencimento: ${vencimento.formatada}</p>
+              <hr>
               ${linhasCard}
               <div class="comp-total"><span>TOTAL:</span> <span>${fmtMoeda(totalComTarifa)}</span></div></div>
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
