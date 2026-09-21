@@ -845,8 +845,14 @@
           <td class="fit"><input type="text" value="${v.iptu}" onchange="updateLancamentoMensal(${i}, 'iptu', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
           <td class="fit"><input type="text" value="${v.bombeiro}" onchange="updateLancamentoMensal(${i}, 'bombeiro', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
           <td class="fit"><input type="text" value="${v.seguro}" onchange="updateLancamentoMensal(${i}, 'seguro', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
-          <td class="fit"><input type="text" value="${v.outras_taxas}" onchange="updateLancamentoMensal(${i}, 'outras_taxas', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
-          <td class="fit"><input type="text" value="${v.desconto}" onchange="updateLancamentoMensal(${i}, 'desconto', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+          <td class="fit">
+            <input type="text" value="${v.outras_taxas}" onchange="updateLancamentoMensal(${i}, 'outras_taxas', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"><br>
+            <textarea class="input-desc" placeholder="Motivo (ex: 1/3)" onchange="updateLancamentoMensal(${i}, 'desc_outras', this.value)">${v.desc_outras || ''}</textarea>
+          </td>
+          <td class="fit">
+            <input type="text" value="${v.desconto}" onchange="updateLancamentoMensal(${i}, 'desconto', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"><br>
+            <textarea class="input-desc" placeholder="Motivo..." onchange="updateLancamentoMensal(${i}, 'desc_desconto', this.value)">${v.desc_desconto || ''}</textarea>
+          </td>
           <td class="fit" id="total-linha-${i}" style="background-color:#f8fafc; text-align:center; vertical-align: middle;"><strong style="color:var(--danger); font-size:0.95rem;">${fmtMoeda(totalCalculado)}</strong></td></tr>`;
     });
   }
@@ -931,6 +937,10 @@
 
       let texto = `Prezado(a) ${c.inquilino}, \nSegue a locação de *${formatarMesAno(mesRef)}*:\n\n`;
       let linhasCard = '';
+      
+      let descOutras = v.desc_outras ? ` (${v.desc_outras})` : '';
+      let descDesconto = v.desc_desconto ? ` (${v.desc_desconto})` : '';
+
       if (parseMoedaToFloat(v.alugProp) > 0) { texto += `🔹 Aluguel Prop.: ${fmtMoeda(parseMoedaToFloat(v.alugProp))}\n`; linhasCard += `<div class="comp-line"><span>Aluguel Prop.</span> <span>${fmtMoeda(parseMoedaToFloat(v.alugProp))}</span></div>`; }
       if (parseMoedaToFloat(v.alugMes) > 0) { texto += `🔹 Aluguel: ${fmtMoeda(parseMoedaToFloat(v.alugMes))}\n`; linhasCard += `<div class="comp-line"><span>Aluguel</span> <span>${fmtMoeda(parseMoedaToFloat(v.alugMes))}</span></div>`; }
       if (parseMoedaToFloat(v.condProp) > 0) { texto += `🔹 Condomínio Prop.: ${fmtMoeda(parseMoedaToFloat(v.condProp))}\n`; linhasCard += `<div class="comp-line"><span>Condomínio Prop.</span> <span>${fmtMoeda(parseMoedaToFloat(v.condProp))}</span></div>`; }
@@ -938,8 +948,9 @@
       if (parseMoedaToFloat(v.iptu) > 0) { texto += `🔹 IPTU: ${fmtMoeda(parseMoedaToFloat(v.iptu))}\n`; linhasCard += `<div class="comp-line"><span>IPTU</span> <span>${fmtMoeda(parseMoedaToFloat(v.iptu))}</span></div>`; }
       if (parseMoedaToFloat(v.bombeiro) > 0) { texto += `🔹 Bombeiro: ${fmtMoeda(parseMoedaToFloat(v.bombeiro))}\n`; linhasCard += `<div class="comp-line"><span>Bombeiro</span> <span>${fmtMoeda(parseMoedaToFloat(v.bombeiro))}</span></div>`; }
       if (parseMoedaToFloat(v.seguro) > 0) { texto += `🔹 Seguro: ${fmtMoeda(parseMoedaToFloat(v.seguro))}\n`; linhasCard += `<div class="comp-line"><span>Seguro</span> <span>${fmtMoeda(parseMoedaToFloat(v.seguro))}</span></div>`; }
-      if (parseMoedaToFloat(v.outras_taxas) > 0) { texto += `🔹 Outras Taxas: ${fmtMoeda(parseMoedaToFloat(v.outras_taxas))}\n`; linhasCard += `<div class="comp-line"><span>Outras Taxas</span> <span>${fmtMoeda(parseMoedaToFloat(v.outras_taxas))}</span></div>`; }
-      if (parseMoedaToFloat(v.desconto) > 0) { texto += `🔹 Desconto: -${fmtMoeda(parseMoedaToFloat(v.desconto))}\n`; linhasCard += `<div class="comp-line" style="color:var(--danger);"><span>Desconto</span> <span>-${fmtMoeda(parseMoedaToFloat(v.desconto))}</span></div>`; }
+      
+      if (parseMoedaToFloat(v.outras_taxas) > 0) { texto += `🔹 Outras Taxas${descOutras}: ${fmtMoeda(parseMoedaToFloat(v.outras_taxas))}\n`; linhasCard += `<div class="comp-line"><span>Outras Taxas${descOutras}</span> <span>${fmtMoeda(parseMoedaToFloat(v.outras_taxas))}</span></div>`; }
+      if (parseMoedaToFloat(v.desconto) > 0) { texto += `🔹 Desconto${descDesconto}: -${fmtMoeda(parseMoedaToFloat(v.desconto))}\n`; linhasCard += `<div class="comp-line" style="color:var(--danger);"><span>Desconto${descDesconto}</span> <span>-${fmtMoeda(parseMoedaToFloat(v.desconto))}</span></div>`; }
       
       texto += `🔹 Tarifa Bancária (PIX): ${fmtMoeda(vTarifaBancaria)}\n`;
       linhasCard += `<div class="comp-line" style="color:#64748b; font-size:0.75rem;"><span>Tarifa Bancária (PIX)</span> <span>${fmtMoeda(vTarifaBancaria)}</span></div>`;
