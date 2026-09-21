@@ -86,9 +86,11 @@
   .comp-total { display: flex; justify-content: space-between; font-weight: 900; font-size: 1.15rem; color: #166534; margin-top: 14px; padding-top: 14px; border-top: 2px dashed #cbd5e1; }
 
   /* EFEITO THUMBNAIL TABELA LINEAR */
-  .row-pdf-btn { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 64px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; overflow: hidden; transition: 0.2s; position: relative; }
+  .row-pdf-btn { cursor: pointer; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 48px; height: 56px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; overflow: hidden; transition: 0.2s; position: relative; font-size: 1.2rem; }
   .row-pdf-btn:hover { border-color: var(--accent); transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-  .row-pdf-icon { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+  .row-pdf-btn.vazio { opacity: 0.4; cursor: not-allowed; border-style: dashed; }
+  .row-pdf-btn.vazio:hover { transform: none; box-shadow: none; border-color: #cbd5e1; }
+  .thumb-label { font-size: 0.5rem; font-weight: 800; color: #64748b; margin-top: 4px; }
 
   .resumo-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
   @media(max-width: 900px) { .resumo-layout { grid-template-columns: 1fr; } }
@@ -150,8 +152,8 @@
 
 <div id="relatorio-modal">
   <div class="auth-card" style="border-top: 4px solid #0284c7;">
-    <h3 style="color:var(--primary); margin-bottom:10px;">📊 Relatório Gerado!</h3>
-    <p style="font-size:0.85rem; color:#64748b; margin-bottom:20px;">O seu Relatório Gerencial foi gerado com sucesso em PDF. O que deseja fazer agora?</p>
+    <h3 style="color:var(--primary); margin-bottom:10px;">📊 Mês Fechado!</h3>
+    <p style="font-size:0.85rem; color:#64748b; margin-bottom:20px;">O seu Relatório Gerencial foi gerado com sucesso. O ciclo do mês foi encerrado e o sistema já avançou para a próxima competência.</p>
     <div style="display:flex; flex-direction:column; gap:10px;">
         <button class="btn btn-gold" id="btn-baixar-pdf">⬇️ Baixar PDF</button>
         <button class="btn btn-whatsapp" id="btn-share-pdf">📲 Compartilhar no WhatsApp</button>
@@ -178,7 +180,7 @@
   <div style="display:flex; justify-content:flex-end; margin-bottom: 12px;">
      <div style="display:flex; align-items:center; gap: 8px;">
         <span style="font-size:0.85rem; font-weight:bold; color:var(--primary);">Mês e Ano de Referência:</span>
-        <input type="month" id="filtro-mes" onchange="atualizarInterfaceGeral()" style="width:160px; padding: 6px 12px; font-weight:bold;">
+        <input type="month" id="filtro-mes" onchange="atualizarInterfaceGeral()" style="width:160px; padding: 6px 12px; font-weight:bold; color: var(--primary);">
      </div>
   </div>
 
@@ -380,11 +382,12 @@
     </div>
     
     <div class="card" style="margin-top:20px;">
-        <div class="card-title">Ferramentas de Auditoria e Exportação</div>
-        <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">Utilize as opções abaixo para gerar o relatório gerencial completo em PDF ou baixar o backup bruto de segurança em formato CSV.</p>
-        <div style="display:flex; gap:10px;">
-            <button class="btn btn-dark" onclick="gerarRelatorioPDF()">📄 Gerar Relatório Mensal (PDF)</button>
-            <button class="btn btn-gold" onclick="gerarBackupCSV()">📥 Baixar Backup de Segurança (CSV)</button>
+        <div class="card-title">Gerador de Fecho de Caixa</div>
+        <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">O Relatório Mensal Final unifica todos os dados de cobrança e repasse. Ele só será liberado quando todos os contratos ativos do mês estiverem com os repasses concluídos (OK).</p>
+        
+        <div style="display:flex; gap:10px; align-items: center; border-top: 1px dashed #cbd5e1; padding-top: 16px;">
+            <button class="btn" id="btn-gerar-relatorio" style="flex: 1; padding: 16px; font-size: 1rem;" onclick="gerarRelatorioPDF()" disabled>⏳ Aguardando Repasses para Fechar Mês</button>
+            <button class="btn btn-dark" style="padding: 16px; font-size: 0.9rem;" onclick="gerarBackupCSV()">📥 Backup CSV</button>
         </div>
     </div>
   </div>
@@ -717,7 +720,11 @@
 
     imoveisVisiveis.forEach((c) => {
       const i = contratosDB.indexOf(c); const idReg = c.id || c._tempId; const isMarcado = contratosMarcados.has(String(idReg)) ? 'checked' : ''; const venc = getAvisoVencimento(c);
-      const btnPdf = c.contrato_url ? `<div onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')" class="row-pdf-btn">📄</div>` : 'Sem anexo';
+      
+      const btnPdf = c.contrato_url 
+          ? `<div onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')" class="row-pdf-btn">📄<br><span class="thumb-label">VER</span></div>` 
+          : `<div class="row-pdf-btn vazio">📄<br><span class="thumb-label">VAZIO</span></div>`;
+          
       tbody.innerHTML += `
         <tr>
           <td class="fit"><button class="btn btn-danger" onclick="excluirImovel('${idReg}')">🗑️</button></td>
@@ -884,9 +891,9 @@
           canvas.toBlob(blob => {
               try { 
                   navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => { 
-                      btn.innerText = "✓ Recibo Copiado!"; setTimeout(() => btn.innerText = txtOrig, 2000); 
+                      btn.innerText = "✓ Imagem Copiada!"; setTimeout(() => btn.innerText = txtOrig, 2000); 
                   }); 
-              } catch(e) { alert('Erro ao copiar imagem.'); btn.innerText = txtOrig; }
+              } catch(e) { alert('Erro ao copiar imagem. Clique com o botão direito na imagem e copie manualmente.'); btn.innerText = txtOrig; }
           }, 'image/png');
       });
   }
@@ -1056,6 +1063,7 @@
       let isCobrancaPaga = statusCob[mesRef] === 'recebida';
       let isRepasseFeito = statusRep[mesRef] === 'recebida';
 
+      // Design Diferenciado para Repasse OK (Verde Sólido e sem botão para evitar acidentes)
       let bgPainel = isRepasseFeito ? '#dcfce7' : '#f8fafc'; 
       let borderCor = isRepasseFeito ? '#22c55e' : '#cbd5e1'; 
       let acaoHtml = '';
@@ -1065,7 +1073,7 @@
       } else if (isCobrancaPaga && !isRepasseFeito) {
           acaoHtml = `<button id="btn-transf-${idReg}" class="btn btn-gold" style="width:100%; padding: 12px; font-size: 0.9rem;" onclick="realizarTransferencias('${idReg}')">💸 Realizar Transferências Automáticas</button>`;
       } else {
-          acaoHtml = `<div style="text-align:center; padding:10px; color:#166534; font-size:0.9rem; font-weight:bold;">✅ Todas as transferências concluídas!</div>`;
+          acaoHtml = `<div style="text-align:center; padding:12px; color:#166534; font-size:0.9rem; font-weight:bold; border-top: 1px dashed #22c55e; margin-top: 10px;">✅ Transferências Concluídas!</div>`;
       }
 
       const idTextArea = `txt-rep-${idReg}`; const idCard = `img-rep-${idReg}`;
@@ -1076,7 +1084,7 @@
               <div class="comp-total"><span>TOTAL REPASSADO:</span> <span>${fmtMoeda(valProprietario)}</span></div>
            </div>
            
-           <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin: 10px 0; font-size:0.75rem; color:#475569; text-align: left; border: 1px solid #e2e8f0;">
+           <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin: 16px 0 10px 0; font-size:0.75rem; color:#475569; text-align: left; border: 1px solid #e2e8f0;">
                <strong>Auditoria de Destinos (PIX):</strong><br>
                1. Proprietário: ${fmtMoeda(valProprietario)}<br>
                2. M&IC (Taxa + Seguro${repassaSeguro?'':' incluso'}): ${fmtMoeda(valMIC)}<br>
@@ -1085,7 +1093,7 @@
 
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
            
-           <div style="margin-bottom: 8px;">${acaoHtml}</div>
+           <div style="margin-bottom: 12px;">${acaoHtml}</div>
            
            <div style="display: flex; gap: 8px;">
               <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.85rem;" onclick="copiarApenasImagem('${idCard}', this)">📸 Copiar Recibo</button>
@@ -1096,12 +1104,13 @@
   }
 
   // =======================================================
-  // GERENCIAL E EXPORTAÇÃO
+  // GERENCIAL E EXPORTAÇÃO (FECHO DE CAIXA)
   // =======================================================
   function renderizarGerencial() {
       const mesRef = document.getElementById('filtro-mes').value;
       const ativos = contratosDB.filter(c => c.ativo === 'SIM');
       let totalArrecadado = 0, totalMIC = 0, totalProp = 0, totalCond = 0;
+      let todosRepassesOk = ativos.length > 0;
 
       ativos.forEach(c => {
          const v = getVariaveisMes(c, mesRef);
@@ -1122,6 +1131,10 @@
          totalProp += (baseTotal - vTaxaAdm - valCondominioPix - valSeguroMIC);
          totalMIC += (vTaxaAdm + valSeguroMIC);
          totalCond += valCondominioPix;
+
+         // Verifica Status para Travar o Relatório
+         let sR = {}; try{ sR=JSON.parse(c.status_repasse||'{}')}catch(e){}
+         if (sR[mesRef] !== 'recebida') todosRepassesOk = false;
       });
 
       document.getElementById('ger-ativos').innerText = ativos.length;
@@ -1129,6 +1142,20 @@
       document.getElementById('ger-faturamento').innerText = fmtMoeda(totalMIC);
       document.getElementById('ger-prop').innerText = fmtMoeda(totalProp);
       document.getElementById('ger-cond').innerText = fmtMoeda(totalCond);
+
+      // Trava de Fecho de Caixa
+      const btnRelatorio = document.getElementById('btn-gerar-relatorio');
+      if (todosRepassesOk) {
+          btnRelatorio.style.background = '#22c55e';
+          btnRelatorio.style.color = '#ffffff';
+          btnRelatorio.innerText = '✅ Fechar Mês e Gerar Relatório PDF';
+          btnRelatorio.disabled = false;
+      } else {
+          btnRelatorio.style.background = '#fef08a';
+          btnRelatorio.style.color = '#a16207';
+          btnRelatorio.innerText = '⏳ Aguardando todos os repasses para fechar mês';
+          btnRelatorio.disabled = true;
+      }
   }
 
   function gerarBackupCSV() {
@@ -1149,6 +1176,15 @@
 
   let lastGeneratedPdfBlob = null;
   let lastGeneratedPdfText = "";
+
+  function avancarMesAutomaticamente() {
+      const inputMes = document.getElementById('filtro-mes');
+      const [ano, mes] = inputMes.value.split('-');
+      let data = new Date(parseInt(ano), parseInt(mes) - 1, 1);
+      data.setMonth(data.getMonth() + 1);
+      inputMes.value = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+      atualizarInterfaceGeral();
+  }
 
   function gerarRelatorioPDF() {
       const { jsPDF } = window.jspdf;
@@ -1190,40 +1226,47 @@
          
          let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
          let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
-         
          let valProprietario = baseTotal - vTaxaAdm - valCondominioPix - valSeguroMIC;
          let valMIC = vTaxaAdm + valSeguroMIC;
 
+         tableData.push([{ content: `Imóvel: ${c.endereco}\nInquilino: ${c.inquilino}\nProprietário: ${c.proprietario}`, colSpan: 6, styles: { fillColor: [244, 246, 249], fontStyle: 'bold', textColor: [15, 23, 42] } }]);
          tableData.push([
-            c.inquilino || '-', fmtMoeda(baseTotal + 1.99), fmtMoeda(valMIC), fmtMoeda(valProprietario), fmtMoeda(valCondominioPix)
+            'R$ ' + fmtMoeda(baseTotal + 1.99), // Cobrado do inquilino (com tarifa)
+            'R$ 1,99',                          // Tarifa Asaas
+            'R$ ' + fmtMoeda(valMIC),           // M&IC
+            'R$ ' + fmtMoeda(valProprietario),  // Repasse Prop
+            'R$ ' + fmtMoeda(valCondominioPix), // Síndico
+            '✅ OK'                             // Status
          ]);
       });
 
       doc.autoTable({
         startY: 85,
-        head: [['Inquilino (Origem)', 'Arrecadado', 'M&IC', 'Proprietário', 'Condomínio']],
+        head: [['Arrecadado (Total Inq.)', 'Tarifa (Asaas)', 'Comissão (M&IC)', 'Repasse (Proprietário)', 'Condomínio (Síndico)', 'Status']],
         body: tableData,
-        theme: 'striped',
-        headStyles: { fillColor: [197, 155, 39], textColor: [255,255,255] },
-        styles: { fontSize: 8 }
+        theme: 'grid',
+        headStyles: { fillColor: [43, 38, 27], textColor: [255,255,255] },
+        styles: { fontSize: 8, cellPadding: 3 }
       });
 
       lastGeneratedPdfBlob = doc.output('blob');
       lastGeneratedPdfText = `📊 *M&IC Corretores*\nSegue o relatório gerencial referente a *${mesFormatado}*.\n\nContratos Ativos: ${ativos}\nVolume Arrecadado: ${vol}\nFaturamento M&IC: ${fat}`;
+      
+      // O Mês avança aqui (nos bastidores)
+      avancarMesAutomaticamente();
       document.getElementById('relatorio-modal').style.display = 'flex';
   }
 
   document.getElementById('btn-baixar-pdf').addEventListener('click', () => {
       if(!lastGeneratedPdfBlob) return;
-      const mesRef = document.getElementById('filtro-mes').value;
+      const mesRef = document.getElementById('filtro-mes').value; // Vai pegar o mês seguinte para o nome do arquivo se já avançou
       const pdfUrl = URL.createObjectURL(lastGeneratedPdfBlob);
-      const a = document.createElement('a'); a.href = pdfUrl; a.download = `Relatorio_Gerencial_MIC_${mesRef}.pdf`; a.click();
+      const a = document.createElement('a'); a.href = pdfUrl; a.download = `Relatorio_Gerencial_MIC.pdf`; a.click();
   });
 
   document.getElementById('btn-share-pdf').addEventListener('click', async () => {
       if(!lastGeneratedPdfBlob) return;
-      const mesRef = document.getElementById('filtro-mes').value;
-      const file = new File([lastGeneratedPdfBlob], `Relatorio_Gerencial_MIC_${mesRef}.pdf`, { type: 'application/pdf' });
+      const file = new File([lastGeneratedPdfBlob], `Relatorio_Gerencial_MIC.pdf`, { type: 'application/pdf' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try { await navigator.share({ files: [file], title: 'Relatório Gerencial M&IC', text: lastGeneratedPdfText }); } catch(e) {}
       } else {
