@@ -261,8 +261,8 @@
           <div>
              <label>Repassar Seguro p/ Proprietário?</label>
              <select id="regraSeguro">
-                 <option value="S">SIM (Proprietário paga o seguro)</option>
-                 <option value="N">NÃO (A M&IC paga o seguro)</option>
+                <option value="S">SIM (Proprietário paga o seguro)</option>
+                <option value="N">NÃO (A M&IC paga o seguro)</option>
              </select>
           </div>
         </div>
@@ -336,7 +336,7 @@
         <div style="font-weight:800; font-size: 1.1rem; color: var(--primary);">Resumo para Cobrança (Inquilino)</div>
         <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="dispararWppMassa('cobranca')">📲 Disparar WhatsApp em Massa</button>
       </div>
-      <div id="cobrancas-container" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px;"></div>
+      <div id="cobrancas-container" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 16px;"></div>
     </div>
   </div>
 
@@ -350,30 +350,38 @@
             <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="dispararWppMassa('repasse')">📲 Disparar WPP em Massa</button>
         </div>
       </div>
-      <div id="repasses-container" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px;"></div>
+      <div id="repasses-container" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 16px;"></div>
     </div>
   </div>
 
   <!-- ABA: GERENCIAL -->
   <div id="tab-resumo_gerencial" class="tab-content">
-    <div class="grid-3">
+    <div class="grid-2">
         <div class="gerencial-metric">
             <h3>Contratos Ativos</h3>
             <div class="value" id="ger-ativos">0</div>
         </div>
         <div class="gerencial-metric">
-            <h3>Faturamento Mensal (Taxa de Adm.)</h3>
+            <h3>Volume Total Arrecadado</h3>
+            <div class="value" style="color:#0284c7;" id="ger-volume">R$ 0,00</div>
+        </div>
+        <div class="gerencial-metric">
+            <h3>Faturamento M&IC (Taxa + Seguros)</h3>
             <div class="value" style="color:var(--success);" id="ger-faturamento">R$ 0,00</div>
         </div>
         <div class="gerencial-metric">
-            <h3>Volume Total Arrecadado</h3>
-            <div class="value" style="color:#0284c7;" id="ger-volume">R$ 0,00</div>
+            <h3>Repassado a Proprietários</h3>
+            <div class="value" style="color:#a16207;" id="ger-prop">R$ 0,00</div>
+        </div>
+        <div class="gerencial-metric" style="grid-column: 1 / -1; padding: 20px;">
+            <h3>Condomínios Pagos Direto ao Síndico</h3>
+            <div class="value" style="color:#b91c1c; font-size:2rem;" id="ger-cond">R$ 0,00</div>
         </div>
     </div>
     
     <div class="card" style="margin-top:20px;">
         <div class="card-title">Ferramentas de Auditoria e Exportação</div>
-        <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">Utilize as opções abaixo para gerar o relatório gerencial visual (PDF) pronto para envio, ou baixar o backup bruto de segurança em formato CSV.</p>
+        <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">Utilize as opções abaixo para gerar o relatório gerencial completo em PDF ou baixar o backup bruto de segurança em formato CSV.</p>
         <div style="display:flex; gap:10px;">
             <button class="btn btn-dark" onclick="gerarRelatorioPDF()">📄 Gerar Relatório Mensal (PDF)</button>
             <button class="btn btn-gold" onclick="gerarBackupCSV()">📥 Baixar Backup de Segurança (CSV)</button>
@@ -401,15 +409,11 @@
   let reajusteAtualId = null;
   let isLoadingImoveis = false;
 
-  // Mostra/Oculta campo PIX do Condominio
   window.togglePixCond = function() {
       const val = document.getElementById('regraCond').value;
       document.getElementById('divPixCond').style.display = (val === 'N') ? 'block' : 'none';
   };
 
-  // =======================================================
-  // FUNÇÕES DE FORMATAÇÃO E MÁSCARAS
-  // =======================================================
   const formatadorStr = val => {
     if(!val) return '';
     return parseFloat(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -486,9 +490,6 @@
   
   function doLogout() { setLocalSession(null); checkSession(); }
 
-  // =======================================================
-  // INICIALIZAÇÃO DA INTERFACE
-  // =======================================================
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-login').addEventListener('click', doLogin);
     document.getElementById('btn-register').addEventListener('click', doRegister);
@@ -516,9 +517,6 @@
     if (document.getElementById('tab-resumo_gerencial').classList.contains('active')) renderizarGerencial();
   }
 
-  // =======================================================
-  // MOTOR DE EXTRAÇÃO DE PDF (COM CAÇADOR FUZZY)
-  // =======================================================
   function cleanSearch(text) { return text ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : ""; }
   function isValidPersonName(str) {
     if (!str) return false; let s = str.trim(); let sNorm = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -570,18 +568,13 @@
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       await renderPdfThumbnail(pdf);
 
-      let allRawLines = [];
-      let page1RawLines = [];
-      let fullText = '';
-
+      let allRawLines = []; let page1RawLines = []; let fullText = '';
       for (let p = 1; p <= pdf.numPages; p++) {
-        const page = await pdf.getPage(p);
-        const textContent = await page.getTextContent();
+        const page = await pdf.getPage(p); const textContent = await page.getTextContent();
         for (const item of textContent.items) {
           const str = String(item.str || '').trim();
           if (!str) continue;
-          allRawLines.push(str);
-          fullText += ' ' + str;
+          allRawLines.push(str); fullText += ' ' + str;
           if (p === 1) page1RawLines.push(str);
         }
       }
@@ -590,17 +583,12 @@
       const normalizedFullText = normalizePdfText(fullText);
 
       let ext = { locador: '', telLocador: '', locatario: '', cpfInquilino: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '', titularPix: '' };
-
       const normForTag = (text) => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '').toUpperCase();
       const compactFullText = normForTag(fullText);
-      const tagStart = '[MIC_DADOS]';
-      const tagEnd = '[/MIC_DADOS]';
-      const startPos = compactFullText.indexOf(tagStart);
-      const endPos = compactFullText.indexOf(tagEnd, startPos + tagStart.length);
+      const tagStart = '[MIC_DADOS]'; const tagEnd = '[/MIC_DADOS]';
+      const startPos = compactFullText.indexOf(tagStart); const endPos = compactFullText.indexOf(tagEnd, startPos + tagStart.length);
 
-      let blockMatch = null;
-      let hiddenBlock = '';
-
+      let blockMatch = null; let hiddenBlock = '';
       if (startPos !== -1 && endPos !== -1) {
         const compactOriginal = String(fullText || '').replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
         const m = compactOriginal.match(/\[\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]([\s\S]*?)\[\s*\/\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]/i);
@@ -613,8 +601,7 @@
       const keyMap = Object.fromEntries(FIELD_KEYS.map(k => [canonicalKey(k), k]));
 
       const parseHiddenFields = (block) => {
-        const result = {};
-        if (!block) return result;
+        const result = {}; if (!block) return result;
         let b = String(block).replace(/\u00A0/g, ' ').replace(/[\r\n]+/g, '\n').replace(/\s+/g, ' ').trim();
         const keyPattern = FIELD_KEYS.map(k => k.split('').map(ch => escapeRegExp(ch)).join('\\s*')).join('|');
         const fieldRegex = new RegExp('(?:\\{\\s*)?(' + keyPattern + ')(?:\\s*)(?::)(?:\\s*\\})?\\s*', 'gi');
@@ -630,23 +617,16 @@
       };
 
       const hidden = parseHiddenFields(hiddenBlock);
-
       const cleanValue = (v) => String(v || '').replace(/^[\s{}]+|[\s{}]+$/g, '').replace(/\s+/g, ' ').trim();
       const fixSpacing = (str) => {
-        let s = cleanValue(str);
-        const rx = /\b([A-ZÀ-ÖØ-Ý][a-zà-öø-ÿ]{0,2})\s+([a-zà-öø-ÿ]{2,3})\b/g;
-        let anterior = ''; while (s !== anterior) { anterior = s; s = s.replace(rx, '$1$2'); }
-        return s.replace(/\s+/g, ' ').trim();
+        let s = cleanValue(str); const rx = /\b([A-ZÀ-ÖØ-Ý][a-zà-öø-ÿ]{0,2})\s+([a-zà-öø-ÿ]{2,3})\b/g;
+        let anterior = ''; while (s !== anterior) { anterior = s; s = s.replace(rx, '$1$2'); } return s.replace(/\s+/g, ' ').trim();
       };
 
-      ext.locador = fixSpacing(hidden.Proprietario);
-      ext.telLocador = cleanValue(hidden.TelProprietario).replace(/\D/g, '');
-      ext.pix = cleanValue(hidden.PixProprietario).replace(/\s/g, '');
-      ext.titularPix = fixSpacing(hidden.TitularPix);
-      ext.locatario = fixSpacing(hidden.Inquilino);
-      ext.cpfInquilino = cleanValue(hidden.CpfInquilino).replace(/\D/g, '');
-      ext.emailLocatario = cleanValue(hidden.EmailInquilino).replace(/\s/g, '');
-      ext.telLocatario = cleanValue(hidden.TelInquilino).replace(/\D/g, '');
+      ext.locador = fixSpacing(hidden.Proprietario); ext.telLocador = cleanValue(hidden.TelProprietario).replace(/\D/g, '');
+      ext.pix = cleanValue(hidden.PixProprietario).replace(/\s/g, ''); ext.titularPix = fixSpacing(hidden.TitularPix);
+      ext.locatario = fixSpacing(hidden.Inquilino); ext.cpfInquilino = cleanValue(hidden.CpfInquilino).replace(/\D/g, '');
+      ext.emailLocatario = cleanValue(hidden.EmailInquilino).replace(/\s/g, ''); ext.telLocatario = cleanValue(hidden.TelInquilino).replace(/\D/g, '');
       ext.endereco = fixSpacing(hidden.Endereco);
 
       const toIsoDate = (value) => { const v = cleanValue(value).replace(/\s/g, ''); const m = v.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/); return m ? `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` : ''; };
@@ -671,32 +651,45 @@
   }
 
   // =======================================================
-  // TABELA MESTRE E FUNÇÕES DE EDIÇÃO
+  // BANCO CENTRAL DO BRASIL E EDIÇÕES
   // =======================================================
+  async function getIndiceAcumulado(serie) {
+     try {
+         const res = await fetch(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.${serie}/dados/ultimos/12?formato=json`);
+         const data = await res.json(); let mult = 1; data.forEach(item => { mult *= (1 + (parseFloat(item.valor) / 100)); }); return mult - 1;
+     } catch(e) { return null; }
+  }
+  function abrirModalReajuste(idReg) { reajusteAtualId = idReg; document.getElementById('reajuste-modal').style.display = 'flex'; document.getElementById('btn-igpm').innerText = 'IGP-M (FGV)'; document.getElementById('btn-ipca').innerText = 'IPCA (IBGE)'; }
+  function fecharReajuste() { document.getElementById('reajuste-modal').style.display = 'none'; reajusteAtualId = null; }
+  async function aplicarReajuste(tipo) {
+     if(!reajusteAtualId) return; const btn = document.getElementById(tipo === 'IGPM' ? 'btn-igpm' : 'btn-ipca'); btn.innerText = 'Calculando... aguarde';
+     const serie = tipo === 'IGPM' ? 189 : 433; const acc = await getIndiceAcumulado(serie);
+     if (acc === null) { alert('Falha ao obter índice do BC. Tente mais tarde.'); btn.innerText = tipo === 'IGPM' ? 'IGP-M (FGV)' : 'IPCA (IBGE)'; return; }
+     const idx = contratosDB.findIndex(x => (x.id || x._tempId) == reajusteAtualId); const c = contratosDB[idx];
+     const alugBase = parseMoedaToFloat(c.aluguel_base); const novoVal = alugBase * (1 + acc);
+     if(confirm(`Índice ${tipo}: ${(acc*100).toFixed(2)}%\nValor Atual: ${fmtMoeda(alugBase)}\nNOVO VALOR: ${fmtMoeda(novoVal)}\nConfirmar reajuste?`)) { 
+         const hist = `${c.historico_reajuste || ''}\n[${new Date().toLocaleDateString('pt-BR')}] ${tipo}: +${(acc*100).toFixed(2)}% -> R$ ${fmtMoeda(novoVal)}`.trim();
+         await updateDbLinear(idx, 'aluguel_base', novoVal); await updateDbLinear(idx, 'reajuste_aplicado', 'SIM'); await updateDbLinear(idx, 'historico_reajuste', hist);
+         alert('✅ Reajuste aplicado!'); fecharReajuste(); 
+     } else { btn.innerText = tipo === 'IGPM' ? 'IGP-M (FGV)' : 'IPCA (IBGE)'; }
+  }
+
   function toggleMarcarTodos(isChecked) {
     const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
-    imoveisVisiveis.forEach(c => { const idStr = String(c.id || c._tempId); if(isChecked) contratosMarcados.add(idStr); else contratosMarcados.delete(idStr); });
-    atualizarInterfaceGeral();
+    imoveisVisiveis.forEach(c => { const idStr = String(c.id || c._tempId); if(isChecked) contratosMarcados.add(idStr); else contratosMarcados.delete(idStr); }); atualizarInterfaceGeral();
   }
-  
   function toggleMarcar(idString, isChecked) {
-    if(isChecked) contratosMarcados.add(String(idString)); else contratosMarcados.delete(String(idString));
-    atualizarInterfaceGeral(); 
+    if(isChecked) contratosMarcados.add(String(idString)); else contratosMarcados.delete(String(idString)); atualizarInterfaceGeral(); 
   }
-
   async function editarCPF(index) {
-      const c = contratosDB[index];
-      const novoCpf = prompt(`Informe o CPF de ${c.inquilino}:`, c.cpf_inquilino || '');
-      if (novoCpf === null) return;
-      await updateDbLinear(index, 'cpf_inquilino', novoCpf.replace(/\D/g, ''));
+      const c = contratosDB[index]; const novoCpf = prompt(`Informe o CPF de ${c.inquilino}:`, c.cpf_inquilino || '');
+      if (novoCpf === null) return; await updateDbLinear(index, 'cpf_inquilino', novoCpf.replace(/\D/g, ''));
   }
-
   async function editarPix(index) {
     const c = contratosDB[index];
     const novoPix = prompt(`1/2 - Alterar chave PIX de ${c.proprietario}:\n\nDigite a nova chave (ou deixe em branco):`, c.pix_proprietario || ''); if (novoPix === null) return; 
     const novoTitular = prompt(`2/2 - Nome do Titular da conta PIX:\n(Aparecerá no recibo do repasse para confirmação)`, c.titular_pix || c.proprietario || ''); if (novoTitular === null) return; 
-    c.pix_proprietario = novoPix.trim(); c.titular_pix = novoTitular.trim();
-    atualizarInterfaceGeral();
+    c.pix_proprietario = novoPix.trim(); c.titular_pix = novoTitular.trim(); atualizarInterfaceGeral();
     const id = c.id; if(!id) return;
     try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pix_proprietario: c.pix_proprietario, titular_pix: c.titular_pix }) }); alert('PIX e Titular atualizados!'); } catch(e) {}
   }
@@ -706,47 +699,32 @@
     const hoje = new Date(); hoje.setHours(0,0,0,0); const [a, m, d] = c.data_fim.split('-'); const fim = new Date(a, m-1, d);
     const diffDays = Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24));
     let bola = ''; let textoCob = ''; let htmlCard = '';
-
     if (diffDays > 60) bola = '<div class="bola bola-verde" title="No prazo"></div>';
     else if (diffDays <= 60 && diffDays > 30) {
-        bola = '<div class="bola bola-amarela"></div>';
-        textoCob = `\n⚠️ *Aviso Importante:* O seu contrato de locação encerra em ${diffDays} dias (${c.data_fim.split('-').reverse().join('/')}).\n`;
-        htmlCard = `<div style="background:#fef9c3; color:#a16207; padding:8px; border-left:4px solid #eab308; font-size:0.75rem; margin:10px 0;">⚠️ Contrato encerra em ${diffDays} dias.</div>`;
+        bola = '<div class="bola bola-amarela"></div>'; textoCob = `\n⚠️ *Aviso Importante:* O seu contrato de locação encerra em ${diffDays} dias (${c.data_fim.split('-').reverse().join('/')}).\n`; htmlCard = `<div style="background:#fef9c3; color:#a16207; padding:8px; border-left:4px solid #eab308; font-size:0.75rem; margin:10px 0;">⚠️ Contrato encerra em ${diffDays} dias.</div>`;
     } else {
-        bola = '<div class="bola bola-vermelha"></div>';
-        textoCob = `\n🚨 *Aviso Urgente:* O seu contrato de locação encontra-se VENCIDO.\n`;
-        htmlCard = `<div style="background:#fee2e2; color:#b91c1c; padding:8px; border-left:4px solid #ef4444; font-size:0.75rem; margin:10px 0;">🚨 Contrato Vencido!</div>`;
+        bola = '<div class="bola bola-vermelha"></div>'; textoCob = `\n🚨 *Aviso Urgente:* O seu contrato de locação encontra-se VENCIDO.\n`; htmlCard = `<div style="background:#fee2e2; color:#b91c1c; padding:8px; border-left:4px solid #ef4444; font-size:0.75rem; margin:10px 0;">🚨 Contrato Vencido!</div>`;
     }
     return { html: bola, textoCob, htmlCard };
   }
 
   function renderizarTabelaLinear() {
-    const tbody = document.getElementById('tabela-imoveis-linear-body'); 
-    if (!tbody) return; 
-    tbody.innerHTML = '';
-    
+    const tbody = document.getElementById('tabela-imoveis-linear-body'); if (!tbody) return; tbody.innerHTML = '';
     const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
     const checkAllBtn = document.getElementById('check-all-imoveis');
     if (checkAllBtn) checkAllBtn.checked = imoveisVisiveis.length > 0 && imoveisVisiveis.every(c => contratosMarcados.has(String(c.id || c._tempId)));
-    
     if (imoveisVisiveis.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: #64748b;">Nenhum imóvel registrado.</td></tr>'; return; }
 
     imoveisVisiveis.forEach((c) => {
       const i = contratosDB.indexOf(c); const idReg = c.id || c._tempId; const isMarcado = contratosMarcados.has(String(idReg)) ? 'checked' : ''; const venc = getAvisoVencimento(c);
       const btnPdf = c.contrato_url ? `<div onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')" class="row-pdf-btn">📄</div>` : 'Sem anexo';
-      
       tbody.innerHTML += `
         <tr>
           <td class="fit"><button class="btn btn-danger" onclick="excluirImovel('${idReg}')">🗑️</button></td>
           <td class="fit" style="text-align: center;"><input type="checkbox" class="checkbox-marcar" onchange="toggleMarcar('${idReg}', this.checked)" ${isMarcado}></td>
           <td class="fit"><select onchange="updateDbLinear(${i}, 'ativo', this.value)" style="padding: 6px; font-size: 0.82rem;"><option value="SIM" ${c.ativo === 'SIM' ? 'selected' : ''}>🟢 Ativo</option><option value="NÃO" ${c.ativo === 'NÃO' ? 'selected' : ''}>🔴 Inativo</option></select></td>
-          <td>
-            <strong style="font-size: 0.95rem;">${c.inquilino}</strong> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarCPF(${i})">✏️ CPF</button><br>
-            <span style="font-size: 0.75rem; color: #64748b;">Locador: ${c.proprietario || '-'}</span> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarPix(${i})">✏️ PIX</button>
-          </td>
-          <td>${c.endereco || ''}</td>
-          <td class="fit" style="text-align: center;">${venc.html}</td>
-          <td class="fit" style="text-align: center;">${btnPdf}</td>
+          <td><strong style="font-size: 0.95rem;">${c.inquilino}</strong> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarCPF(${i})">✏️ CPF</button><br><span style="font-size: 0.75rem; color: #64748b;">Locador: ${c.proprietario || '-'}</span> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarPix(${i})">✏️ PIX</button></td>
+          <td>${c.endereco || ''}</td><td class="fit" style="text-align: center;">${venc.html}</td><td class="fit" style="text-align: center;">${btnPdf}</td>
         </tr>`;
     });
   }
@@ -758,11 +736,9 @@
     if (isLoadingImoveis) return; isLoadingImoveis = true;
     const tbody = document.getElementById('tabela-imoveis-linear-body');
     if (forceUI && tbody && contratosDB.length === 0) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">Sincronizando...</td></tr>';
-    
     try {
       const resp = await supabaseFetchWithRefresh('/rest/v1/locacoes?select=*&order=created_at.desc', { method: 'GET' });
-      if (resp.ok) { contratosDB = await resp.json(); atualizarInterfaceGeral(); } 
-      else throw new Error("Erro na API.");
+      if (resp.ok) { contratosDB = await resp.json(); atualizarInterfaceGeral(); } else throw new Error("Erro na API.");
     } catch(e) { if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: red;">Falha de conexão: ${e.message}</td></tr>`; } 
     finally { isLoadingImoveis = false; }
   }
@@ -785,9 +761,7 @@
 
   async function gravarNovoContrato() {
     const btn = document.getElementById('btn-gravar-novo'); btn.disabled = true; btn.innerText = 'Salvando no banco de dados...';
-    let urlPdf = null;
-    
-    const s = getLocalSession(); let emailUser = 'chalfouncorretor@gmail.com'; if (s && s.user && s.user.email) emailUser = s.user.email;
+    let urlPdf = null; const s = getLocalSession(); let emailUser = 'chalfouncorretor@gmail.com'; if (s && s.user && s.user.email) emailUser = s.user.email;
 
     const payload = {
       user_email: emailUser, proprietario: document.getElementById('proprietario').value, telefone_proprietario: document.getElementById('telProprietario').value, 
@@ -839,10 +813,7 @@
       const total = parseMoedaToFloat(v.alugProp) + parseMoedaToFloat(v.alugMes) + parseMoedaToFloat(v.condProp) + parseMoedaToFloat(v.condMes) + parseMoedaToFloat(v.iptu) + parseMoedaToFloat(v.bombeiro) + parseMoedaToFloat(v.seguro) + parseMoedaToFloat(v.outras_taxas) - parseMoedaToFloat(v.desconto);
       const tdTotal = document.getElementById(`total-linha-${index}`); if (tdTotal) tdTotal.innerHTML = `<strong style="color:var(--danger); font-size:0.95rem;">${fmtMoeda(total)}</strong>`;
       
-      if (document.getElementById('tab-resumo_cobranca').classList.contains('active')) gerarTextosCobranca();
-      if (document.getElementById('tab-repasse').classList.contains('active')) gerarTextosRepasse();
-      if (document.getElementById('tab-resumo_gerencial').classList.contains('active')) renderizarGerencial();
-
+      atualizarInterfaceGeral();
       const id = c.id; if(!id) return;
       try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lancamentos_mensais: strLanc }) }); } catch(e) {}
   }
@@ -873,14 +844,13 @@
   }
 
   // =======================================================
-  // ASAAS E WPP - COBRANÇA
+  // ASAAS E WPP - COBRANÇA E CÓPIAS
   // =======================================================
   async function gerarCobrancaAsaas(idReg, valorTotalBase) {
       const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
       if (!c.cpf_inquilino) { alert('Erro: Preencha o CPF do Inquilino na aba Imóveis.'); return; }
 
       const valorTotal = valorTotalBase + 1.99;
-
       const mesRef = document.getElementById('filtro-mes').value; const [anoRef, mesRefStr] = mesRef.split('-');
       let dVenc = new Date(anoRef, parseInt(mesRefStr) - 1, 1); let contUteis = 0;
       while (contUteis < 5) { const ds = dVenc.getDay(); if (ds !== 0 && ds !== 6) contUteis++; if (contUteis < 5) dVenc.setDate(dVenc.getDate() + 1); }
@@ -908,26 +878,16 @@
 
   function formatarMesAno(mesRef) { if(!mesRef) return ''; const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; const [ano, mes] = mesRef.split('-'); return `${meses[parseInt(mes)-1]} de ${ano}`; }
 
-  function copiarImagemETexto(idHtml, idTextArea, btn) {
-     const el = document.getElementById(idHtml); const texto = document.getElementById(idTextArea).value; const txtOrig = btn.innerText; btn.innerText = "Copiando...";
-     html2canvas(el, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
-         canvas.toBlob(blob => {
-             try { navigator.clipboard.write([new ClipboardItem({ 'image/png': blob, 'text/plain': new Blob([texto], { type: 'text/plain' }) })]).then(() => { btn.innerText = "✓ Copiado!"; setTimeout(() => btn.innerText = txtOrig, 2000); }).catch(err => fallbackCopiaImagem(blob, btn, txtOrig)); } catch(e) { fallbackCopiaImagem(blob, btn, txtOrig); }
-         }, 'image/png');
-     });
-  }
-
-  function fallbackCopiaImagem(blob, btn, txtOrig) {
-      navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => {
-          btn.innerText = "✓ Imagem Copiada";
-          setTimeout(() => btn.innerText = txtOrig, 2000);
-      }).catch(e => { btn.innerText = txtOrig; });
-  }
-
-  function copiarTextoCob(idTextArea) { 
-      const texto = document.getElementById(idTextArea).value;
-      navigator.clipboard.writeText(texto).then(() => {
-          alert('✓ Texto e Link copiados com sucesso!');
+  function copiarApenasImagem(idHtml, btn) {
+      const el = document.getElementById(idHtml); const txtOrig = btn.innerText; btn.innerText = "Copiando...";
+      html2canvas(el, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
+          canvas.toBlob(blob => {
+              try { 
+                  navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => { 
+                      btn.innerText = "✓ Imagem Copiada!"; setTimeout(() => btn.innerText = txtOrig, 2000); 
+                  }); 
+              } catch(e) { alert('Erro ao copiar imagem.'); btn.innerText = txtOrig; }
+          }, 'image/png');
       });
   }
 
@@ -948,9 +908,6 @@
          }
      }
   }
-
-  function avancarStatusCobranca(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_cobranca || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_cobranca', JSON.stringify(statusObj)); }
-  function avancarStatusRepasse(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_repasse', JSON.stringify(statusObj)); }
 
   function gerarTextosCobranca() {
     const container = document.getElementById('cobrancas-container'); if (!container) return;
@@ -990,7 +947,7 @@
       if (statusAtual === 'aguardando_asaas') { bgPainel = '#fef08a'; msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:bold; color:#a16207; font-size:0.85rem;">⏳ Aguardando confirmação do Asaas...</div>`; } 
       else if (statusAtual === 'recebida') { bgPainel = '#bbf7d0'; msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:900; color:#166534; font-size:0.9rem;">✅ Recebido via Asaas</div>`; }
 
-      let btnAsaasHtml = !asaasUrl ? `<button id="btn-asaas-${idReg}" class="btn" style="flex: 1; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff;" onclick="gerarCobrancaAsaas('${idReg}', ${baseTotal})">⚡ Gerar Link Asaas</button>` : `<a class="btn" style="flex: 1; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff; text-decoration: none; text-align: center;" href="${asaasUrl}" target="_blank">📄 Ver Fatura Oficial</a>`;
+      let btnAsaasHtml = !asaasUrl ? `<button id="btn-asaas-${idReg}" class="btn" style="width: 100%; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff;" onclick="gerarCobrancaAsaas('${idReg}', ${baseTotal})">⚡ Gerar Link Asaas</button>` : `<a class="btn" style="width: 100%; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff; text-decoration: none; text-align: center;" href="${asaasUrl}" target="_blank">📄 Ver Fatura Oficial</a>`;
 
       const idTextArea = `txt-cob-${idReg}`; const idCard = `img-cob-${idReg}`;
       container.innerHTML += `
@@ -1001,12 +958,11 @@
               <div class="comp-total"><span>TOTAL:</span> <span>${fmtMoeda(totalComTarifa)}</span></div></div>
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
            
-           <div style="display: flex; gap: 8px; max-width: 420px; margin: 16px auto 0 auto;">${btnAsaasHtml}</div>
+           <div style="max-width: 420px; margin: 16px auto 0 auto;">${btnAsaasHtml}</div>
            
            <div style="display: flex; gap: 8px; max-width: 420px; margin: 8px auto 0 auto;">
-              <button class="btn btn-gold" style="flex: 2; padding: 8px; font-size: 0.75rem;" onclick="copiarImagemETexto('${idCard}', '${idTextArea}', this)">📋 Imagem + Texto</button>
-              <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.75rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Só Texto</button>
-              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.75rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a>
+              <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.85rem;" onclick="copiarApenasImagem('${idCard}', this)">📸 Copiar Imagem</button>
+              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.85rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">💬 Enviar WPP</a>
            </div>
            
            <div style="max-width: 420px; margin: 0 auto;">
@@ -1053,7 +1009,6 @@
       for (let c of marcados) {
           let sC = {}; try{ sC=JSON.parse(c.status_cobranca||'{}')}catch(e){}
           let sR = {}; try{ sR=JSON.parse(c.status_repasse||'{}')}catch(e){}
-          
           if (sC[mesRef] === 'recebida' && sR[mesRef] !== 'recebida') {
               await realizarTransferencias(c.id || c._tempId, false);
               count++;
@@ -1101,7 +1056,9 @@
       let isCobrancaPaga = statusCob[mesRef] === 'recebida';
       let isRepasseFeito = statusRep[mesRef] === 'recebida';
 
-      let bgPainel = isRepasseFeito ? '#bbf7d0' : '#f8fafc'; 
+      // Design Diferenciado para Repasse OK (Verde Sólido)
+      let bgPainel = isRepasseFeito ? '#dcfce7' : '#f8fafc'; 
+      let borderCor = isRepasseFeito ? '#22c55e' : '#cbd5e1'; 
       let acaoHtml = '';
       
       if (!isCobrancaPaga) {
@@ -1109,18 +1066,18 @@
       } else if (isCobrancaPaga && !isRepasseFeito) {
           acaoHtml = `<button id="btn-transf-${idReg}" class="btn btn-gold" style="width:100%; padding: 12px; font-size: 0.9rem;" onclick="realizarTransferencias('${idReg}')">💸 Realizar Transferências Automáticas</button>`;
       } else {
-          acaoHtml = `<div style="text-align:center; padding:10px; color:#166534; background:#bbf7d0; border-radius:6px; font-size:0.8rem; font-weight:bold;">✅ Transferências Realizadas via Asaas!</div>`;
+          acaoHtml = `<div style="text-align:center; padding:10px; color:#166534; font-size:0.9rem; font-weight:bold;">✅ Todos os repasses efetuados com sucesso!</div>`;
       }
 
       const idTextArea = `txt-rep-${idReg}`; const idCard = `img-rep-${idReg}`;
       container.innerHTML += `
-        <div style="background: ${bgPainel}; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px;">
+        <div style="background: ${bgPainel}; border: 2px solid ${borderCor}; border-radius: 8px; padding: 16px;">
            <div id="${idCard}" class="receipt-box"><div style="font-weight:900; font-size:1.1rem; color:var(--primary);">REPASSE</div>
               <p style="font-size:0.9rem; margin-bottom:12px;"><strong>Proprietário:</strong> ${c.proprietario}</p><hr>
               <div class="comp-total"><span>TOTAL REPASSADO:</span> <span>${fmtMoeda(valProprietario)}</span></div>
            </div>
            
-           <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin: 10px auto 0 auto; font-size:0.75rem; color:#475569; max-width: 420px; text-align: left;">
+           <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin: 10px auto 0 auto; font-size:0.75rem; color:#475569; max-width: 420px; text-align: left; border: 1px solid #e2e8f0;">
                <strong>Auditoria de Destinos (PIX):</strong><br>
                1. Proprietário: ${fmtMoeda(valProprietario)}<br>
                2. M&IC (Taxa + Seguro${repassaSeguro?'':' incluso'}): ${fmtMoeda(valMIC)}<br>
@@ -1132,20 +1089,150 @@
            <div style="max-width: 420px; margin: 16px auto 0 auto;">${acaoHtml}</div>
            
            <div style="display: flex; gap: 8px; max-width: 420px; margin: 8px auto 0 auto;">
-              <button class="btn btn-gold" style="flex: 2; padding: 8px; font-size: 0.75rem;" onclick="copiarImagemETexto('${idCard}', '${idTextArea}', this)">📋 Imagem + Texto</button>
-              <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.75rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Só Texto</button>
-              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.75rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_proprietario).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a>
+              <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.85rem;" onclick="copiarApenasImagem('${idCard}', this)">📸 Copiar Imagem</button>
+              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.85rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_proprietario).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">💬 Enviar WPP</a>
            </div>
         </div>`;
     });
   }
 
   // =======================================================
-  // GERENCIAL
+  // GERENCIAL E EXPORTAÇÃO
   // =======================================================
   function renderizarGerencial() {
-      document.getElementById('ger-ativos').innerText = contratosDB.filter(c => c.ativo === 'SIM').length;
+      const mesRef = document.getElementById('filtro-mes').value;
+      const ativos = contratosDB.filter(c => c.ativo === 'SIM');
+      let totalArrecadado = 0, totalMIC = 0, totalProp = 0, totalCond = 0;
+
+      ativos.forEach(c => {
+         const v = getVariaveisMes(c, mesRef);
+         let vAlugProp = parseMoedaToFloat(v.alugProp); let vCondProp = parseMoedaToFloat(v.condProp);
+         let vAlugMes = parseMoedaToFloat(v.alugMes); let vCondMes = parseMoedaToFloat(v.condMes);
+         let vIptu = parseMoedaToFloat(v.iptu); let vBombeiro = parseMoedaToFloat(v.bombeiro);
+         let vSeguro = parseMoedaToFloat(v.seguro); let vOutras = parseMoedaToFloat(v.outras_taxas);
+         let vDesconto = parseMoedaToFloat(v.desconto); let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa);
+
+         let repassaCond = c.regra_condominio !== 'N'; let repassaSeguro = c.regra_seguro !== 'N';
+         let baseTotal = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+         
+         totalArrecadado += (baseTotal + 1.99); // Inclui tarifa
+         
+         let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
+         let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
+         
+         totalProp += (baseTotal - vTaxaAdm - valCondominioPix - valSeguroMIC);
+         totalMIC += (vTaxaAdm + valSeguroMIC);
+         totalCond += valCondominioPix;
+      });
+
+      document.getElementById('ger-ativos').innerText = ativos.length;
+      document.getElementById('ger-volume').innerText = fmtMoeda(totalArrecadado);
+      document.getElementById('ger-faturamento').innerText = fmtMoeda(totalMIC);
+      document.getElementById('ger-prop').innerText = fmtMoeda(totalProp);
+      document.getElementById('ger-cond').innerText = fmtMoeda(totalCond);
   }
+
+  function gerarBackupCSV() {
+      if (contratosDB.length === 0) return alert('Nenhum dado para exportar.');
+      let csv = 'DataRegistro,Ativo,Proprietario,TelefoneProp,PixProp,TitularPix,Inquilino,CpfInquilino,EmailInq,TelefoneInq,Endereco,Inicio,Fim,AluguelBase,CondominioBase,TaxaAdm\n';
+      contratosDB.forEach(c => {
+        let row = [
+          c.created_at || '', c.ativo || '', c.proprietario || '', c.telefone_proprietario || '', c.pix_proprietario || '', c.titular_pix || '',
+          c.inquilino || '', c.cpf_inquilino || '', c.email_inquilino || '', c.telefone_inquilino || '', c.endereco || '',
+          c.data_inicio || '', c.data_fim || '', c.aluguel_base || 0, c.condominio_base || 0, c.taxa_adm_fixa || 0
+        ].map(val => '"' + String(val).replace(/"/g, '""') + '"').join(',');
+        csv += row + '\n';
+      });
+      const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
+      a.download = `MIC_Backup_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+  }
+
+  let lastGeneratedPdfBlob = null;
+  let lastGeneratedPdfText = "";
+
+  function gerarRelatorioPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const mesRef = document.getElementById('filtro-mes').value;
+      const mesFormatado = formatarMesAno(mesRef);
+
+      doc.setFillColor(26, 28, 32); doc.rect(0, 0, 210, 35, 'F');
+      doc.setTextColor(197, 155, 39); doc.setFontSize(20); doc.setFont("helvetica", "bold"); doc.text("GESTÃO DE LOCAÇÃO - M&IC", 15, 18);
+      doc.setTextColor(255, 255, 255); doc.setFontSize(11); doc.setFont("helvetica", "normal"); doc.text(`RELATÓRIO GERENCIAL • COMPETÊNCIA: ${mesFormatado.toUpperCase()}`, 15, 26);
+
+      const ativos = document.getElementById('ger-ativos').innerText;
+      const vol = document.getElementById('ger-volume').innerText;
+      const fat = document.getElementById('ger-faturamento').innerText;
+      const prop = document.getElementById('ger-prop').innerText;
+      const cond = document.getElementById('ger-cond').innerText;
+
+      doc.setTextColor(0, 0, 0); doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text("RESUMO FINANCEIRO DO MÊS", 15, 50);
+      doc.setFontSize(11); doc.setFont("helvetica", "normal");
+      doc.text(`Contratos Ativos: ${ativos}`, 15, 60);
+      doc.text(`Volume Total Arrecadado: ${vol}`, 15, 67);
+      doc.text(`Faturamento M&IC: ${fat}`, 15, 74);
+      doc.text(`Repassado a Proprietários: ${prop}`, 105, 60);
+      doc.text(`Condomínios (Síndico): ${cond}`, 105, 67);
+
+      let tableData = [];
+      const ativosList = contratosDB.filter(c => c.ativo === 'SIM');
+      
+      ativosList.forEach(c => {
+         const v = getVariaveisMes(c, mesRef);
+         let vAlugProp = parseMoedaToFloat(v.alugProp); let vCondProp = parseMoedaToFloat(v.condProp);
+         let vAlugMes = parseMoedaToFloat(v.alugMes); let vCondMes = parseMoedaToFloat(v.condMes);
+         let vIptu = parseMoedaToFloat(v.iptu); let vBombeiro = parseMoedaToFloat(v.bombeiro);
+         let vSeguro = parseMoedaToFloat(v.seguro); let vOutras = parseMoedaToFloat(v.outras_taxas);
+         let vDesconto = parseMoedaToFloat(v.desconto); let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa);
+
+         let repassaCond = c.regra_condominio !== 'N'; let repassaSeguro = c.regra_seguro !== 'N';
+         let baseTotal = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+         
+         let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
+         let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
+         
+         let valProprietario = baseTotal - vTaxaAdm - valCondominioPix - valSeguroMIC;
+         let valMIC = vTaxaAdm + valSeguroMIC;
+
+         tableData.push([
+            c.inquilino || '-', fmtMoeda(baseTotal + 1.99), fmtMoeda(valMIC), fmtMoeda(valProprietario), fmtMoeda(valCondominioPix)
+         ]);
+      });
+
+      doc.autoTable({
+        startY: 85,
+        head: [['Inquilino (Origem)', 'Arrecadado', 'M&IC', 'Proprietário', 'Condomínio']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [197, 155, 39], textColor: [255,255,255] },
+        styles: { fontSize: 8 }
+      });
+
+      lastGeneratedPdfBlob = doc.output('blob');
+      lastGeneratedPdfText = `📊 *M&IC Corretores*\nSegue o relatório gerencial referente a *${mesFormatado}*.\n\nContratos Ativos: ${ativos}\nVolume Arrecadado: ${vol}\nFaturamento M&IC: ${fat}`;
+      document.getElementById('relatorio-modal').style.display = 'flex';
+  }
+
+  document.getElementById('btn-baixar-pdf').addEventListener('click', () => {
+      if(!lastGeneratedPdfBlob) return;
+      const mesRef = document.getElementById('filtro-mes').value;
+      const pdfUrl = URL.createObjectURL(lastGeneratedPdfBlob);
+      const a = document.createElement('a'); a.href = pdfUrl; a.download = `Relatorio_Gerencial_MIC_${mesRef}.pdf`; a.click();
+  });
+
+  document.getElementById('btn-share-pdf').addEventListener('click', async () => {
+      if(!lastGeneratedPdfBlob) return;
+      const mesRef = document.getElementById('filtro-mes').value;
+      const file = new File([lastGeneratedPdfBlob], `Relatorio_Gerencial_MIC_${mesRef}.pdf`, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try { await navigator.share({ files: [file], title: 'Relatório Gerencial M&IC', text: lastGeneratedPdfText }); } catch(e) {}
+      } else {
+          alert('O seu dispositivo não suporta envio direto para o WhatsApp. O PDF será baixado agora e o WhatsApp será aberto em seguida para que você anexe o arquivo manualmente.');
+          document.getElementById('btn-baixar-pdf').click();
+          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(lastGeneratedPdfText)}`, '_blank');
+      }
+  });
 </script>
 </body>
 </html>
