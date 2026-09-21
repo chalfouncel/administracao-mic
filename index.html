@@ -577,34 +577,45 @@
       let ext = { locador: '', telLocador: '', locatario: '', cpfInquilino: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '', titularPix: '' };
       let page1Text = page1RawLines.join(" ");
 
-      // 1. TENTATIVA DA BALA DE PRATA (BLOCO OCULTO) - COM TRAVA DE LEITURA
+      // 1. TENTATIVA DA BALA DE PRATA (BLOCO OCULTO) - COM TRAVA DE DELIMITAÇÃO ABSOLUTA
       let blockMatch = fullText.match(/\[MIC_DADOS\]([\s\S]*?)\[\/MIC_DADOS\]/i);
       if (blockMatch) {
           let b = blockMatch[1];
           
-          // O segredo está aqui: Ele captura o valor, mas PARA de ler quando acha a próxima Etiqueta com ":"
+          // O segredo está aqui: Força a criação de um delimitador único antes de cada chave, 
+          // mesmo que o PDF.js tenha colado tudo numa palavra só (ex: "JrCpfInquilino:").
+          const chaves = ['Proprietario', 'TelProprietario', 'PixProprietario', 'TitularPix', 'Inquilino', 'CpfInquilino', 'EmailInquilino', 'TelInquilino', 'Endereco', 'DataInicio', 'DataFim', 'ValorAluguel'];
+          
+          chaves.forEach(ch => {
+              let regexChave = new RegExp(ch + "\\s*:", "gi");
+              b = b.replace(regexChave, ` |#|${ch}: `); 
+          });
+
+          // Função para buscar o valor entre os delimitadores absolutos
           const getField = (chave) => {
-              const regex = new RegExp(chave + "\\s*:\\s*(.*?)(?=\\s*[A-Za-z]+\\s*:|$)", "i");
+              const regex = new RegExp("\\|#\\|\\s*" + chave + "\\s*:\\s*(.*?)(?=\\|#\\||$)", "i");
               const m = b.match(regex);
               return m ? m[1].trim() : '';
           };
 
+          // Extração com higienização forçada para remover espaços em campos numéricos/emails
           ext.locador = getField('Proprietario');
-          ext.telLocador = getField('TelProprietario');
-          ext.pix = getField('PixProprietario');
+          ext.telLocador = getField('TelProprietario').replace(/\D/g, ''); 
+          ext.pix = getField('PixProprietario').replace(/\s/g, ''); 
           ext.titularPix = getField('TitularPix');
           ext.locatario = getField('Inquilino');
-          ext.cpfInquilino = getField('CpfInquilino');
-          ext.emailLocatario = getField('EmailInquilino');
-          ext.telLocatario = getField('TelInquilino');
+          ext.cpfInquilino = getField('CpfInquilino').replace(/\D/g, '');
+          ext.emailLocatario = getField('EmailInquilino').replace(/\s/g, '');
+          ext.telLocatario = getField('TelInquilino').replace(/\D/g, '');
+          ext.endereco = getField('Endereco');
           
-          let dIn = getField('DataInicio');
+          let dIn = getField('DataInicio').replace(/\s/g, '');
           if (dIn.includes('/')) ext.dataIn = dIn.split('/').reverse().join('-');
           
-          let dFim = getField('DataFim');
+          let dFim = getField('DataFim').replace(/\s/g, '');
           if (dFim.includes('/')) ext.dataFim = dFim.split('/').reverse().join('-');
           
-          let vAlug = getField('ValorAluguel');
+          let vAlug = getField('ValorAluguel').replace(/\s/g, '');
           if (vAlug) ext.valor = parseFloat(vAlug.replace(/\./g, '').replace(',', '.'));
       }
 
@@ -642,7 +653,7 @@
       flash('endereco', decodeAddressOnly(ext.endereco)); flash('dataInicio', ext.dataIn); flash('dataFim', ext.dataFim);
       if(ext.valor > 0) flash('aluguelBase', formatadorStr(ext.valor));
 
-      // 4. CHAMA A IA SOMENTE SE FALTAR DADOS SENSÍVEIS (E NÃO USOU O BLOCO OCULTO)
+      // 4. CHAMA A IA SOMENTE SE FALTAR DADOS SENSÍVEIS E NÃO ACHAR O BLOCO
       let faltouContato = (!ext.telLocador || !ext.pix || !ext.emailLocatario || !ext.telLocatario);
       if (faltouContato && !blockMatch) {
           loader.innerHTML = '🤖 IA preenchendo as lacunas...';
@@ -855,7 +866,6 @@ Texto: ${fullText.substring(0, 8000)}`;
       if (idBanco) { 
           try { 
               await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${idBanco}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ativo: 'EXCLUIDO' }) }); 
-              // DELETAR PDF DO BUCKET
               if(c.contrato_url) {
                   const filePath = c.contrato_url.split('/public/')[1];
                   if(filePath) {
