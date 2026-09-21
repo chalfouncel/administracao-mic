@@ -1,0 +1,92 @@
+export default async function handler(req, res) {
+    if (req.method !== 'POST') return res.status(405).json({ error: "Método não permitido" });
+
+    const { idReg, mesRef } = req.body;
+    const SUPABASE_URL = 'https://dgadztmmarvbjcouvrnp.supabase.co';
+    const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+    const ASAAS_KEY = process.env.ASAAS_API_KEY;
+    const CUSTO_ASAAS = 1.99; // Custo assumido pela M&IC
+
+    try {
+        // 1. Busca os dados do contrato
+        const resGet = await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        const dataGet = await resGet.json();
+        if (!dataGet || dataGet.length === 0) return res.status(400).json({ error: 'Contrato não encontrado' });
+        const c = dataGet[0];
+
+        // 2. Motor Matemático
+        function pM(str) {
+            if (!str || String(str).toLowerCase() === 'não' || String(str).toLowerCase() === 'nao') return 0;
+            if (typeof str === 'number') return str;
+            return parseFloat(String(str).replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
+        }
+        
+        let lanc = {}; try { lanc = JSON.parse(c.lancamentos_mensais || '{}'); } catch(e){}
+        let lMes = lanc[mesRef] || {};
+        
+        let vAlugPropStr = lMes.aluguel_prop !== undefined ? lMes.aluguel_prop : ""; 
+        let isPropActive = vAlugPropStr && String(vAlugPropStr).toLowerCase() !== 'não' && String(vAlugPropStr).toLowerCase() !== 'nao';
+        
+        let vAlugProp = pM(vAlugPropStr);
+        let vCondProp = pM(lMes.cond_prop);
+        let vAlugMes = lMes.aluguel_mes !== undefined ? pM(lMes.aluguel_mes) : (isPropActive ? 0 : pM(c.aluguel_base));
+        let vCondMes = lMes.cond_mes !== undefined ? pM(lMes.cond_mes) : pM(c.condominio_base);
+        let vIptu = pM(lMes.iptu);
+        let vBombeiro = pM(lMes.bombeiro);
+        let vSeguro = pM(lMes.seguro);
+        let vOutras = pM(lMes.outras_taxas);
+        let vDesconto = pM(lMes.desconto);
+        let vTaxaAdm = pM(c.taxa_adm_fixa);
+        
+        let repassaCond = c.regra_condominio !== 'N'; 
+        let repassaSeguro = c.regra_seguro !== 'N';
+
+        let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
+        let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
+        
+        let totalReceitas = vAlugProp + vAlugMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+        
+        // 3. Distribuição
+        let valMIC = vTaxaAdm + valSeguroMIC - CUSTO_ASAAS;
+        let valProprietario = totalReceitas - vTaxaAdm - valCondominioPix - valSeguroMIC;
+
+        // 4. Função de disparo de PIX
+        async function sendPix(value, key, desc) {
+            if (value <= 0 || !key) return;
+            let cleanKey = key.trim();
+            let keyType = 'EVP';
+            if (cleanKey.includes('@')) keyType = 'EMAIL';
+            else {
+                let num = cleanKey.replace(/\D/g, '');
+                if (num.length === 11) keyType = 'CPF';
+                else if (num.length === 14) keyType = 'CNPJ';
+                else if (num.length >= 10 || cleanKey.match(/^\+?[1-9]\d{9,13}$/)) keyType = 'PHONE';
+            }
+            await fetch('https://api.asaas.com/v3/transfers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'access_token': ASAAS_KEY },
+                body: JSON.stringify({ value: parseFloat(value.toFixed(2)), operationType: "PIX", pixAddressKey: cleanKey, pixAddressKeyType: keyType, description: desc })
+            });
+        }
+
+        // 5. Executa as 3 Transferências
+        if(valProprietario > 0) await sendPix(valProprietario, c.pix_proprietario, `Repasse M&IC - ${c.inquilino}`);
+        if(valMIC > 0) await sendPix(valMIC, 'chalfouncorretor@gmail.com', `Taxa Adm + Seguro - ${c.inquilino}`);
+        if(valCondominioPix > 0 && c.pix_condominio) await sendPix(valCondominioPix, c.pix_condominio, `Condomínio M&IC - ${c.endereco}`);
+
+        // 6. Atualiza o banco marcando que o repasse foi feito
+        let statusRepasse = {}; try { statusRepasse = JSON.parse(c.status_repasse || '{}'); } catch(e){}
+        statusRepasse[mesRef] = 'recebida';
+        await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+            body: JSON.stringify({ status_repasse: JSON.stringify(statusRepasse) })
+        });
+
+        return res.status(200).json({ success: true });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+}
