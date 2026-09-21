@@ -570,6 +570,9 @@
     if (document.getElementById('tab-resumo_gerencial').classList.contains('active')) renderizarGerencial();
   }
 
+  function cleanSearch(text) { return text ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : ""; }
+  function cleanValue(v) { return String(v || '').replace(/^[\s{}]+|[\s{}]+$/g, '').replace(/\s+/g, ' ').trim(); }
+  
   async function renderPdfThumbnail(pdfDoc) {
     try {
       const page = await pdfDoc.getPage(1); const viewport = page.getViewport({ scale: 0.65 });
@@ -850,25 +853,32 @@
     let alugBaseVal = parseMoedaToFloat(document.getElementById('aluguelBase').value);
     let condBaseVal = parseMoedaToFloat(document.getElementById('condominioBase').value);
 
+    let vAlugPropStr = alugBaseVal > 0 ? formatadorStr(alugBaseVal) : "Não";
+    let vCondPropStr = condBaseVal > 0 ? formatadorStr(condBaseVal) : "Não";
+
     if (dataIn) {
         let [ano, mes, dia] = dataIn.split('-').map(Number);
         let diasNoMes = new Date(ano, mes, 0).getDate();
         let diasProp = diasNoMes - dia + 1;
 
-        if (diasProp > 0 && diasProp < diasNoMes) {
+        if (diasProp > 0 && diasProp <= diasNoMes) {
             let fator = diasProp / diasNoMes;
             let vAlugProp = alugBaseVal * fator;
             let vCondProp = condBaseVal * fator;
+
+            vAlugPropStr = alugBaseVal > 0 ? formatadorStr(vAlugProp) : "Não";
+            vCondPropStr = condBaseVal > 0 ? formatadorStr(vCondProp) : "Não";
 
             let dCob = new Date(ano, mes - 1, 1);
             dCob.setMonth(dCob.getMonth() + 1); 
             let mCob = `${dCob.getFullYear()}-${String(dCob.getMonth() + 1).padStart(2, '0')}`;
 
             // Regra Ouro: Aluguel é pós-pago (Proporcional anula o Cheio no 1º mês). Condomínio é pré-pago (Soma Proporcional + Mês).
+            // E o novo bloqueio inteligente: Se não existe base, também trava o proporcional em "Não".
             lancamentosIniciais[mCob] = {
-                aluguel_prop: formatadorStr(vAlugProp),
+                aluguel_prop: vAlugPropStr,
                 aluguel_mes: "Não", 
-                cond_prop: formatadorStr(vCondProp),
+                cond_prop: vCondPropStr,
                 cond_mes: "" // O condomínio mês fica livre para a conta real que chegar no boleto
             };
         }
@@ -1040,7 +1050,7 @@
   function renderizarTaxasCondominiais() {
     const tbody = document.getElementById('tabela-taxas-body'); if(!tbody) return;
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
-    if (marcados.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel ativo marcado na aba anterior.</td></tr>'; return; }
+    if (marcados.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel ativo marcado.</td></tr>'; return; }
     tbody.innerHTML = ''; const mesRef = document.getElementById('filtro-mes').value;
 
     marcados.forEach(c => {
@@ -1463,6 +1473,8 @@
       data.setMonth(data.getMonth() + 1);
       inputMes.value = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
       atualizarInterfaceGeral();
+      
+      document.querySelector('#relatorio-modal-msg').innerHTML = 'O seu Relatório Gerencial foi gerado com sucesso. O ciclo do mês foi encerrado e o sistema já avançou para a próxima competência.';
   }
 
   function gerarRelatorioPDF() {
