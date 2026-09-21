@@ -384,7 +384,7 @@
     
     <div class="card" style="margin-top:20px;">
         <div class="card-title">Gerador de Fecho de Caixa</div>
-        <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">O Relatório Mensal Final unifica todos os dados de cobrança e repasse. Ele só será liberado quando todos os contratos ativos do mês estiverem com os repasses concluídos (OK).</p>
+        <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">O Relatório Mensal Final unifica todos os dados de cobrança e repasse. Ele só será liberado quando todos los contratos ativos do mês estiverem com os repasses concluídos (OK).</p>
         
         <div style="display:flex; gap:10px; align-items: center; border-top: 1px dashed #cbd5e1; padding-top: 16px;">
             <button class="btn" id="btn-gerar-relatorio" style="flex: 1; padding: 16px; font-size: 1rem;" onclick="gerarRelatorioPDF()" disabled>⏳ Aguardando Repasses para Fechar Mês</button>
@@ -879,7 +879,7 @@
               }
           }
       }
-      // Cenário 2: Escreveu ou Apagou a Descrição (Motivo)
+      // Cenário 2: Escreveu ou Apagou a Descrição
       else if (field === 'desc_outras' || field === 'desc_desconto') {
           const baseField = field === 'desc_outras' ? 'outras_taxas' : 'desconto';
           const baseValue = lancamentos[mesRef][baseField];
@@ -891,6 +891,14 @@
               projetaFuturo(baseField, field, baseValue, value); 
           }
       }
+      // Cenário 3: Alterou apenas o valor de uma parcela já recorrente
+      else if ((field === 'outras_taxas' || field === 'desconto') && parseMoedaToFloat(value) > 0 && parseMoedaToFloat(valorAntigo) !== parseMoedaToFloat(value)) {
+           const descField = field === 'outras_taxas' ? 'desc_outras' : 'desc_desconto';
+           if (lancamentos[mesRef][descField] && (lancamentos[mesRef][descField].includes('/') || lancamentos[mesRef][descField].toLowerCase().includes('fixo'))) {
+               limpaFuturo(field, descField);
+               projetaFuturo(field, descField, value, lancamentos[mesRef][descField]);
+           }
+      }
 
       const strLanc = JSON.stringify(lancamentos);
       c.lancamentos_mensais = strLanc;
@@ -900,14 +908,48 @@
       try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lancamentos_mensais: strLanc }) }); } catch(e) {}
   }
 
+  function renderizarTaxasCondominiais() {
+    const tbody = document.getElementById('tabela-taxas-body'); if(!tbody) return;
+    const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
+    if (marcados.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel ativo marcado.</td></tr>'; return; }
+    tbody.innerHTML = ''; const mesRef = document.getElementById('filtro-mes').value;
+
+    marcados.forEach(c => {
+      const i = contratosDB.indexOf(c); const v = getVariaveisMes(c, mesRef);
+      const totalCalculado = parseMoedaToFloat(v.alugProp) + parseMoedaToFloat(v.alugMes) + parseMoedaToFloat(v.condProp) + parseMoedaToFloat(v.condMes) + parseMoedaToFloat(v.iptu) + parseMoedaToFloat(v.bombeiro) + parseMoedaToFloat(v.seguro) + parseMoedaToFloat(v.outras_taxas) - parseMoedaToFloat(v.desconto);
+
+      let styleOutras = parseMoedaToFloat(v.outras_taxas) > 0 ? 'block' : 'none';
+      let styleDesconto = parseMoedaToFloat(v.desconto) > 0 ? 'block' : 'none';
+
+      tbody.innerHTML += `<tr>
+          <td><strong style="font-size:0.85rem;">${c.inquilino}</strong></td><td style="font-size:0.75rem;">${c.endereco}</td>
+          <td class="fit"><input type="text" value="${v.alugProp}" onchange="updateLancamentoMensal(${i}, 'aluguel_prop', this.value)" class="input-calc"></td>
+          <td class="fit"><input type="text" value="${v.condProp}" onchange="updateLancamentoMensal(${i}, 'cond_prop', this.value)" class="input-calc"></td>
+          <td class="fit"><input type="text" value="${v.alugMes}" onchange="updateLancamentoMensal(${i}, 'aluguel_mes', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+          <td class="fit"><input type="text" value="${v.condMes}" onchange="updateLancamentoMensal(${i}, 'cond_mes', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+          <td class="fit"><input type="text" value="${v.iptu}" onchange="updateLancamentoMensal(${i}, 'iptu', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+          <td class="fit"><input type="text" value="${v.bombeiro}" onchange="updateLancamentoMensal(${i}, 'bombeiro', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+          <td class="fit"><input type="text" value="${v.seguro}" onchange="updateLancamentoMensal(${i}, 'seguro', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+          <td class="fit">
+            <input type="text" value="${v.outras_taxas}" onchange="updateLancamentoMensal(${i}, 'outras_taxas', this.value)" onkeyup="formatarMoedaInput(this); this.nextElementSibling.style.display = (parseMoedaToFloat(this.value) > 0 ? 'block' : 'none');" class="input-calc">
+            <textarea class="input-desc" style="display:${styleOutras};" placeholder="Motivo (ex: Pintura 1/3)" onchange="updateLancamentoMensal(${i}, 'desc_outras', this.value)">${v.desc_outras || ''}</textarea>
+          </td>
+          <td class="fit">
+            <input type="text" value="${v.desconto}" onchange="updateLancamentoMensal(${i}, 'desconto', this.value)" onkeyup="formatarMoedaInput(this); this.nextElementSibling.style.display = (parseMoedaToFloat(this.value) > 0 ? 'block' : 'none');" class="input-calc">
+            <textarea class="input-desc" style="display:${styleDesconto};" placeholder="Motivo (ex: Desconto 1/3)" onchange="updateLancamentoMensal(${i}, 'desc_desconto', this.value)">${v.desc_desconto || ''}</textarea>
+          </td>
+          <td class="fit" id="total-linha-${i}" style="background-color:#f8fafc; text-align:center; vertical-align: middle;"><strong style="color:var(--danger); font-size:0.95rem;">${fmtMoeda(totalCalculado)}</strong></td></tr>`;
+    });
+  }
+
   // =======================================================
-  // ASAAS E WPP - COBRANÇA E CÓPIAS
+  // ASAAS E WPP - COBRANÇA E CÓPIAS (TARIFA ATUALIZADA R$ 2,99)
   // =======================================================
   async function gerarCobrancaAsaas(idReg, valorTotalBase) {
       const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
       if (!c.cpf_inquilino) { alert('Erro: Preencha o CPF do Inquilino na aba Imóveis.'); return; }
 
-      const valorTotal = valorTotalBase + 1.99; // Tarifa Bancária atualizada para R$ 1,99 (ou R$ 2,99 se preferir, mantenha o cálculo)
+      const valorTotal = valorTotalBase + 2.99; // TARIFA ATUALIZADA PARA R$ 2,99
       const mesRef = document.getElementById('filtro-mes').value; const [anoRef, mesRefStr] = mesRef.split('-');
       let dVenc = new Date(anoRef, parseInt(mesRefStr) - 1, 1); let contUteis = 0;
       while (contUteis < 5) { const ds = dVenc.getDay(); if (ds !== 0 && ds !== 6) contUteis++; if (contUteis < 5) dVenc.setDate(dVenc.getDate() + 1); }
@@ -974,7 +1016,7 @@
 
     marcados.forEach(c => {
       const idReg = c.id || c._tempId; const v = getVariaveisMes(c, mesRef);
-      let vTarifaBancaria = 2.99; // Atualizado para R$ 2,99 conforme solicitado
+      let vTarifaBancaria = 2.99; // ATUALIZADO PARA R$ 2,99
       const baseTotal = parseMoedaToFloat(v.alugProp) + parseMoedaToFloat(v.alugMes) + parseMoedaToFloat(v.condProp) + parseMoedaToFloat(v.condMes) + parseMoedaToFloat(v.iptu) + parseMoedaToFloat(v.bombeiro) + parseMoedaToFloat(v.seguro) + parseMoedaToFloat(v.outras_taxas) - parseMoedaToFloat(v.desconto);
       const totalComTarifa = baseTotal + vTarifaBancaria;
 
@@ -995,7 +1037,7 @@
       if (parseMoedaToFloat(v.outras_taxas) > 0) { texto += `🔹 Outras Taxas${descOutras}: ${fmtMoeda(parseMoedaToFloat(v.outras_taxas))}\n`; linhasCard += `<div class="comp-line"><span>Outras Taxas${descOutras}</span> <span>${fmtMoeda(parseMoedaToFloat(v.outras_taxas))}</span></div>`; }
       if (parseMoedaToFloat(v.desconto) > 0) { texto += `🔹 Desconto${descDesconto}: -${fmtMoeda(parseMoedaToFloat(v.desconto))}\n`; linhasCard += `<div class="comp-line" style="color:var(--danger);"><span>Desconto${descDesconto}</span> <span>-${fmtMoeda(parseMoedaToFloat(v.desconto))}</span></div>`; }
       
-      texto += `🔹 Tarifa Bancária: ${fmtMoeda(vTarifaBancaria)}\n`; // Removida a palavra "(PIX)" conforme solicitado
+      texto += `🔹 Tarifa Bancária: ${fmtMoeda(vTarifaBancaria)}\n`;
       linhasCard += `<div class="comp-line" style="color:#64748b; font-size:0.75rem;"><span>Tarifa Bancária</span> <span>${fmtMoeda(vTarifaBancaria)}</span></div>`;
 
       texto += `\nTOTAL A PAGAR: ${fmtMoeda(totalComTarifa)}`;
@@ -1177,7 +1219,7 @@
          let repassaCond = c.regra_condominio !== 'N'; let repassaSeguro = c.regra_seguro !== 'N';
          let baseTotal = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
          
-         totalArrecadado += (baseTotal + 2.99); // Atualizado para refletir a nova tarifa bancária de R$ 2,99
+         totalArrecadado += (baseTotal + 2.99); // ATUALIZADO PARA R$ 2,99
          
          let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
          let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
@@ -1286,8 +1328,8 @@
 
          tableData.push([{ content: `Imóvel: ${c.endereco}\nInquilino: ${c.inquilino}\nProprietário: ${c.proprietario}`, colSpan: 6, styles: { fillColor: [244, 246, 249], fontStyle: 'bold', textColor: [15, 23, 42] } }]);
          tableData.push([
-            'R$ ' + fmtMoeda(baseTotal + 2.99), 
-            'R$ 2.99',                          
+            'R$ ' + fmtMoeda(baseTotal + 2.99), // ATUALIZADO R$ 2,99
+            'R$ 2,99',                          // ATUALIZADO R$ 2,99
             'R$ ' + fmtMoeda(valMIC),           
             'R$ ' + fmtMoeda(valProprietario),  
             'R$ ' + fmtMoeda(valCondominioPix), 
@@ -1297,7 +1339,7 @@
 
       doc.autoTable({
         startY: 85,
-        head: [['Arrecadado (Total Inq.)', 'Tarifa Bancária', 'Comissão (M&IC)', 'Repasse (Proprietário)', 'Condomínio (Síndico)', 'Status']],
+        head: [['Arrecadado (Total Inq.)', 'Tarifa (Asaas)', 'Comissão (M&IC)', 'Repasse (Proprietário)', 'Condomínio (Síndico)', 'Status']],
         body: tableData,
         theme: 'grid',
         headStyles: { fillColor: [43, 38, 27], textColor: [255,255,255] },
