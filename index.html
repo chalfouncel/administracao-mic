@@ -86,11 +86,12 @@
   .comp-total { display: flex; justify-content: space-between; font-weight: 900; font-size: 1.15rem; color: #166534; margin-top: 14px; padding-top: 14px; border-top: 2px dashed #cbd5e1; }
 
   /* EFEITO THUMBNAIL TABELA LINEAR */
-  .row-pdf-btn { cursor: pointer; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 48px; height: 56px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; overflow: hidden; transition: 0.2s; position: relative; font-size: 1.2rem; }
+  .row-pdf-btn { cursor: pointer; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 54px; height: 64px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; transition: 0.2s; box-sizing: border-box; padding: 4px; line-height: 1; }
   .row-pdf-btn:hover { border-color: var(--accent); transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-  .row-pdf-btn.vazio { opacity: 0.4; cursor: not-allowed; border-style: dashed; }
+  .row-pdf-btn.vazio { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
   .row-pdf-btn.vazio:hover { transform: none; box-shadow: none; border-color: #cbd5e1; }
-  .thumb-label { font-size: 0.5rem; font-weight: 800; color: #64748b; margin-top: 4px; }
+  .row-pdf-btn .icon { font-size: 1.4rem; margin-bottom: 6px; }
+  .row-pdf-btn .thumb-label { font-size: 0.55rem; font-weight: 800; color: #64748b; letter-spacing: 0.5px; }
 
   .resumo-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
   @media(max-width: 900px) { .resumo-layout { grid-template-columns: 1fr; } }
@@ -722,14 +723,14 @@
       const i = contratosDB.indexOf(c); const idReg = c.id || c._tempId; const isMarcado = contratosMarcados.has(String(idReg)) ? 'checked' : ''; const venc = getAvisoVencimento(c);
       
       const btnPdf = c.contrato_url 
-          ? `<div onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')" class="row-pdf-btn">📄<br><span class="thumb-label">VER</span></div>` 
-          : `<div class="row-pdf-btn vazio">📄<br><span class="thumb-label">VAZIO</span></div>`;
+          ? `<div onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')" class="row-pdf-btn"><div class="icon">📄</div><div class="thumb-label">VER</div></div>` 
+          : `<div class="row-pdf-btn vazio"><div class="icon">📄</div><div class="thumb-label">VAZIO</div></div>`;
           
       tbody.innerHTML += `
         <tr>
           <td class="fit"><button class="btn btn-danger" onclick="excluirImovel('${idReg}')">🗑️</button></td>
           <td class="fit" style="text-align: center;"><input type="checkbox" class="checkbox-marcar" onchange="toggleMarcar('${idReg}', this.checked)" ${isMarcado}></td>
-          <td class="fit"><select onchange="updateDbLinear(${i}, 'ativo', this.value)" style="padding: 6px; font-size: 0.82rem;"><option value="SIM" ${c.ativo === 'SIM' ? 'selected' : ''}>🟢 Ativo</option><option value="NÃO" ${c.ativo === 'NÃO' ? 'selected' : ''}>🔴 Inativo</option></select></td>
+          <td class="fit"><select onchange="updateDbLinear(${i}, 'ativo', this.value)" style="padding: 6px; font-size: 0.82rem; min-width: 110px; width: auto;"><option value="SIM" ${c.ativo === 'SIM' ? 'selected' : ''}>🟢 Ativo</option><option value="NÃO" ${c.ativo === 'NÃO' ? 'selected' : ''}>🔴 Inativo</option></select></td>
           <td><strong style="font-size: 0.95rem;">${c.inquilino}</strong> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarCPF(${i})">✏️ CPF</button><br><span style="font-size: 0.75rem; color: #64748b;">Locador: ${c.proprietario || '-'}</span> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarPix(${i})">✏️ PIX</button></td>
           <td>${c.endereco || ''}</td><td class="fit" style="text-align: center;">${venc.html}</td><td class="fit" style="text-align: center;">${btnPdf}</td>
         </tr>`;
@@ -891,7 +892,7 @@
           canvas.toBlob(blob => {
               try { 
                   navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => { 
-                      btn.innerText = "✓ Imagem Copiada!"; setTimeout(() => btn.innerText = txtOrig, 2000); 
+                      btn.innerText = "✓ Recibo Copiado!"; setTimeout(() => btn.innerText = txtOrig, 2000); 
                   }); 
               } catch(e) { alert('Erro ao copiar imagem. Clique com o botão direito na imagem e copie manualmente.'); btn.innerText = txtOrig; }
           }, 'image/png');
