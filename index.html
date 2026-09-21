@@ -336,7 +336,7 @@
         <div style="font-weight:800; font-size: 1.1rem; color: var(--primary);">Resumo para Cobrança (Inquilino)</div>
         <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="dispararWppMassa('cobranca')">📲 Disparar WhatsApp em Massa</button>
       </div>
-      <div id="cobrancas-container" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 16px;"></div>
+      <div id="cobrancas-container" style="display:flex; flex-wrap: wrap; gap: 16px;"></div>
     </div>
   </div>
 
@@ -350,7 +350,7 @@
             <button class="btn btn-dark" style="font-size:0.75rem; padding:6px 12px;" onclick="dispararWppMassa('repasse')">📲 Disparar WPP em Massa</button>
         </div>
       </div>
-      <div id="repasses-container" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 16px;"></div>
+      <div id="repasses-container" style="display:flex; flex-wrap: wrap; gap: 16px;"></div>
     </div>
   </div>
 
@@ -884,7 +884,7 @@
           canvas.toBlob(blob => {
               try { 
                   navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => { 
-                      btn.innerText = "✓ Imagem Copiada!"; setTimeout(() => btn.innerText = txtOrig, 2000); 
+                      btn.innerText = "✓ Recibo Copiado!"; setTimeout(() => btn.innerText = txtOrig, 2000); 
                   }); 
               } catch(e) { alert('Erro ao copiar imagem.'); btn.innerText = txtOrig; }
           }, 'image/png');
@@ -951,21 +951,21 @@
 
       const idTextArea = `txt-cob-${idReg}`; const idCard = `img-cob-${idReg}`;
       container.innerHTML += `
-        <div style="background: ${bgPainel}; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px;">
+        <div style="background: ${bgPainel}; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; max-width: 460px; margin: 0 auto; width: 100%;">
            <div id="${idCard}" class="receipt-box"><div style="font-weight:900; font-size:1.1rem; color:var(--primary);">COBRANÇA</div>
               <p style="font-size:0.9rem; margin-bottom:12px;"><strong>Inquilino:</strong> ${c.inquilino}</p><hr>
               ${linhasCard}
               <div class="comp-total"><span>TOTAL:</span> <span>${fmtMoeda(totalComTarifa)}</span></div></div>
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
            
-           <div style="max-width: 420px; margin: 16px auto 0 auto;">${btnAsaasHtml}</div>
+           <div style="margin: 16px 0 8px 0;">${btnAsaasHtml}</div>
            
-           <div style="display: flex; gap: 8px; max-width: 420px; margin: 8px auto 0 auto;">
-              <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.85rem;" onclick="copiarApenasImagem('${idCard}', this)">📸 Copiar Imagem</button>
-              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.85rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">💬 Enviar WPP</a>
+           <div style="display: flex; gap: 8px;">
+              <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.85rem;" onclick="copiarApenasImagem('${idCard}', this)">📸 Copiar Recibo</button>
+              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.85rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 Enviar WPP</a>
            </div>
            
-           <div style="max-width: 420px; margin: 0 auto;">
+           <div style="margin-top: 8px;">
                ${msgFinal}
            </div>
         </div>`;
@@ -1056,7 +1056,6 @@
       let isCobrancaPaga = statusCob[mesRef] === 'recebida';
       let isRepasseFeito = statusRep[mesRef] === 'recebida';
 
-      // Design Diferenciado para Repasse OK (Verde Sólido)
       let bgPainel = isRepasseFeito ? '#dcfce7' : '#f8fafc'; 
       let borderCor = isRepasseFeito ? '#22c55e' : '#cbd5e1'; 
       let acaoHtml = '';
@@ -1066,18 +1065,18 @@
       } else if (isCobrancaPaga && !isRepasseFeito) {
           acaoHtml = `<button id="btn-transf-${idReg}" class="btn btn-gold" style="width:100%; padding: 12px; font-size: 0.9rem;" onclick="realizarTransferencias('${idReg}')">💸 Realizar Transferências Automáticas</button>`;
       } else {
-          acaoHtml = `<div style="text-align:center; padding:10px; color:#166534; font-size:0.9rem; font-weight:bold;">✅ Todos os repasses efetuados com sucesso!</div>`;
+          acaoHtml = `<div style="text-align:center; padding:10px; color:#166534; font-size:0.9rem; font-weight:bold;">✅ Todas as transferências concluídas!</div>`;
       }
 
       const idTextArea = `txt-rep-${idReg}`; const idCard = `img-rep-${idReg}`;
       container.innerHTML += `
-        <div style="background: ${bgPainel}; border: 2px solid ${borderCor}; border-radius: 8px; padding: 16px;">
+        <div style="background: ${bgPainel}; border: 2px solid ${borderCor}; border-radius: 8px; padding: 16px; max-width: 460px; margin: 0 auto; width: 100%;">
            <div id="${idCard}" class="receipt-box"><div style="font-weight:900; font-size:1.1rem; color:var(--primary);">REPASSE</div>
               <p style="font-size:0.9rem; margin-bottom:12px;"><strong>Proprietário:</strong> ${c.proprietario}</p><hr>
               <div class="comp-total"><span>TOTAL REPASSADO:</span> <span>${fmtMoeda(valProprietario)}</span></div>
            </div>
            
-           <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin: 10px auto 0 auto; font-size:0.75rem; color:#475569; max-width: 420px; text-align: left; border: 1px solid #e2e8f0;">
+           <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin: 10px 0; font-size:0.75rem; color:#475569; text-align: left; border: 1px solid #e2e8f0;">
                <strong>Auditoria de Destinos (PIX):</strong><br>
                1. Proprietário: ${fmtMoeda(valProprietario)}<br>
                2. M&IC (Taxa + Seguro${repassaSeguro?'':' incluso'}): ${fmtMoeda(valMIC)}<br>
@@ -1086,11 +1085,11 @@
 
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
            
-           <div style="max-width: 420px; margin: 16px auto 0 auto;">${acaoHtml}</div>
+           <div style="margin-bottom: 8px;">${acaoHtml}</div>
            
-           <div style="display: flex; gap: 8px; max-width: 420px; margin: 8px auto 0 auto;">
-              <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.85rem;" onclick="copiarApenasImagem('${idCard}', this)">📸 Copiar Imagem</button>
-              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.85rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_proprietario).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">💬 Enviar WPP</a>
+           <div style="display: flex; gap: 8px;">
+              <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.85rem;" onclick="copiarApenasImagem('${idCard}', this)">📸 Copiar Recibo</button>
+              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.85rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_proprietario).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 Enviar WPP</a>
            </div>
         </div>`;
     });
@@ -1115,7 +1114,7 @@
          let repassaCond = c.regra_condominio !== 'N'; let repassaSeguro = c.regra_seguro !== 'N';
          let baseTotal = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
          
-         totalArrecadado += (baseTotal + 1.99); // Inclui tarifa
+         totalArrecadado += (baseTotal + 1.99); 
          
          let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
          let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
