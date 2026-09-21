@@ -842,6 +842,7 @@ Texto: ${fullText.substring(0, 8000)}`;
       if (idBanco) { 
           try { 
               await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${idBanco}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ativo: 'EXCLUIDO' }) }); 
+              // DELETAR PDF DO BUCKET
               if(c.contrato_url) {
                   const filePath = c.contrato_url.split('/public/')[1];
                   if(filePath) {
@@ -1093,7 +1094,8 @@ Texto: ${fullText.substring(0, 8000)}`;
                   cpfInquilino: c.cpf_inquilino,
                   valor: valorTotal,
                   vencimento: dataVenc,
-                  descricao: `Aluguel e Encargos M&IC - ${formatarMesAno(mesRef)} - Imóvel: ${c.endereco}`
+                  descricao: `Aluguel e Encargos M&IC - ${formatarMesAno(mesRef)} - Imóvel: ${c.endereco}`,
+                  externalReference: `${c.id || c._tempId}||${mesRef}` // NOVIDADE: Crachá para o Webhook
               })
           });
 
@@ -1105,10 +1107,14 @@ Texto: ${fullText.substring(0, 8000)}`;
               const url = data.urlFatura;
               let statusObj = {}; 
               try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
+              
+              // Muda o status para amarelo automático ("aguardando_asaas")
               statusObj[`${mesRef}_url`] = url;
+              statusObj[mesRef] = 'aguardando_asaas';
+              
               await updateDbLinear(contratosDB.indexOf(c), 'status_cobranca', JSON.stringify(statusObj));
 
-              alert('✅ Fatura PIX/Boleto gerada com sucesso!\nO link oficial foi injetado automaticamente na mensagem do WhatsApp.');
+              alert('✅ Fatura gerada! A tela ficará amarela aguardando o pagamento.\nO link oficial foi injetado automaticamente na mensagem do WhatsApp.');
               atualizarInterfaceGeral(); 
           }
       } catch(e) {
@@ -1123,7 +1129,6 @@ Texto: ${fullText.substring(0, 8000)}`;
   function capitalizeFirstLetter(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
   function formatarMesAno(mesRef) { if(!mesRef) return ''; const [ano, mes] = mesRef.split('-'); return `${getNomeMesAtual(mesRef)} de ${ano}`; }
 
-  // A MAGIA ACONTECE AQUI: COPIAR IMAGEM E TEXTO JUNTOS
   function copiarImagemETexto(idHtml, idTextArea, btn) {
      const el = document.getElementById(idHtml);
      const texto = document.getElementById(idTextArea).value;
@@ -1221,9 +1226,20 @@ Texto: ${fullText.substring(0, 8000)}`;
           texto += `\n💰 *TOTAL A PAGAR: ${fmtMoeda(total)}*\n\nPor favor, envie o comprovante assim que efetuar o pagamento.`;
       }
 
+      // NOVIDADE: A cor amarela avisa que o webhook assumiu o controle
       let bgPainel = '#f8fafc'; let acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusCobranca('${idReg}', 'pendente')">📤 Cobrança Enviada</button>`; let msgFinal = '';
-      if (statusAtual === 'enviada') { bgPainel = '#fef08a'; acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusCobranca('${idReg}', 'enviada')">📥 Cobrança Recebida</button>`; } 
-      else if (statusAtual === 'recebida') { bgPainel = '#bbf7d0'; acaoHtml = ''; msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:900; color:#166534; font-size:0.9rem;">✅ Processo concluído com sucesso</div>`; }
+      if (statusAtual === 'enviada') { 
+          bgPainel = '#fef08a'; 
+          acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusCobranca('${idReg}', 'enviada')">📥 Cobrança Recebida</button>`; 
+      } else if (statusAtual === 'aguardando_asaas') {
+          bgPainel = '#fef08a'; // Fica amarelo automático
+          acaoHtml = ''; // Removemos o botão manual porque o Webhook (robô) vai pintar de verde
+          msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:bold; color:#a16207; font-size:0.85rem;">⏳ Aguardando confirmação automática do Asaas...</div>`;
+      } else if (statusAtual === 'recebida') { 
+          bgPainel = '#bbf7d0'; 
+          acaoHtml = ''; 
+          msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:900; color:#166534; font-size:0.9rem;">✅ Recebido via Asaas</div>`; 
+      }
 
       let btnAsaasHtml = '';
       if (!asaasUrl) {
