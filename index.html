@@ -384,7 +384,7 @@
     
     <div class="card" style="margin-top:20px;">
         <div class="card-title">Gerador de Fecho de Caixa</div>
-        <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">O Relatório Mensal Final unifica todos os dados de cobrança e repasse. Ele só será liberado quando todos los contratos ativos do mês estiverem com os repasses concluídos (OK).</p>
+        <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">O Relatório Mensal Final unifica todos os dados de cobrança e repasse. Ele só será liberado quando todos os contratos ativos do mês estiverem com os repasses concluídos (OK).</p>
         
         <div style="display:flex; gap:10px; align-items: center; border-top: 1px dashed #cbd5e1; padding-top: 16px;">
             <button class="btn" id="btn-gerar-relatorio" style="flex: 1; padding: 16px; font-size: 1rem;" onclick="gerarRelatorioPDF()" disabled>⏳ Aguardando Repasses para Fechar Mês</button>
@@ -799,14 +799,22 @@
   function getVariaveisMes(c, mesRef) {
       let lancamentos = {}; try { lancamentos = JSON.parse(c.lancamentos_mensais || '{}'); } catch(e){}
       let lMes = lancamentos[mesRef] || {};
+      
+      // SUPORTE AO ALUGUEL E CONDOMÍNIO PROPORCIONAL
       let alugProp = lMes.aluguel_prop !== undefined ? lMes.aluguel_prop : 'Não';
       let condProp = lMes.cond_prop !== undefined ? lMes.cond_prop : 'Não';
-      let alugMes = lMes.aluguel_mes !== undefined ? lMes.aluguel_mes : ((alugProp !== 'Não' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base));
-      let condMes = lMes.cond_mes !== undefined ? lMes.cond_mes : (c.condominio_base ? formatadorStr(c.condominio_base) : '');
-      let iptu = lMes.iptu !== undefined ? lMes.iptu : ''; let bombeiro = lMes.bombeiro !== undefined ? lMes.bombeiro : '';
-      let seguro = lMes.seguro !== undefined ? lMes.seguro : ''; let outras_taxas = lMes.outras_taxas !== undefined ? lMes.outras_taxas : '';
-      let desc_outras = lMes.desc_outras !== undefined ? lMes.desc_outras : ''; let desconto = lMes.desconto !== undefined ? lMes.desconto : '';
+      
+      let alugMes = lMes.aluguel_mes !== undefined ? lMes.aluguel_mes : ((String(alugProp).toLowerCase() !== 'não' && String(alugProp).toLowerCase() !== 'nao' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base));
+      let condMes = lMes.cond_mes !== undefined ? lMes.cond_mes : ((String(condProp).toLowerCase() !== 'não' && String(condProp).toLowerCase() !== 'nao' && condProp !== '') ? 'Não' : (c.condominio_base ? formatadorStr(c.condominio_base) : ''));
+      
+      let iptu = lMes.iptu !== undefined ? lMes.iptu : ''; 
+      let bombeiro = lMes.bombeiro !== undefined ? lMes.bombeiro : '';
+      let seguro = lMes.seguro !== undefined ? lMes.seguro : ''; 
+      let outras_taxas = lMes.outras_taxas !== undefined ? lMes.outras_taxas : '';
+      let desc_outras = lMes.desc_outras !== undefined ? lMes.desc_outras : ''; 
+      let desconto = lMes.desconto !== undefined ? lMes.desconto : '';
       let desc_desconto = lMes.desc_desconto !== undefined ? lMes.desc_desconto : '';
+      
       return { alugProp, condProp, alugMes, condMes, iptu, bombeiro, seguro, outras_taxas, desc_outras, desconto, desc_desconto };
   }
 
@@ -916,15 +924,26 @@
 
     marcados.forEach(c => {
       const i = contratosDB.indexOf(c); const v = getVariaveisMes(c, mesRef);
-      const totalCalculado = parseMoedaToFloat(v.alugProp) + parseMoedaToFloat(v.alugMes) + parseMoedaToFloat(v.condProp) + parseMoedaToFloat(v.condMes) + parseMoedaToFloat(v.iptu) + parseMoedaToFloat(v.bombeiro) + parseMoedaToFloat(v.seguro) + parseMoedaToFloat(v.outras_taxas) - parseMoedaToFloat(v.desconto);
+      
+      let pAlug = parseMoedaToFloat(v.alugProp);
+      let pCond = parseMoedaToFloat(v.condProp);
+      let mAlug = parseMoedaToFloat(v.alugMes);
+      let mCond = parseMoedaToFloat(v.condMes);
+      let iptu = parseMoedaToFloat(v.iptu);
+      let bomb = parseMoedaToFloat(v.bombeiro);
+      let seg = parseMoedaToFloat(v.seguro);
+      let out = parseMoedaToFloat(v.outras_taxas);
+      let desc = parseMoedaToFloat(v.desconto);
 
-      let styleOutras = parseMoedaToFloat(v.outras_taxas) > 0 ? 'block' : 'none';
-      let styleDesconto = parseMoedaToFloat(v.desconto) > 0 ? 'block' : 'none';
+      const totalCalculado = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
+
+      let styleOutras = out > 0 ? 'block' : 'none';
+      let styleDesconto = desc > 0 ? 'block' : 'none';
 
       tbody.innerHTML += `<tr>
           <td><strong style="font-size:0.85rem;">${c.inquilino}</strong></td><td style="font-size:0.75rem;">${c.endereco}</td>
-          <td class="fit"><input type="text" value="${v.alugProp}" onchange="updateLancamentoMensal(${i}, 'aluguel_prop', this.value)" class="input-calc"></td>
-          <td class="fit"><input type="text" value="${v.condProp}" onchange="updateLancamentoMensal(${i}, 'cond_prop', this.value)" class="input-calc"></td>
+          <td class="fit"><input type="text" value="${v.alugProp}" onchange="updateLancamentoMensal(${i}, 'aluguel_prop', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
+          <td class="fit"><input type="text" value="${v.condProp}" onchange="updateLancamentoMensal(${i}, 'cond_prop', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
           <td class="fit"><input type="text" value="${v.alugMes}" onchange="updateLancamentoMensal(${i}, 'aluguel_mes', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
           <td class="fit"><input type="text" value="${v.condMes}" onchange="updateLancamentoMensal(${i}, 'cond_mes', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
           <td class="fit"><input type="text" value="${v.iptu}" onchange="updateLancamentoMensal(${i}, 'iptu', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
@@ -949,7 +968,7 @@
       const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
       if (!c.cpf_inquilino) { alert('Erro: Preencha o CPF do Inquilino na aba Imóveis.'); return; }
 
-      const valorTotal = valorTotalBase + 2.99; // TARIFA ATUALIZADA PARA R$ 2,99
+      const valorTotal = valorTotalBase + 2.99; 
       const mesRef = document.getElementById('filtro-mes').value; const [anoRef, mesRefStr] = mesRef.split('-');
       let dVenc = new Date(anoRef, parseInt(mesRefStr) - 1, 1); let contUteis = 0;
       while (contUteis < 5) { const ds = dVenc.getDay(); if (ds !== 0 && ds !== 6) contUteis++; if (contUteis < 5) dVenc.setDate(dVenc.getDate() + 1); }
@@ -1016,8 +1035,19 @@
 
     marcados.forEach(c => {
       const idReg = c.id || c._tempId; const v = getVariaveisMes(c, mesRef);
-      let vTarifaBancaria = 2.99; // ATUALIZADO PARA R$ 2,99
-      const baseTotal = parseMoedaToFloat(v.alugProp) + parseMoedaToFloat(v.alugMes) + parseMoedaToFloat(v.condProp) + parseMoedaToFloat(v.condMes) + parseMoedaToFloat(v.iptu) + parseMoedaToFloat(v.bombeiro) + parseMoedaToFloat(v.seguro) + parseMoedaToFloat(v.outras_taxas) - parseMoedaToFloat(v.desconto);
+      let vTarifaBancaria = 2.99; 
+      
+      let pAlug = parseMoedaToFloat(v.alugProp);
+      let pCond = parseMoedaToFloat(v.condProp);
+      let mAlug = parseMoedaToFloat(v.alugMes);
+      let mCond = parseMoedaToFloat(v.condMes);
+      let iptu = parseMoedaToFloat(v.iptu);
+      let bomb = parseMoedaToFloat(v.bombeiro);
+      let seg = parseMoedaToFloat(v.seguro);
+      let out = parseMoedaToFloat(v.outras_taxas);
+      let desc = parseMoedaToFloat(v.desconto);
+
+      const baseTotal = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
       const totalComTarifa = baseTotal + vTarifaBancaria;
 
       let texto = `Prezado(a) ${c.inquilino}, \nSegue a locação de *${formatarMesAno(mesRef)}*:\n\n`;
@@ -1026,16 +1056,15 @@
       let descOutras = v.desc_outras ? ` (${v.desc_outras})` : '';
       let descDesconto = v.desc_desconto ? ` (${v.desc_desconto})` : '';
 
-      if (parseMoedaToFloat(v.alugProp) > 0) { texto += `🔹 Aluguel Prop.: ${fmtMoeda(parseMoedaToFloat(v.alugProp))}\n`; linhasCard += `<div class="comp-line"><span>Aluguel Prop.</span> <span>${fmtMoeda(parseMoedaToFloat(v.alugProp))}</span></div>`; }
-      if (parseMoedaToFloat(v.alugMes) > 0) { texto += `🔹 Aluguel: ${fmtMoeda(parseMoedaToFloat(v.alugMes))}\n`; linhasCard += `<div class="comp-line"><span>Aluguel</span> <span>${fmtMoeda(parseMoedaToFloat(v.alugMes))}</span></div>`; }
-      if (parseMoedaToFloat(v.condProp) > 0) { texto += `🔹 Condomínio Prop.: ${fmtMoeda(parseMoedaToFloat(v.condProp))}\n`; linhasCard += `<div class="comp-line"><span>Condomínio Prop.</span> <span>${fmtMoeda(parseMoedaToFloat(v.condProp))}</span></div>`; }
-      if (parseMoedaToFloat(v.condMes) > 0) { texto += `🔹 Condomínio: ${fmtMoeda(parseMoedaToFloat(v.condMes))}\n`; linhasCard += `<div class="comp-line"><span>Condomínio</span> <span>${fmtMoeda(parseMoedaToFloat(v.condMes))}</span></div>`; }
-      if (parseMoedaToFloat(v.iptu) > 0) { texto += `🔹 IPTU: ${fmtMoeda(parseMoedaToFloat(v.iptu))}\n`; linhasCard += `<div class="comp-line"><span>IPTU</span> <span>${fmtMoeda(parseMoedaToFloat(v.iptu))}</span></div>`; }
-      if (parseMoedaToFloat(v.bombeiro) > 0) { texto += `🔹 Bombeiro: ${fmtMoeda(parseMoedaToFloat(v.bombeiro))}\n`; linhasCard += `<div class="comp-line"><span>Bombeiro</span> <span>${fmtMoeda(parseMoedaToFloat(v.bombeiro))}</span></div>`; }
-      if (parseMoedaToFloat(v.seguro) > 0) { texto += `🔹 Seguro: ${fmtMoeda(parseMoedaToFloat(v.seguro))}\n`; linhasCard += `<div class="comp-line"><span>Seguro</span> <span>${fmtMoeda(parseMoedaToFloat(v.seguro))}</span></div>`; }
-      
-      if (parseMoedaToFloat(v.outras_taxas) > 0) { texto += `🔹 Outras Taxas${descOutras}: ${fmtMoeda(parseMoedaToFloat(v.outras_taxas))}\n`; linhasCard += `<div class="comp-line"><span>Outras Taxas${descOutras}</span> <span>${fmtMoeda(parseMoedaToFloat(v.outras_taxas))}</span></div>`; }
-      if (parseMoedaToFloat(v.desconto) > 0) { texto += `🔹 Desconto${descDesconto}: -${fmtMoeda(parseMoedaToFloat(v.desconto))}\n`; linhasCard += `<div class="comp-line" style="color:var(--danger);"><span>Desconto${descDesconto}</span> <span>-${fmtMoeda(parseMoedaToFloat(v.desconto))}</span></div>`; }
+      if (pAlug > 0) { texto += `🔹 Aluguel Prop.: ${fmtMoeda(pAlug)}\n`; linhasCard += `<div class="comp-line"><span>Aluguel Prop.</span> <span>${fmtMoeda(pAlug)}</span></div>`; }
+      if (pCond > 0) { texto += `🔹 Condomínio Prop.: ${fmtMoeda(pCond)}\n`; linhasCard += `<div class="comp-line"><span>Condomínio Prop.</span> <span>${fmtMoeda(pCond)}</span></div>`; }
+      if (mAlug > 0) { texto += `🔹 Aluguel: ${fmtMoeda(mAlug)}\n`; linhasCard += `<div class="comp-line"><span>Aluguel</span> <span>${fmtMoeda(mAlug)}</span></div>`; }
+      if (mCond > 0) { texto += `🔹 Condomínio: ${fmtMoeda(mCond)}\n`; linhasCard += `<div class="comp-line"><span>Condomínio</span> <span>${fmtMoeda(mCond)}</span></div>`; }
+      if (iptu > 0) { texto += `🔹 IPTU: ${fmtMoeda(iptu)}\n`; linhasCard += `<div class="comp-line"><span>IPTU</span> <span>${fmtMoeda(iptu)}</span></div>`; }
+      if (bomb > 0) { texto += `🔹 Bombeiro: ${fmtMoeda(bomb)}\n`; linhasCard += `<div class="comp-line"><span>Bombeiro</span> <span>${fmtMoeda(bomb)}</span></div>`; }
+      if (seg > 0) { texto += `🔹 Seguro: ${fmtMoeda(seg)}\n`; linhasCard += `<div class="comp-line"><span>Seguro</span> <span>${fmtMoeda(seg)}</span></div>`; }
+      if (out > 0) { texto += `🔹 Outras Taxas${descOutras}: ${fmtMoeda(out)}\n`; linhasCard += `<div class="comp-line"><span>Outras Taxas${descOutras}</span> <span>${fmtMoeda(out)}</span></div>`; }
+      if (desc > 0) { texto += `🔹 Desconto${descDesconto}: -${fmtMoeda(desc)}\n`; linhasCard += `<div class="comp-line" style="color:var(--danger);"><span>Desconto${descDesconto}</span> <span>-${fmtMoeda(desc)}</span></div>`; }
       
       texto += `🔹 Tarifa Bancária: ${fmtMoeda(vTarifaBancaria)}\n`;
       linhasCard += `<div class="comp-line" style="color:#64748b; font-size:0.75rem;"><span>Tarifa Bancária</span> <span>${fmtMoeda(vTarifaBancaria)}</span></div>`;
@@ -1077,7 +1106,7 @@
   }
 
   // =======================================================
-  // TRANSFERÊNCIAS (SPLIT 3 VIAS) - REPASSE
+  // TRANSFERÊNCIAS (SPLIT 3 VIAS) - REPASSE COM PROPORCIONAL
   // =======================================================
   async function realizarTransferencias(idReg, alertSuccess = true) {
       const btn = document.getElementById(`btn-transf-${idReg}`);
@@ -1132,18 +1161,24 @@
     marcados.forEach(c => {
       const idReg = c.id || c._tempId; const v = getVariaveisMes(c, mesRef);
       
-      let vAlugProp = parseMoedaToFloat(v.alugProp); let vCondProp = parseMoedaToFloat(v.condProp); let vAlugMes = parseMoedaToFloat(v.alugMes);
-      let vCondMes = parseMoedaToFloat(v.condMes); let vIptu = parseMoedaToFloat(v.iptu); let vBombeiro = parseMoedaToFloat(v.bombeiro);
-      let vSeguro = parseMoedaToFloat(v.seguro); let vOutras = parseMoedaToFloat(v.outras_taxas); let vDesconto = parseMoedaToFloat(v.desconto);
+      let pAlug = parseMoedaToFloat(v.alugProp);
+      let pCond = parseMoedaToFloat(v.condProp);
+      let mAlug = parseMoedaToFloat(v.alugMes);
+      let mCond = parseMoedaToFloat(v.condMes);
+      let iptu = parseMoedaToFloat(v.iptu);
+      let bomb = parseMoedaToFloat(v.bombeiro);
+      let seg = parseMoedaToFloat(v.seguro);
+      let out = parseMoedaToFloat(v.outras_taxas);
+      let desc = parseMoedaToFloat(v.desconto);
       let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa); 
       
       let repassaCond = c.regra_condominio !== 'N'; 
       let repassaSeguro = c.regra_seguro !== 'N';
 
-      let totalReceitas = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+      let totalReceitas = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
       
-      let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
-      let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
+      let valCondominioPix = repassaCond ? 0 : (pCond + mCond);
+      let valSeguroMIC = repassaSeguro ? 0 : seg;
       let valProprietario = totalReceitas - vTaxaAdm - valCondominioPix - valSeguroMIC;
       let valMIC = vTaxaAdm + valSeguroMIC; 
 
@@ -1152,7 +1187,7 @@
       texto += `\n💰 *TOTAL REPASSADO: ${fmtMoeda(valProprietario)}*\nO valor foi transferido para a chave PIX: ${c.pix_proprietario || 'Não informada'}${titularStr}`;
       
       if (!repassaCond && valCondominioPix > 0) { texto += `\n📌 *Nota:* O Condomínio (${fmtMoeda(valCondominioPix)}) foi transferido direto ao Síndico (PIX: ${c.pix_condominio}).`; }
-      if (!repassaSeguro && vSeguro > 0) { texto += `\n📌 *Nota:* O Seguro (${fmtMoeda(vSeguro)}) foi retido para pagamento pela corretora.`; }
+      if (!repassaSeguro && seg > 0) { texto += `\n📌 *Nota:* O Seguro (${fmtMoeda(seg)}) foi retido para pagamento pela corretora.`; }
 
       let statusCob = {}; try { statusCob = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
       let statusRep = {}; try { statusRep = JSON.parse(c.status_repasse || '{}'); } catch(e) {} 
@@ -1210,19 +1245,24 @@
 
       ativos.forEach(c => {
          const v = getVariaveisMes(c, mesRef);
-         let vAlugProp = parseMoedaToFloat(v.alugProp); let vCondProp = parseMoedaToFloat(v.condProp);
-         let vAlugMes = parseMoedaToFloat(v.alugMes); let vCondMes = parseMoedaToFloat(v.condMes);
-         let vIptu = parseMoedaToFloat(v.iptu); let vBombeiro = parseMoedaToFloat(v.bombeiro);
-         let vSeguro = parseMoedaToFloat(v.seguro); let vOutras = parseMoedaToFloat(v.outras_taxas);
-         let vDesconto = parseMoedaToFloat(v.desconto); let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa);
+         let pAlug = parseMoedaToFloat(v.alugProp);
+         let pCond = parseMoedaToFloat(v.condProp);
+         let mAlug = parseMoedaToFloat(v.alugMes);
+         let mCond = parseMoedaToFloat(v.condMes);
+         let iptu = parseMoedaToFloat(v.iptu);
+         let bomb = parseMoedaToFloat(v.bombeiro);
+         let seg = parseMoedaToFloat(v.seguro);
+         let out = parseMoedaToFloat(v.outras_taxas);
+         let desc = parseMoedaToFloat(v.desconto);
+         let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa);
 
          let repassaCond = c.regra_condominio !== 'N'; let repassaSeguro = c.regra_seguro !== 'N';
-         let baseTotal = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+         let baseTotal = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
          
-         totalArrecadado += (baseTotal + 2.99); // ATUALIZADO PARA R$ 2,99
+         totalArrecadado += (baseTotal + 2.99); 
          
-         let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
-         let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
+         let valCondominioPix = repassaCond ? 0 : (pCond + mCond);
+         let valSeguroMIC = repassaSeguro ? 0 : seg;
          
          totalProp += (baseTotal - vTaxaAdm - valCondominioPix - valSeguroMIC);
          totalMIC += (vTaxaAdm + valSeguroMIC);
@@ -1312,24 +1352,29 @@
       
       ativosList.forEach(c => {
          const v = getVariaveisMes(c, mesRef);
-         let vAlugProp = parseMoedaToFloat(v.alugProp); let vCondProp = parseMoedaToFloat(v.condProp);
-         let vAlugMes = parseMoedaToFloat(v.alugMes); let vCondMes = parseMoedaToFloat(v.condMes);
-         let vIptu = parseMoedaToFloat(v.iptu); let vBombeiro = parseMoedaToFloat(v.bombeiro);
-         let vSeguro = parseMoedaToFloat(v.seguro); let vOutras = parseMoedaToFloat(v.outras_taxas);
-         let vDesconto = parseMoedaToFloat(v.desconto); let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa);
+         let pAlug = parseMoedaToFloat(v.alugProp);
+         let pCond = parseMoedaToFloat(v.condProp);
+         let mAlug = parseMoedaToFloat(v.alugMes);
+         let mCond = parseMoedaToFloat(v.condMes);
+         let iptu = parseMoedaToFloat(v.iptu);
+         let bomb = parseMoedaToFloat(v.bombeiro);
+         let seg = parseMoedaToFloat(v.seguro);
+         let out = parseMoedaToFloat(v.outras_taxas);
+         let desc = parseMoedaToFloat(v.desconto);
+         let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa);
 
          let repassaCond = c.regra_condominio !== 'N'; let repassaSeguro = c.regra_seguro !== 'N';
-         let baseTotal = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+         let baseTotal = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
          
-         let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
-         let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
+         let valCondominioPix = repassaCond ? 0 : (pCond + mCond);
+         let valSeguroMIC = repassaSeguro ? 0 : seg;
          let valProprietario = baseTotal - vTaxaAdm - valCondominioPix - valSeguroMIC;
          let valMIC = vTaxaAdm + valSeguroMIC;
 
          tableData.push([{ content: `Imóvel: ${c.endereco}\nInquilino: ${c.inquilino}\nProprietário: ${c.proprietario}`, colSpan: 6, styles: { fillColor: [244, 246, 249], fontStyle: 'bold', textColor: [15, 23, 42] } }]);
          tableData.push([
-            'R$ ' + fmtMoeda(baseTotal + 2.99), // ATUALIZADO R$ 2,99
-            'R$ 2,99',                          // ATUALIZADO R$ 2,99
+            'R$ ' + fmtMoeda(baseTotal + 2.99), 
+            'R$ 2.99',                          
             'R$ ' + fmtMoeda(valMIC),           
             'R$ ' + fmtMoeda(valProprietario),  
             'R$ ' + fmtMoeda(valCondominioPix), 
