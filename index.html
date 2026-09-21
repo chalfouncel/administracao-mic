@@ -842,7 +842,6 @@ Texto: ${fullText.substring(0, 8000)}`;
       if (idBanco) { 
           try { 
               await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${idBanco}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ativo: 'EXCLUIDO' }) }); 
-              // DELETAR PDF DO BUCKET
               if(c.contrato_url) {
                   const filePath = c.contrato_url.split('/public/')[1];
                   if(filePath) {
@@ -884,7 +883,7 @@ Texto: ${fullText.substring(0, 8000)}`;
 
 
   // =======================================================
-  // LIVRO-RAZÃO: TAXAS CONDOMINIAIS MENSAIS
+  // LIVRO-RAZÃO: TAXAS CONDOMINIAIS MENSAIS E PARCELAMENTO
   // =======================================================
   function getVariaveisMes(c, mesRef) {
       let lancamentos = {};
@@ -1060,7 +1059,7 @@ Texto: ${fullText.substring(0, 8000)}`;
   }
 
   // =======================================================
-  // ASAAS - GERAÇÃO DE COBRANÇA
+  // ASAAS - GERAÇÃO DE COBRANÇA E MAGIAS DE ÁREA DE TRANSFERÊNCIA
   // =======================================================
   async function gerarCobrancaAsaas(idReg, valorTotal) {
       const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
@@ -1078,7 +1077,7 @@ Texto: ${fullText.substring(0, 8000)}`;
           if (ds !== 0 && ds !== 6) contUteis++;
           if (contUteis < 5) dVenc.setDate(dVenc.getDate() + 1);
       }
-      const dataVenc = dVenc.toISOString().split('T')[0]; // Formato YYYY-MM-DD para a API
+      const dataVenc = dVenc.toISOString().split('T')[0];
 
       const btn = document.getElementById(`btn-asaas-${idReg}`);
       const originalText = btn.innerText;
@@ -1119,25 +1118,44 @@ Texto: ${fullText.substring(0, 8000)}`;
       }
   }
 
-  // =======================================================
-  // ABA: RESUMO PARA COBRANÇA E REPASSE
-  // =======================================================
   function getNomeMesAtual(mesRef) { if(!mesRef) return ''; const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; return meses[parseInt(mesRef.split('-')[1]) - 1]; }
   function getNomeMesAnterior(mesRef) { if(!mesRef) return ''; const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; let m = parseInt(mesRef.split('-')[1]) - 2; if(m < 0) m = 11; return meses[m]; }
   function capitalizeFirstLetter(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
   function formatarMesAno(mesRef) { if(!mesRef) return ''; const [ano, mes] = mesRef.split('-'); return `${getNomeMesAtual(mesRef)} de ${ano}`; }
 
-  function copiarImagem(idHtml, btn) {
-     const el = document.getElementById(idHtml); const txtOrig = btn.innerText; btn.innerText = "Copiando...";
+  // A MAGIA ACONTECE AQUI: COPIAR IMAGEM E TEXTO JUNTOS
+  function copiarImagemETexto(idHtml, idTextArea, btn) {
+     const el = document.getElementById(idHtml);
+     const texto = document.getElementById(idTextArea).value;
+     const txtOrig = btn.innerText;
+     btn.innerText = "Copiando Tudo...";
+
      html2canvas(el, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
          canvas.toBlob(blob => {
              try {
-                 navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => {
-                     btn.innerText = "✓ Copiado!"; setTimeout(() => btn.innerText = txtOrig, 2000); alert('✓ Imagem copiada com sucesso! Cole na conversa do WhatsApp.');
-                 }).catch(err => { btn.innerText = txtOrig; alert('Erro: O seu navegador bloqueou a cópia direta de imagens. Tente pelo computador.'); });
-             } catch(e) { btn.innerText = txtOrig; alert('Erro: O seu navegador não suporta cópia direta de imagens. Tente pelo computador.'); }
+                 const itemData = {
+                     'image/png': blob,
+                     'text/plain': new Blob([texto], { type: 'text/plain' })
+                 };
+                 navigator.clipboard.write([new ClipboardItem(itemData)]).then(() => {
+                     btn.innerText = "✓ Copiado!";
+                     setTimeout(() => btn.innerText = txtOrig, 2000);
+                     alert('✓ Imagem e Texto copiados juntos!\n\nVá ao WhatsApp e clique em Colar (Ctrl+V). O sistema colocará a imagem e o texto (com o link clicável) como legenda automaticamente.');
+                 }).catch(err => fallbackCopiaImagem(blob, btn, txtOrig));
+             } catch(e) { fallbackCopiaImagem(blob, btn, txtOrig); }
          }, 'image/png');
      });
+  }
+
+  function fallbackCopiaImagem(blob, btn, txtOrig) {
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => {
+          btn.innerText = "✓ Só Imagem";
+          setTimeout(() => btn.innerText = txtOrig, 2000);
+          alert('O seu navegador ou telemóvel não suporta copiar imagem e texto juntos.\n\nCopiámos APENAS a imagem. Terá de copiar o texto no botão azul "Só Texto".');
+      }).catch(e => {
+          btn.innerText = txtOrig;
+          alert('Erro crítico: O navegador bloqueou a cópia para a área de transferência.');
+      });
   }
 
   function copiarTextoCob(idTextArea) { const el = document.getElementById(idTextArea); el.style.display = 'block'; el.select(); document.execCommand('copy'); el.style.display = 'none'; alert('✓ Texto copiado com sucesso!'); }
@@ -1197,9 +1215,8 @@ Texto: ${fullText.substring(0, 8000)}`;
       let statusAtual = statusObj[mesRef] || 'pendente';
       let asaasUrl = statusObj[`${mesRef}_url`];
 
-      // Atualiza o texto do WPP com o link do Asaas (se existir)
       if (asaasUrl) {
-          texto += `\n💰 *TOTAL A PAGAR: ${fmtMoeda(total)}*\n\n🔗 *Acesse sua fatura oficial aqui:*\n${asaasUrl}\n\nPor favor, envie o comprovante assim que efetuar o pagamento.`;
+          texto += `\n💰 *TOTAL A PAGAR: ${fmtMoeda(total)}*\n\n🔗 *Acesse a sua fatura oficial clicando no link abaixo:*\n${asaasUrl}\n\nPor favor, envie o comprovante assim que efetuar o pagamento.`;
       } else {
           texto += `\n💰 *TOTAL A PAGAR: ${fmtMoeda(total)}*\n\nPor favor, envie o comprovante assim que efetuar o pagamento.`;
       }
@@ -1208,7 +1225,6 @@ Texto: ${fullText.substring(0, 8000)}`;
       if (statusAtual === 'enviada') { bgPainel = '#fef08a'; acaoHtml = `<button class="btn btn-dark" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="avancarStatusCobranca('${idReg}', 'enviada')">📥 Cobrança Recebida</button>`; } 
       else if (statusAtual === 'recebida') { bgPainel = '#bbf7d0'; acaoHtml = ''; msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:900; color:#166534; font-size:0.9rem;">✅ Processo concluído com sucesso</div>`; }
 
-      // Botão Mágico do Asaas
       let btnAsaasHtml = '';
       if (!asaasUrl) {
           btnAsaasHtml = `<button id="btn-asaas-${idReg}" class="btn" style="flex: 1; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff;" onclick="gerarCobrancaAsaas('${idReg}', ${total})">⚡ Gerar Link Asaas</button>`;
@@ -1231,8 +1247,8 @@ Texto: ${fullText.substring(0, 8000)}`;
            </div>
 
            <div style="display: flex; gap: 8px; margin-top: 8px;">
-              <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarImagem('${idCard}', this)">📋 Imagem</button>
-              <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Texto</button>
+              <button class="btn btn-gold" style="flex: 2; padding: 8px; font-size: 0.8rem;" onclick="copiarImagemETexto('${idCard}', '${idTextArea}', this)">📋 Copiar Imagem + Texto</button>
+              <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Só Texto</button>
               <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.8rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a>
            </div>
 
@@ -1298,8 +1314,8 @@ Texto: ${fullText.substring(0, 8000)}`;
               <div style="font-size:0.75rem; color:#64748b; margin-top:20px; text-align:center;">Chave PIX: ${c.pix_proprietario || 'Não informada'}<br>Titular: ${c.titular_pix || c.proprietario}<br>M&IC Corretores de Imóveis</div></div>
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
            <div style="display: flex; gap: 8px; margin-top: 16px;">
-              <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarImagem('${idCard}', this)">📋 Copiar Imagem</button>
-              <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Texto</button>
+              <button class="btn btn-gold" style="flex: 2; padding: 8px; font-size: 0.8rem;" onclick="copiarImagemETexto('${idCard}', '${idTextArea}', this)">📋 Copiar Imagem + Texto</button>
+              <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.8rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Só Texto</button>
               <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.8rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_proprietario).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a></div>
            <div style="display: flex; gap: 8px; margin-top: 8px;">${acaoHtml}</div>${msgFinal}
         </div>`;
