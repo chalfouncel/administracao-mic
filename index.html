@@ -472,6 +472,18 @@
     } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
   }
   
+  async function doRegister() {
+    const email = document.getElementById('auth-email').value.trim(); const password = document.getElementById('auth-pass').value;
+    const status = document.getElementById('auth-status'); const btn = document.getElementById('btn-register');
+    status.style.display = 'block'; status.className = 'auth-msg loading'; status.innerText = 'Criando conta...'; btn.disabled = true;
+    try {
+      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/signup`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+      const data = await resp.json();
+      if (!resp.ok) { status.className = 'auth-msg err'; status.innerText = 'Erro: ' + data.message; } 
+      else { status.className = 'auth-msg ok'; status.innerText = '✓ Cadastro concluído!'; setLocalSession(data); setTimeout(() => checkSession(), 400); }
+    } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
+  }
+  
   function doLogout() { setLocalSession(null); checkSession(); }
 
   // =======================================================
@@ -479,6 +491,7 @@
   // =======================================================
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-login').addEventListener('click', doLogin);
+    document.getElementById('btn-register').addEventListener('click', doRegister);
     document.getElementById('btn-logout-action').addEventListener('click', doLogout);
     
     const hoje = new Date(); let proxMes = hoje.getMonth() + 2; let anoVenc = hoje.getFullYear();
@@ -658,6 +671,38 @@
   }
 
   // =======================================================
+  // BANCO CENTRAL DO BRASIL - REAJUSTE DE ALUGUEL
+  // =======================================================
+  async function getIndiceAcumulado(serie) {
+     try {
+         const res = await fetch(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.${serie}/dados/ultimos/12?formato=json`);
+         const data = await res.json();
+         let mult = 1; data.forEach(item => { mult *= (1 + (parseFloat(item.valor) / 100)); }); return mult - 1;
+     } catch(e) { return null; }
+  }
+  function abrirModalReajuste(idReg) {
+     reajusteAtualId = idReg; document.getElementById('reajuste-modal').style.display = 'flex';
+     document.getElementById('btn-igpm').innerText = 'IGP-M (FGV)'; document.getElementById('btn-ipca').innerText = 'IPCA (IBGE)';
+  }
+  function fecharReajuste() { document.getElementById('reajuste-modal').style.display = 'none'; reajusteAtualId = null; }
+  async function aplicarReajuste(tipo) {
+     if(!reajusteAtualId) return; const btn = document.getElementById(tipo === 'IGPM' ? 'btn-igpm' : 'btn-ipca'); btn.innerText = 'Calculando... aguarde';
+     const serie = tipo === 'IGPM' ? 189 : 433; const acc = await getIndiceAcumulado(serie);
+     if (acc === null) { alert('Falha ao obter índice do Banco Central. Tente novamente mais tarde.'); btn.innerText = tipo === 'IGPM' ? 'IGP-M (FGV)' : 'IPCA (IBGE)'; return; }
+     const idx = contratosDB.findIndex(x => (x.id || x._tempId) == reajusteAtualId); const c = contratosDB[idx];
+     const alugBase = parseMoedaToFloat(c.aluguel_base); const novoVal = alugBase * (1 + acc);
+     const conf = confirm(`Índice ${tipo} acumulado nos últimos 12 meses: ${(acc*100).toFixed(2)}%\n\nValor Atual: ${fmtMoeda(alugBase)}\nNOVO VALOR: ${fmtMoeda(novoVal)}\n\nConfirmar o reajuste para as próximas cobranças?`);
+     if(conf) { 
+         const hist = `${c.historico_reajuste || ''}\n[${new Date().toLocaleDateString('pt-BR')}] ${tipo}: +${(acc*100).toFixed(2)}% -> R$ ${fmtMoeda(novoVal)}`.trim();
+         await updateDbLinear(idx, 'aluguel_base', novoVal); 
+         await updateDbLinear(idx, 'reajuste_aplicado', 'SIM'); 
+         await updateDbLinear(idx, 'historico_reajuste', hist);
+         alert('✅ Reajuste aplicado com sucesso!'); fecharReajuste(); 
+     } 
+     else { btn.innerText = tipo === 'IGPM' ? 'IGP-M (FGV)' : 'IPCA (IBGE)'; }
+  }
+
+  // =======================================================
   // TABELA MESTRE E FUNÇÕES DE EDIÇÃO
   // =======================================================
   function toggleMarcarTodos(isChecked) {
@@ -676,6 +721,16 @@
       const novoCpf = prompt(`Informe o CPF de ${c.inquilino}:`, c.cpf_inquilino || '');
       if (novoCpf === null) return;
       await updateDbLinear(index, 'cpf_inquilino', novoCpf.replace(/\D/g, ''));
+  }
+
+  async function editarPix(index) {
+    const c = contratosDB[index];
+    const novoPix = prompt(`1/2 - Alterar chave PIX de ${c.proprietario}:\n\nDigite a nova chave (ou deixe em branco):`, c.pix_proprietario || ''); if (novoPix === null) return; 
+    const novoTitular = prompt(`2/2 - Nome do Titular da conta PIX:\n(Aparecerá no recibo do repasse para confirmação)`, c.titular_pix || c.proprietario || ''); if (novoTitular === null) return; 
+    c.pix_proprietario = novoPix.trim(); c.titular_pix = novoTitular.trim();
+    atualizarInterfaceGeral();
+    const id = c.id; if(!id) return;
+    try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pix_proprietario: c.pix_proprietario, titular_pix: c.titular_pix }) }); alert('PIX e Titular atualizados!'); } catch(e) {}
   }
 
   function getAvisoVencimento(c) {
@@ -719,7 +774,7 @@
           <td class="fit"><select onchange="updateDbLinear(${i}, 'ativo', this.value)" style="padding: 6px; font-size: 0.82rem;"><option value="SIM" ${c.ativo === 'SIM' ? 'selected' : ''}>🟢 Ativo</option><option value="NÃO" ${c.ativo === 'NÃO' ? 'selected' : ''}>🔴 Inativo</option></select></td>
           <td>
             <strong style="font-size: 0.95rem;">${c.inquilino}</strong> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarCPF(${i})">✏️ CPF</button><br>
-            <span style="font-size: 0.75rem; color: #64748b;">Locador: ${c.proprietario || '-'}</span>
+            <span style="font-size: 0.75rem; color: #64748b;">Locador: ${c.proprietario || '-'}</span> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarPix(${i})">✏️ PIX</button>
           </td>
           <td>${c.endereco || ''}</td>
           <td class="fit" style="text-align: center;">${venc.html}</td>
@@ -850,7 +905,7 @@
   }
 
   // =======================================================
-  // ASAAS E WPP - COBRANÇA
+  // ASAAS E WPP - COBRANÇA E BOTÕES RESTAURADOS
   // =======================================================
   async function gerarCobrancaAsaas(idReg, valorTotalBase) {
       const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
@@ -879,7 +934,7 @@
               let statusObj = {}; try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
               statusObj[`${mesRef}_url`] = data.urlFatura; statusObj[mesRef] = 'aguardando_asaas';
               await updateDbLinear(contratosDB.indexOf(c), 'status_cobranca', JSON.stringify(statusObj));
-              alert('✅ Fatura gerada! A tela ficará amarela.'); atualizarInterfaceGeral(); 
+              alert('✅ Fatura gerada! A tela ficará amarela aguardando pagamento.'); atualizarInterfaceGeral(); 
           }
       } catch(e) { alert('Erro: ' + e.message); btn.innerText = '⚡ Gerar Link Asaas'; btn.disabled = false; }
   }
@@ -887,26 +942,27 @@
   function formatarMesAno(mesRef) { if(!mesRef) return ''; const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; const [ano, mes] = mesRef.split('-'); return `${meses[parseInt(mes)-1]} de ${ano}`; }
 
   function copiarImagemETexto(idHtml, idTextArea, btn) {
-     const el = document.getElementById(idHtml); const texto = document.getElementById(idTextArea).value; const txtOrig = btn.innerText; btn.innerText = "Copiando Tudo...";
+     const el = document.getElementById(idHtml); const texto = document.getElementById(idTextArea).value; const txtOrig = btn.innerText; btn.innerText = "Copiando...";
      html2canvas(el, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
          canvas.toBlob(blob => {
-             try { navigator.clipboard.write([new ClipboardItem({ 'image/png': blob, 'text/plain': new Blob([texto], { type: 'text/plain' }) })]).then(() => { btn.innerText = "✓ Copiado!"; setTimeout(() => btn.innerText = txtOrig, 2000); }); } catch(e) {}
+             try { navigator.clipboard.write([new ClipboardItem({ 'image/png': blob, 'text/plain': new Blob([texto], { type: 'text/plain' }) })]).then(() => { btn.innerText = "✓ Copiado!"; setTimeout(() => btn.innerText = txtOrig, 2000); }).catch(err => fallbackCopiaImagem(blob, btn, txtOrig)); } catch(e) { fallbackCopiaImagem(blob, btn, txtOrig); }
          }, 'image/png');
      });
   }
 
   function fallbackCopiaImagem(blob, btn, txtOrig) {
       navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => {
-          btn.innerText = "✓ Só Imagem";
+          btn.innerText = "✓ Imagem Copiada";
           setTimeout(() => btn.innerText = txtOrig, 2000);
-          alert('O seu navegador ou telemóvel não suporta copiar imagem e texto juntos.\n\nCopiámos APENAS a imagem. Terá de copiar o texto no botão azul "Só Texto".');
-      }).catch(e => {
-          btn.innerText = txtOrig;
-          alert('Erro crítico: O navegador bloqueou a cópia para a área de transferência.');
-      });
+      }).catch(e => { btn.innerText = txtOrig; });
   }
 
-  function copiarTextoCob(idTextArea) { const el = document.getElementById(idTextArea); el.style.display = 'block'; el.select(); document.execCommand('copy'); el.style.display = 'none'; alert('✓ Texto copiado com sucesso!'); }
+  function copiarTextoCob(idTextArea) { 
+      const texto = document.getElementById(idTextArea).value;
+      navigator.clipboard.writeText(texto).then(() => {
+          alert('✓ Texto e Link copiados com sucesso!');
+      });
+  }
 
   async function dispararWppMassa(tipo) {
      const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
@@ -925,9 +981,6 @@
          }
      }
   }
-
-  function avancarStatusCobranca(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_cobranca || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_cobranca', JSON.stringify(statusObj)); }
-  function avancarStatusRepasse(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_repasse', JSON.stringify(statusObj)); }
 
   function gerarTextosCobranca() {
     const container = document.getElementById('cobrancas-container'); if (!container) return;
@@ -979,7 +1032,9 @@
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
            <div style="display: flex; gap: 8px; margin-top: 16px;">${btnAsaasHtml}</div>
            <div style="display: flex; gap: 8px; margin-top: 8px;">
-              <button class="btn btn-gold" style="flex: 2; padding: 8px; font-size: 0.8rem;" onclick="copiarImagemETexto('${idCard}', '${idTextArea}', this)">📋 Copiar WPP</button>
+              <button class="btn btn-gold" style="flex: 2; padding: 8px; font-size: 0.75rem;" onclick="copiarImagemETexto('${idCard}', '${idTextArea}', this)">📋 Imagem + Texto</button>
+              <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.75rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Só Texto</button>
+              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.75rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a>
            </div>
            ${msgFinal}
         </div>`;
@@ -1100,7 +1155,9 @@
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
            <div style="margin-top: 16px;">${acaoHtml}</div>
            <div style="display: flex; gap: 8px; margin-top: 8px;">
-              <button class="btn btn-gold" style="flex: 2; padding: 8px; font-size: 0.8rem;" onclick="copiarImagemETexto('${idCard}', '${idTextArea}', this)">📋 Copiar WPP</button>
+              <button class="btn btn-gold" style="flex: 2; padding: 8px; font-size: 0.75rem;" onclick="copiarImagemETexto('${idCard}', '${idTextArea}', this)">📋 Imagem + Texto</button>
+              <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.75rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Só Texto</button>
+              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.75rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_proprietario).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a>
            </div>
         </div>`;
     });
