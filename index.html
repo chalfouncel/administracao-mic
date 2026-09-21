@@ -437,6 +437,13 @@
     v = (v/100).toFixed(2) + ''; v = v.replace(".", ","); v = v.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,"); v = v.replace(/(\d)(\d{3}),/g, "$1.$2,"); i.value = v;
   }
 
+  const toBase64 = file => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+  });
+
   // =======================================================
   // AUTENTICAÇÃO E COMUNICAÇÃO COM O BANCO DE DADOS
   // =======================================================
@@ -769,17 +776,56 @@
 
   async function gravarNovoContrato() {
     const btn = document.getElementById('btn-gravar-novo'); btn.disabled = true; btn.innerText = 'Salvando no banco de dados...';
-    let urlPdf = null; const s = getLocalSession(); let emailUser = 'chalfouncorretor@gmail.com'; if (s && s.user && s.user.email) emailUser = s.user.email;
+    
+    let urlPdf = null; 
+    if (selectedPdfFile) {
+        btn.innerText = 'Processando arquivo PDF...';
+        try { urlPdf = await toBase64(selectedPdfFile); } 
+        catch(e) { console.error("Erro na conversão do PDF", e); }
+    }
+
+    const s = getLocalSession(); let emailUser = 'chalfouncorretor@gmail.com'; if (s && s.user && s.user.email) emailUser = s.user.email;
+
+    // INTELIGÊNCIA DE CÁLCULO PROPORCIONAL
+    let lancamentosIniciais = {};
+    let dataIn = document.getElementById('dataInicio').value;
+    let alugBaseVal = parseMoedaToFloat(document.getElementById('aluguelBase').value);
+    let condBaseVal = parseMoedaToFloat(document.getElementById('condominioBase').value);
+
+    if (dataIn) {
+        let [ano, mes, dia] = dataIn.split('-').map(Number);
+        let diasNoMes = new Date(ano, mes, 0).getDate();
+        let diasProp = diasNoMes - dia + 1;
+
+        if (diasProp > 0 && diasProp < diasNoMes) {
+            let fator = diasProp / diasNoMes;
+            let vAlugProp = alugBaseVal * fator;
+            let vCondProp = condBaseVal * fator;
+
+            let dCob = new Date(ano, mes - 1, 1);
+            dCob.setMonth(dCob.getMonth() + 1); 
+            let mCob = `${dCob.getFullYear()}-${String(dCob.getMonth() + 1).padStart(2, '0')}`;
+
+            lancamentosIniciais[mCob] = {
+                aluguel_prop: formatadorStr(vAlugProp),
+                aluguel_mes: "Não", // Proporcional anula o cheio no primeiro mês
+                cond_prop: formatadorStr(vCondProp),
+                cond_mes: formatadorStr(condBaseVal) // Condomínio soma cheio + prop no primeiro mês
+            };
+        }
+    }
 
     const payload = {
       user_email: emailUser, proprietario: document.getElementById('proprietario').value, telefone_proprietario: document.getElementById('telProprietario').value, 
       pix_proprietario: document.getElementById('pixProprietario').value, titular_pix: document.getElementById('titularPix').value || document.getElementById('proprietario').value, 
       inquilino: document.getElementById('inquilino').value, cpf_inquilino: document.getElementById('cpfInquilino').value, email_inquilino: document.getElementById('emailInquilino').value,
       telefone_inquilino: document.getElementById('telInquilino').value, endereco: document.getElementById('endereco').value, data_inicio: document.getElementById('dataInicio').value || null, 
-      data_fim: document.getElementById('dataFim').value || null, aluguel_base: parseMoedaToFloat(document.getElementById('aluguelBase').value), 
-      condominio_base: parseMoedaToFloat(document.getElementById('condominioBase').value), taxa_adm_fixa: parseMoedaToFloat(document.getElementById('valorTaxaAdm').value), 
+      data_fim: document.getElementById('dataFim').value || null, aluguel_base: alugBaseVal, 
+      condominio_base: condBaseVal, taxa_adm_fixa: parseMoedaToFloat(document.getElementById('valorTaxaAdm').value), 
       taxa_adm_pct: 10, regra_condominio: document.getElementById('regraCond').value || 'S', pix_condominio: document.getElementById('pixCondominio').value,
-      regra_seguro: document.getElementById('regraSeguro').value || 'S', ativo: 'SIM', reajuste_aplicado: 'NAO', historico_reajuste: '', lancamentos_mensais: '{}'
+      regra_seguro: document.getElementById('regraSeguro').value || 'S', ativo: 'SIM', reajuste_aplicado: 'NAO', historico_reajuste: '', 
+      lancamentos_mensais: JSON.stringify(lancamentosIniciais),
+      contrato_url: urlPdf
     };
 
     try {
@@ -787,7 +833,23 @@
       if (r.ok) {
         const dadosGravados = await r.json(); if (dadosGravados && dadosGravados.length > 0) payload.id = dadosGravados[0].id; else payload._tempId = Date.now();
         contratosDB.unshift(payload); atualizarInterfaceGeral(); alert('✓ Dados salvos com sucesso!');
-        document.querySelectorAll('#tab-resumo input, #tab-resumo select').forEach(el => { if(el.type !== 'file') el.value = ''; el.classList.remove('field-ok'); }); 
+        
+        // LIMPEZA GERAL DO ECRÃ DE NOVO CONTRATO
+        document.querySelectorAll('#tab-resumo input, #tab-resumo select, #tab-resumo textarea').forEach(el => { 
+            if(el.type !== 'file' && el.id !== 'filtro-mes') { el.value = ''; el.classList.remove('field-ok'); } 
+        }); 
+        document.getElementById('regraCond').value = 'S';
+        document.getElementById('regraSeguro').value = 'S';
+        document.getElementById('divPixCond').style.display = 'none';
+        
+        const canvas = document.getElementById('pdf-thumb-canvas');
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        canvas.style.display = 'none';
+        document.getElementById('thumb-placeholder').style.display = 'block';
+        document.getElementById('file-name-pill').style.display = 'none';
+        document.getElementById('contratoFile').value = '';
+        selectedPdfFile = null;
+
         setTab('imoveis', document.querySelectorAll('.tab-btn')[1]);
       } else { alert('Erro ao salvar no banco de dados.'); }
     } catch(e) { alert('Falha: ' + e.message); } finally { btn.disabled = false; btn.innerText = '💾 Salvar dados do novo contrato'; }
@@ -800,21 +862,16 @@
       let lancamentos = {}; try { lancamentos = JSON.parse(c.lancamentos_mensais || '{}'); } catch(e){}
       let lMes = lancamentos[mesRef] || {};
       
-      // SUPORTE AO ALUGUEL E CONDOMÍNIO PROPORCIONAL
       let alugProp = lMes.aluguel_prop !== undefined ? lMes.aluguel_prop : 'Não';
       let condProp = lMes.cond_prop !== undefined ? lMes.cond_prop : 'Não';
       
       let alugMes = lMes.aluguel_mes !== undefined ? lMes.aluguel_mes : ((String(alugProp).toLowerCase() !== 'não' && String(alugProp).toLowerCase() !== 'nao' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base));
       let condMes = lMes.cond_mes !== undefined ? lMes.cond_mes : ((String(condProp).toLowerCase() !== 'não' && String(condProp).toLowerCase() !== 'nao' && condProp !== '') ? 'Não' : (c.condominio_base ? formatadorStr(c.condominio_base) : ''));
       
-      let iptu = lMes.iptu !== undefined ? lMes.iptu : ''; 
-      let bombeiro = lMes.bombeiro !== undefined ? lMes.bombeiro : '';
-      let seguro = lMes.seguro !== undefined ? lMes.seguro : ''; 
-      let outras_taxas = lMes.outras_taxas !== undefined ? lMes.outras_taxas : '';
-      let desc_outras = lMes.desc_outras !== undefined ? lMes.desc_outras : ''; 
-      let desconto = lMes.desconto !== undefined ? lMes.desconto : '';
+      let iptu = lMes.iptu !== undefined ? lMes.iptu : ''; let bombeiro = lMes.bombeiro !== undefined ? lMes.bombeiro : '';
+      let seguro = lMes.seguro !== undefined ? lMes.seguro : ''; let outras_taxas = lMes.outras_taxas !== undefined ? lMes.outras_taxas : '';
+      let desc_outras = lMes.desc_outras !== undefined ? lMes.desc_outras : ''; let desconto = lMes.desconto !== undefined ? lMes.desconto : '';
       let desc_desconto = lMes.desc_desconto !== undefined ? lMes.desc_desconto : '';
-      
       return { alugProp, condProp, alugMes, condMes, iptu, bombeiro, seguro, outras_taxas, desc_outras, desconto, desc_desconto };
   }
 
@@ -919,7 +976,7 @@
   function renderizarTaxasCondominiais() {
     const tbody = document.getElementById('tabela-taxas-body'); if(!tbody) return;
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
-    if (marcados.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel ativo marcado.</td></tr>'; return; }
+    if (marcados.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel ativo marcado na aba anterior.</td></tr>'; return; }
     tbody.innerHTML = ''; const mesRef = document.getElementById('filtro-mes').value;
 
     marcados.forEach(c => {
