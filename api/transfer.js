@@ -43,9 +43,9 @@ export default async function handler(req, res) {
         let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
         let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
         
-        let totalReceitas = vAlugProp + vAlugMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+        // CORREÇÃO: Condomínio somado à base total antes da divisão
+        let totalReceitas = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
         
-        // Distribuição Limpa: O inquilino pagou a tarifa, logo o saldo em conta cobre 100% dos repasses
         let valProprietario = totalReceitas - vTaxaAdm - valCondominioPix - valSeguroMIC;
         let valMIC = vTaxaAdm + valSeguroMIC;
 
