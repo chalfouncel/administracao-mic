@@ -203,7 +203,7 @@
           <canvas id="pdf-thumb-canvas"></canvas>
           <div id="thumb-placeholder" style="color:#64748b; font-size:0.8rem; padding:20px;">Clique para Anexar Contrato (.PDF)<br><br>A miniatura aparecerá aqui</div>
         </div>
-        <div class="file-name-pill" id="file-name-pill"></div>
+        <div class="file-name-pill" id="file-name-pill" style="display:none; font-size:0.8rem; font-weight:bold; color:var(--primary); margin-bottom:10px;"></div>
         <div id="ai-extract-loader" class="ai-loader">⏳ Lendo o arquivo do contrato...</div>
         <input type="file" id="contratoFile" accept="application/pdf" style="display:none;" onchange="processarContratoPDF(event)">
         <button type="button" class="btn btn-gold" style="width:100%; font-size:0.85rem; padding:10px;" onclick="document.getElementById('contratoFile').click()">📎 Anexar / Trocar Contrato</button>
@@ -808,9 +808,9 @@
 
             lancamentosIniciais[mCob] = {
                 aluguel_prop: formatadorStr(vAlugProp),
-                aluguel_mes: "Não", // Proporcional anula o cheio no primeiro mês
+                aluguel_mes: "Não", 
                 cond_prop: formatadorStr(vCondProp),
-                cond_mes: formatadorStr(condBaseVal) // Condomínio soma cheio + prop no primeiro mês
+                cond_mes: "" // O condomínio mês fica livre para a conta real que chegar no boleto
             };
         }
     }
@@ -866,7 +866,7 @@
       let condProp = lMes.cond_prop !== undefined ? lMes.cond_prop : 'Não';
       
       let alugMes = lMes.aluguel_mes !== undefined ? lMes.aluguel_mes : ((String(alugProp).toLowerCase() !== 'não' && String(alugProp).toLowerCase() !== 'nao' && alugProp !== '') ? 'Não' : formatadorStr(c.aluguel_base));
-      let condMes = lMes.cond_mes !== undefined ? lMes.cond_mes : ((String(condProp).toLowerCase() !== 'não' && String(condProp).toLowerCase() !== 'nao' && condProp !== '') ? 'Não' : (c.condominio_base ? formatadorStr(c.condominio_base) : ''));
+      let condMes = lMes.cond_mes !== undefined ? lMes.cond_mes : '';
       
       let iptu = lMes.iptu !== undefined ? lMes.iptu : ''; let bombeiro = lMes.bombeiro !== undefined ? lMes.bombeiro : '';
       let seguro = lMes.seguro !== undefined ? lMes.seguro : ''; let outras_taxas = lMes.outras_taxas !== undefined ? lMes.outras_taxas : '';
@@ -976,7 +976,7 @@
   function renderizarTaxasCondominiais() {
     const tbody = document.getElementById('tabela-taxas-body'); if(!tbody) return;
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
-    if (marcados.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel ativo marcado na aba anterior.</td></tr>'; return; }
+    if (marcados.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel ativo marcado.</td></tr>'; return; }
     tbody.innerHTML = ''; const mesRef = document.getElementById('filtro-mes').value;
 
     marcados.forEach(c => {
@@ -1376,8 +1376,6 @@
       data.setMonth(data.getMonth() + 1);
       inputMes.value = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
       atualizarInterfaceGeral();
-      
-      document.querySelector('#relatorio-modal-msg').innerHTML = 'O seu Relatório Gerencial foi gerado com sucesso. O ciclo do mês foi encerrado e o sistema já avançou para a próxima competência.';
   }
 
   function gerarRelatorioPDF() {
