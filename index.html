@@ -71,7 +71,7 @@
 
   .input-calc { width: 95px; padding: 6px 8px; font-size: 0.85rem; border: 1px solid #cbd5e1; border-radius: 4px; text-align: right; }
   .input-calc[readonly] { background-color: #f1f5f9; cursor: pointer; color: #64748b; font-weight: bold; text-align: center; }
-  .input-desc { width: 100px; margin-top: 6px; font-size: 0.72rem; padding: 4px; border: 1px dashed #cbd5e1; border-radius: 4px; resize: none; box-sizing: border-box; background: #fffde7; }
+  .input-desc { width: 100%; margin-top: 6px; font-size: 0.72rem; padding: 6px; border: 1px dashed #cbd5e1; border-radius: 4px; resize: none; box-sizing: border-box; background: #fffde7; }
 
   .bola { width: 16px; height: 16px; border-radius: 50%; display: inline-block; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
   .bola-verde { background: #22c55e; }
@@ -104,7 +104,7 @@
   /* MODAIS */
   #auth-modal, #pdf-modal, #reajuste-modal, #relatorio-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.94); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; }
   #pdf-modal, #reajuste-modal, #relatorio-modal { display: none; }
-  .auth-card { background: #fff; border-radius: 14px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; border-top: 4px solid var(--accent); }
+  .auth-card { background: #fff; border-radius: 14px; padding: 28px 24px; max-width: 440px; width: 100%; text-align: center; border-top: 4px solid var(--accent); }
   .auth-msg { margin-top: 12px; font-size: 0.82rem; font-weight: 600; padding: 8px 10px; border-radius: 6px; display: none; }
   .auth-msg.err { background: #fee2e2; color: var(--danger); border: 1px solid #fca5a5; display: block; }
   .auth-msg.ok { background: #dcfce7; color: var(--success); border: 1px solid #86efac; display: block; }
@@ -118,7 +118,7 @@
 <body>
 
 <div id="auth-modal">
-  <div class="auth-card">
+  <div class="auth-card" style="max-width: 380px;">
     <img src="/Loga%20marca%20nova.png" alt="M&IC Corretores" style="max-height:56px; margin-bottom:12px;" onerror="this.src='/Loga marca nova.png'">
     <h2 style="font-size:1.2rem; color:var(--primary); margin-bottom:18px;">GESTÃO DE LOCAÇÃO</h2>
     <input type="email" id="auth-email" placeholder="E-mail" value="chalfouncorretor@gmail.com" style="margin-bottom:12px;">
@@ -140,7 +140,7 @@
 </div>
 
 <div id="reajuste-modal">
-  <div class="auth-card" style="border-top: 4px solid #eab308;">
+  <div class="auth-card" style="border-top: 4px solid #eab308; max-width: 380px;">
     <h3 style="color:var(--primary); margin-bottom:10px;">📈 Reajuste de Aluguel</h3>
     <p style="font-size:0.85rem; color:#64748b; margin-bottom:20px;">O contrato está próximo do vencimento. O sistema irá extrair a taxa acumulada de 12 meses diretamente do Banco Central. Escolha o índice:</p>
     <div style="display:flex; flex-direction:column; gap:10px;">
@@ -154,11 +154,11 @@
 <div id="relatorio-modal">
   <div class="auth-card" style="border-top: 4px solid #0284c7;">
     <h3 style="color:var(--primary); margin-bottom:10px;">📊 Mês Fechado!</h3>
-    <p style="font-size:0.85rem; color:#64748b; margin-bottom:20px;">O seu Relatório Gerencial foi gerado com sucesso. O ciclo do mês foi encerrado e o sistema já avançou para a próxima competência.</p>
+    <p style="font-size:0.85rem; color:#64748b; margin-bottom:20px;" id="relatorio-modal-msg">O seu Relatório Gerencial foi gerado com sucesso. O ciclo do mês foi encerrado e o sistema já avançou para a próxima competência.</p>
     <div style="display:flex; flex-direction:column; gap:10px;">
         <button class="btn btn-gold" id="btn-baixar-pdf">⬇️ Baixar PDF</button>
         <button class="btn btn-whatsapp" id="btn-share-pdf">📲 Compartilhar no WhatsApp</button>
-        <button class="btn btn-dark" onclick="document.getElementById('relatorio-modal').style.display='none'">Fechar</button>
+        <button class="btn btn-dark" onclick="document.getElementById('relatorio-modal').style.display='none'">Fechar Painel</button>
     </div>
   </div>
 </div>
@@ -795,7 +795,7 @@
 
 
   // =======================================================
-  // LIVRO-RAZÃO: TAXAS CONDOMINIAIS MENSAIS
+  // LIVRO-RAZÃO: TAXAS CONDOMINIAIS MENSAIS E CAIXAS MÁGICAS
   // =======================================================
   function getVariaveisMes(c, mesRef) {
       let lancamentos = {}; try { lancamentos = JSON.parse(c.lancamentos_mensais || '{}'); } catch(e){}
@@ -850,11 +850,11 @@
           <td class="fit"><input type="text" value="${v.seguro}" onchange="updateLancamentoMensal(${i}, 'seguro', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
           <td class="fit">
             <input type="text" value="${v.outras_taxas}" onchange="updateLancamentoMensal(${i}, 'outras_taxas', this.value)" onkeyup="formatarMoedaInput(this); this.nextElementSibling.style.display = (parseMoedaToFloat(this.value) > 0 ? 'block' : 'none');" class="input-calc">
-            <textarea class="input-desc" style="display:${styleOutras}; margin-top:6px;" placeholder="Motivo (ex: 1/3)" onchange="updateLancamentoMensal(${i}, 'desc_outras', this.value)">${v.desc_outras || ''}</textarea>
+            <textarea class="input-desc" style="display:${styleOutras};" placeholder="Motivo (ex: Pintura 1/3)" onchange="updateLancamentoMensal(${i}, 'desc_outras', this.value)">${v.desc_outras || ''}</textarea>
           </td>
           <td class="fit">
             <input type="text" value="${v.desconto}" onchange="updateLancamentoMensal(${i}, 'desconto', this.value)" onkeyup="formatarMoedaInput(this); this.nextElementSibling.style.display = (parseMoedaToFloat(this.value) > 0 ? 'block' : 'none');" class="input-calc">
-            <textarea class="input-desc" style="display:${styleDesconto}; margin-top:6px;" placeholder="Motivo..." onchange="updateLancamentoMensal(${i}, 'desc_desconto', this.value)">${v.desc_desconto || ''}</textarea>
+            <textarea class="input-desc" style="display:${styleDesconto};" placeholder="Motivo (ex: Desconto 1/3)" onchange="updateLancamentoMensal(${i}, 'desc_desconto', this.value)">${v.desc_desconto || ''}</textarea>
           </td>
           <td class="fit" id="total-linha-${i}" style="background-color:#f8fafc; text-align:center; vertical-align: middle;"><strong style="color:var(--danger); font-size:0.95rem;">${fmtMoeda(totalCalculado)}</strong></td></tr>`;
     });
@@ -1078,7 +1078,6 @@
       let isCobrancaPaga = statusCob[mesRef] === 'recebida';
       let isRepasseFeito = statusRep[mesRef] === 'recebida';
 
-      // Design Diferenciado para Repasse OK (Verde Sólido e sem botão para evitar acidentes)
       let bgPainel = isRepasseFeito ? '#dcfce7' : '#f8fafc'; 
       let borderCor = isRepasseFeito ? '#22c55e' : '#cbd5e1'; 
       let acaoHtml = '';
@@ -1119,7 +1118,7 @@
   }
 
   // =======================================================
-  // GERENCIAL E EXPORTAÇÃO (FECHO DE CAIXA)
+  // GERENCIAL E EXPORTAÇÃO (FECHO DE CAIXA E RECORRÊNCIA)
   // =======================================================
   function renderizarGerencial() {
       const mesRef = document.getElementById('filtro-mes').value;
@@ -1192,13 +1191,74 @@
   let lastGeneratedPdfBlob = null;
   let lastGeneratedPdfText = "";
 
-  function avancarMesAutomaticamente() {
+  async function avancarMesAutomaticamente() {
       const inputMes = document.getElementById('filtro-mes');
-      const [ano, mes] = inputMes.value.split('-');
+      const mesAtual = inputMes.value;
+      const [ano, mes] = mesAtual.split('-');
       let data = new Date(parseInt(ano), parseInt(mes) - 1, 1);
       data.setMonth(data.getMonth() + 1);
-      inputMes.value = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+      const mesSeguinte = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+      
+      let recorrenciasAplicadas = 0;
+
+      // Robô de Recorrência Inteligente
+      for (let i = 0; i < contratosDB.length; i++) {
+          let c = contratosDB[i];
+          if (c.ativo !== 'SIM') continue;
+          
+          let lancamentos = {}; try { lancamentos = JSON.parse(c.lancamentos_mensais || '{}'); } catch(e){}
+          let lAtual = lancamentos[mesAtual] || {};
+          let lSeguinte = lancamentos[mesSeguinte] || {};
+          let teveMudanca = false;
+
+          const incrementaParcela = (texto) => {
+              if(!texto) return null;
+              const regex = /(\d+)\s*\/\s*(\d+)/;
+              const match = texto.match(regex);
+              if(match) {
+                  let atual = parseInt(match[1]);
+                  let total = parseInt(match[2]);
+                  if(atual < total) return texto.replace(regex, `${atual + 1}/${total}`);
+              } else if (texto.toLowerCase().includes('recorrente') || texto.toLowerCase().includes('fixo')) {
+                  return texto; 
+              }
+              return null;
+          };
+
+          // Empurra Outras Taxas
+          let novaDescOutras = incrementaParcela(lAtual.desc_outras);
+          if (novaDescOutras && lAtual.outras_taxas && parseMoedaToFloat(lAtual.outras_taxas) > 0) {
+              lSeguinte.outras_taxas = lAtual.outras_taxas; 
+              lSeguinte.desc_outras = novaDescOutras; 
+              teveMudanca = true; 
+              recorrenciasAplicadas++;
+          }
+
+          // Empurra Descontos
+          let novaDescDesconto = incrementaParcela(lAtual.desc_desconto);
+          if (novaDescDesconto && lAtual.desconto && parseMoedaToFloat(lAtual.desconto) > 0) {
+              lSeguinte.desconto = lAtual.desconto; 
+              lSeguinte.desc_desconto = novaDescDesconto; 
+              teveMudanca = true; 
+              recorrenciasAplicadas++;
+          }
+
+          if (teveMudanca) {
+              lancamentos[mesSeguinte] = lSeguinte;
+              c.lancamentos_mensais = JSON.stringify(lancamentos);
+              // Salva silenciosamente no banco
+              try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${c.id || c._tempId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lancamentos_mensais: c.lancamentos_mensais }) }); } catch(e) {}
+          }
+      }
+
+      inputMes.value = mesSeguinte;
       atualizarInterfaceGeral();
+
+      let msgHtml = `O seu Relatório Gerencial foi gerado com sucesso. O ciclo do mês foi encerrado e o sistema já avançou para a próxima competência.`;
+      if (recorrenciasAplicadas > 0) {
+          msgHtml += `<br><br><strong style="color:var(--success);">🤖 Automação de Recorrência:</strong> O robô avançou <b>${recorrenciasAplicadas} parcela(s)</b> (Taxas/Descontos) para o novo mês automaticamente!`;
+      }
+      document.querySelector('#relatorio-modal-msg').innerHTML = msgHtml;
   }
 
   function gerarRelatorioPDF() {
@@ -1267,14 +1327,15 @@
       lastGeneratedPdfBlob = doc.output('blob');
       lastGeneratedPdfText = `📊 *M&IC Corretores*\nSegue o relatório gerencial referente a *${mesFormatado}*.\n\nContratos Ativos: ${ativos}\nVolume Arrecadado: ${vol}\nFaturamento M&IC: ${fat}`;
       
-      // O Mês avança aqui (nos bastidores)
-      avancarMesAutomaticamente();
+      // Abre o Modal do PDF
       document.getElementById('relatorio-modal').style.display = 'flex';
+      
+      // Dispara o Avanço Automático do Mês e a Lógica de Recorrência nos bastidores
+      avancarMesAutomaticamente();
   }
 
   document.getElementById('btn-baixar-pdf').addEventListener('click', () => {
       if(!lastGeneratedPdfBlob) return;
-      const mesRef = document.getElementById('filtro-mes').value; // Vai pegar o mês seguinte para o nome do arquivo se já avançou
       const pdfUrl = URL.createObjectURL(lastGeneratedPdfBlob);
       const a = document.createElement('a'); a.href = pdfUrl; a.download = `Relatorio_Gerencial_MIC.pdf`; a.click();
   });
