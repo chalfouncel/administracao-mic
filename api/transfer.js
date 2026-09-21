@@ -43,28 +43,70 @@ export default async function handler(req, res) {
         let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
         let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
         
-        // CORREÇÃO: Condomínio somado à base total antes da divisão
         let totalReceitas = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
         
         let valProprietario = totalReceitas - vTaxaAdm - valCondominioPix - valSeguroMIC;
         let valMIC = vTaxaAdm + valSeguroMIC;
 
-        async function sendPix(value, key, desc) {
-            if (value <= 0 || !key) return { success: true };
-            let cleanKey = key.trim();
+        async function sendPix(value, rawKey, desc) {
+            if (value <= 0 || !rawKey) return { success: true };
+            
+            let cleanKey = rawKey.trim();
             let keyType = 'EVP';
-            if (cleanKey.includes('@')) keyType = 'EMAIL';
-            else {
-                let num = cleanKey.replace(/\D/g, '');
-                if (num.length === 11) keyType = 'CPF';
-                else if (num.length === 14) keyType = 'CNPJ';
-                else if (num.length >= 10 || cleanKey.match(/^\+?[1-9]\d{9,13}$/)) keyType = 'PHONE';
+            let finalKey = cleanKey;
+
+            // Motor Matemático de Validação de CPF
+            const isCpf = (cpf) => {
+                cpf = cpf.replace(/\D/g, '');
+                if(cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+                let sum = 0, rest;
+                for (let i = 1; i <= 9; i++) sum = sum + parseInt(cpf.substring(i-1, i)) * (11 - i);
+                rest = (sum * 10) % 11;
+                if ((rest === 10) || (rest === 11)) rest = 0;
+                if (rest !== parseInt(cpf.substring(9, 10))) return false;
+                sum = 0;
+                for (let i = 1; i <= 10; i++) sum = sum + parseInt(cpf.substring(i-1, i)) * (12 - i);
+                rest = (sum * 10) % 11;
+                if ((rest === 10) || (rest === 11)) rest = 0;
+                return rest === parseInt(cpf.substring(10, 11));
+            };
+
+            // Inteligência de Chaves PIX
+            if (cleanKey.includes('@')) {
+                keyType = 'EMAIL';
+            } else if (cleanKey.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/)) {
+                keyType = 'EVP'; // Chave Aleatória UUID
+            } else {
+                let digits = cleanKey.replace(/\D/g, '');
+                if (digits.length === 14) {
+                    keyType = 'CNPJ';
+                    finalKey = digits;
+                } else if (digits.length === 11) {
+                    // O Grande Conflito de 11 dígitos resolvido
+                    if (isCpf(digits)) {
+                        keyType = 'CPF';
+                        finalKey = digits;
+                    } else {
+                        keyType = 'PHONE';
+                        // Injeta o +55 obrigatoriamente se for telefone
+                        finalKey = digits.startsWith('55') ? '+' + digits : '+55' + digits;
+                    }
+                } else if (digits.length >= 10 && digits.length <= 13) {
+                    keyType = 'PHONE';
+                    finalKey = digits.startsWith('55') ? '+' + digits : '+55' + digits;
+                }
             }
             
             const transferRes = await fetch('https://api.asaas.com/v3/transfers', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'access_token': ASAAS_KEY },
-                body: JSON.stringify({ value: parseFloat(value.toFixed(2)), operationType: "PIX", pixAddressKey: cleanKey, pixAddressKeyType: keyType, description: desc })
+                body: JSON.stringify({ 
+                    value: parseFloat(value.toFixed(2)), 
+                    operationType: "PIX", 
+                    pixAddressKey: finalKey, 
+                    pixAddressKeyType: keyType, 
+                    description: desc 
+                })
             });
             
             const transferData = await transferRes.json();
