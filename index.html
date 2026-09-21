@@ -497,7 +497,7 @@
   }
 
   // =======================================================
-  // MOTOR DE EXTRAÇÃO DE PDF COM BLOCO OCULTO (BALA DE PRATA)
+  // MOTOR DE EXTRAÇÃO DE PDF (COM CAÇADOR FUZZY)
   // =======================================================
   function cleanSearch(text) { return text ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : ""; }
   function decodeAddressOnly(text) {
@@ -571,39 +571,43 @@
         }
       }
 
-      // Correção para erros comuns de leitura (pdf.js lendo 'I' maiúsculo como 'l' minúsculo)
-      fullText = fullText.replace(/Datalnicio/gi, 'DataInicio').replace(/Tellnquilino/gi, 'TelInquilino');
-
       let ext = { locador: '', telLocador: '', locatario: '', cpfInquilino: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '', titularPix: '' };
       let page1Text = page1RawLines.join(" ");
 
-      // 1. TENTATIVA DA BALA DE PRATA (BLOCO OCULTO) - COM TRAVA DE DELIMITAÇÃO ABSOLUTA
-      let blockMatch = fullText.match(/\[MIC_DADOS\]([\s\S]*?)\[\/MIC_DADOS\]/i);
+      // ============================================================================
+      // A MÁGICA DEFINITIVA (FUZZY MATCH) PARA VENCER O LIXO DO PDF.JS
+      // ============================================================================
+      const fuzzyTagStart = "\\[\\s*M\\s*I\\s*C\\s*_\\s*D\\s*A\\s*D\\s*O\\s*S\\s*\\]";
+      const fuzzyTagEnd = "\\[\\s*\\/\\s*M\\s*I\\s*C\\s*_\\s*D\\s*A\\s*D\\s*O\\s*S\\s*\\]";
+      const blockRegex = new RegExp(fuzzyTagStart + "([\\s\\S]*?)" + fuzzyTagEnd, "i");
+      
+      let blockMatch = fullText.match(blockRegex);
       if (blockMatch) {
           let b = blockMatch[1];
           
-          // O segredo está aqui: Força a criação de um delimitador único antes de cada chave, 
-          // mesmo que o PDF.js tenha colado tudo numa palavra só (ex: "JrCpfInquilino:").
           const chaves = ['Proprietario', 'TelProprietario', 'PixProprietario', 'TitularPix', 'Inquilino', 'CpfInquilino', 'EmailInquilino', 'TelInquilino', 'Endereco', 'DataInicio', 'DataFim', 'ValorAluguel'];
           
           chaves.forEach(ch => {
-              let regexChave = new RegExp(ch + "\\s*:", "gi");
+              // Cria uma trava que ignora TODOS os espaços acidentais que o PDF criar no meio da palavra (ex: "T e l P r o p r i e t a r i o :")
+              let fuzzyKey = ch.split('').join('\\s*') + '\\s*:';
+              let regexChave = new RegExp(fuzzyKey, "gi");
               b = b.replace(regexChave, ` |#|${ch}: `); 
           });
 
-          // Função para buscar o valor entre os delimitadores absolutos
           const getField = (chave) => {
               const regex = new RegExp("\\|#\\|\\s*" + chave + "\\s*:\\s*(.*?)(?=\\|#\\||$)", "i");
               const m = b.match(regex);
               return m ? m[1].trim() : '';
           };
 
-          // Extração com higienização forçada para remover espaços em campos numéricos/emails
-          ext.locador = getField('Proprietario');
+          // Limpa espaços grotescos nos nomes apenas no começo da palavra (conserta o "I vy" se ele ocorrer)
+          const fixSpacing = (str) => str.replace(/\b([A-Za-z])\s+(?=[a-z]{2,})/g, '$1');
+
+          ext.locador = fixSpacing(getField('Proprietario'));
           ext.telLocador = getField('TelProprietario').replace(/\D/g, ''); 
           ext.pix = getField('PixProprietario').replace(/\s/g, ''); 
-          ext.titularPix = getField('TitularPix');
-          ext.locatario = getField('Inquilino');
+          ext.titularPix = fixSpacing(getField('TitularPix'));
+          ext.locatario = fixSpacing(getField('Inquilino'));
           ext.cpfInquilino = getField('CpfInquilino').replace(/\D/g, '');
           ext.emailLocatario = getField('EmailInquilino').replace(/\s/g, '');
           ext.telLocatario = getField('TelInquilino').replace(/\D/g, '');
@@ -618,6 +622,7 @@
           let vAlug = getField('ValorAluguel').replace(/\s/g, '');
           if (vAlug) ext.valor = parseFloat(vAlug.replace(/\./g, '').replace(',', '.'));
       }
+      // ============================================================================
 
       // 2. FALLBACK SE NÃO ACHAR ALGO NO BLOCO OCULTO
       if (!ext.locador) {
@@ -631,7 +636,7 @@
           if (!ext.locatario) { for (let j = 0; j < allRawLines.length; j++) { if (cleanSearch(allRawLines[j]).indexOf("assinou como locatario") !== -1) { ext.locatario = findTrueSignerAbove(allRawLines, j); break; } } }
       }
       
-      if (!ext.endereco) ext.endereco = extractAddressAfterSituado(page1Text);
+      if (!ext.endereco && !blockMatch) ext.endereco = extractAddressAfterSituado(page1Text);
 
       if (!ext.dataIn || !ext.dataFim) {
           let dateMatches = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
@@ -653,7 +658,7 @@
       flash('endereco', decodeAddressOnly(ext.endereco)); flash('dataInicio', ext.dataIn); flash('dataFim', ext.dataFim);
       if(ext.valor > 0) flash('aluguelBase', formatadorStr(ext.valor));
 
-      // 4. CHAMA A IA SOMENTE SE FALTAR DADOS SENSÍVEIS E NÃO ACHAR O BLOCO
+      // 4. CHAMA A IA SOMENTE SE FALTAR DADOS SENSÍVEIS (E NÃO USOU O BLOCO OCULTO)
       let faltouContato = (!ext.telLocador || !ext.pix || !ext.emailLocatario || !ext.telLocatario);
       if (faltouContato && !blockMatch) {
           loader.innerHTML = '🤖 IA preenchendo as lacunas...';
