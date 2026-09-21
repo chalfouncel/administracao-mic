@@ -554,139 +554,380 @@
   }
 
   async function processarContratoPDF(event) {
-    const file = event.target.files[0]; if (!file || file.type !== 'application/pdf') return;
-    selectedPdfFile = file; document.getElementById('file-name-pill').innerText = `📄 ${file.name}`; document.getElementById('file-name-pill').style.display = 'inline-block';
-    const loader = document.getElementById('ai-extract-loader'); loader.innerHTML = '⏳ Lendo o arquivo do contrato...'; loader.style.display = 'block';
+    const file = event.target.files[0];
+    if (!file || file.type !== 'application/pdf') return;
+
+    selectedPdfFile = file;
+    document.getElementById('file-name-pill').innerText = `📄 ${file.name}`;
+    document.getElementById('file-name-pill').style.display = 'inline-block';
+
+    const loader = document.getElementById('ai-extract-loader');
+    loader.innerHTML = '⏳ Lendo o arquivo do contrato...';
+    loader.style.display = 'block';
 
     try {
-      const arrayBuffer = await file.arrayBuffer(); const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       await renderPdfThumbnail(pdf);
 
-      let allRawLines = []; let page1RawLines = []; let fullText = '';
+      // ================================================================
+      // 1) EXTRAI TODO O TEXTO DO PDF
+      // ================================================================
+      let allRawLines = [];
+      let page1RawLines = [];
+      let fullText = '';
+
       for (let p = 1; p <= pdf.numPages; p++) {
-        const page = await pdf.getPage(p); const textContent = await page.getTextContent();
-        for (let i = 0; i < textContent.items.length; i++) {
-          let str = textContent.items[i].str;
-          if (str && str.trim().length > 0) { allRawLines.push(str.trim()); fullText += ' ' + str.trim(); if (p === 1) page1RawLines.push(str.trim()); }
+        const page = await pdf.getPage(p);
+        const textContent = await page.getTextContent();
+
+        for (const item of textContent.items) {
+          const str = String(item.str || '').trim();
+          if (!str) continue;
+          allRawLines.push(str);
+          fullText += ' ' + str;
+          if (p === 1) page1RawLines.push(str);
         }
       }
 
-      let ext = { locador: '', telLocador: '', locatario: '', cpfInquilino: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '', titularPix: '' };
-      let page1Text = page1RawLines.join(" ");
+      // O PDF de teste usa exatamente:
+      // {Proprietario:} Ivy Carla...
+      // e NÃO: Proprietario: Ivy Carla...
+      // Portanto, o parser precisa aceitar chaves com { } e espaços
+      // criados pelo PDF.js, sem depender de um texto perfeitamente formatado.
+      const normalizePdfText = (text) => String(text || '')
+        .replace(/\u00A0/g, ' ')
+        .replace(/[\r\n]+/g, '\n')
+        .replace(/[ \t]+/g, ' ')
+        .trim();
 
-      // ============================================================================
-      // A MÁGICA DEFINITIVA (FUZZY MATCH) PARA VENCER O LIXO DO PDF.JS
-      // ============================================================================
-      const fuzzyTagStart = "\\[\\s*M\\s*I\\s*C\\s*_\\s*D\\s*A\\s*D\\s*O\\s*S\\s*\\]";
-      const fuzzyTagEnd = "\\[\\s*\\/\\s*M\\s*I\\s*C\\s*_\\s*D\\s*A\\s*D\\s*O\\s*S\\s*\\]";
-      const blockRegex = new RegExp(fuzzyTagStart + "([\\s\\S]*?)" + fuzzyTagEnd, "i");
-      
-      let blockMatch = fullText.match(blockRegex);
-      if (blockMatch) {
-          let b = blockMatch[1];
-          
-          const chaves = ['Proprietario', 'TelProprietario', 'PixProprietario', 'TitularPix', 'Inquilino', 'CpfInquilino', 'EmailInquilino', 'TelInquilino', 'Endereco', 'DataInicio', 'DataFim', 'ValorAluguel'];
-          
-          chaves.forEach(ch => {
-              // Cria uma trava que ignora TODOS os espaços acidentais que o PDF criar no meio da palavra (ex: "T e l P r o p r i e t a r i o :")
-              let fuzzyKey = ch.split('').join('\\s*') + '\\s*:';
-              let regexChave = new RegExp(fuzzyKey, "gi");
-              b = b.replace(regexChave, ` |#|${ch}: `); 
+      const normalizedFullText = normalizePdfText(fullText);
+      const normalizedLines = allRawLines.map(normalizePdfText).filter(Boolean);
+
+      let ext = {
+        locador: '',
+        telLocador: '',
+        locatario: '',
+        cpfInquilino: '',
+        emailLocatario: '',
+        telLocatario: '',
+        endereco: '',
+        dataIn: '',
+        dataFim: '',
+        valor: 0,
+        pix: '',
+        titularPix: ''
+      };
+
+      // ================================================================
+      // 2) LOCALIZA O BLOCO OCULTO MIC_DADOS
+      // ================================================================
+      const normForTag = (text) => String(text || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '')
+        .toUpperCase();
+
+      const compactFullText = normForTag(fullText);
+      const tagStart = '[MIC_DADOS]';
+      const tagEnd = '[/MIC_DADOS]';
+      const startPos = compactFullText.indexOf(tagStart);
+      const endPos = compactFullText.indexOf(tagEnd, startPos + tagStart.length);
+
+      let blockMatch = null;
+      let hiddenBlock = '';
+
+      if (startPos !== -1 && endPos !== -1) {
+        // Em vez de cortar pelo índice do texto compactado, encontramos
+        // o bloco usando uma versão normalizada do texto original.
+        const compactOriginal = String(fullText || '')
+          .replace(/\u00A0/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        const m = compactOriginal.match(/\[\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]([\s\S]*?)\[\s*\/\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]/i);
+        if (m) {
+          blockMatch = m;
+          hiddenBlock = m[1] || '';
+        }
+      }
+
+      // ================================================================
+      // 3) PARSER ROBUSTO DOS CAMPOS DO MIC_DADOS
+      //    Aceita:
+      //    {Campo:} valor
+      //    { Campo : } valor
+      //    Campo: valor
+      //    Campo : valor
+      //    inclusive quando o PDF.js separa caracteres por espaços.
+      // ================================================================
+      const FIELD_KEYS = [
+        'Proprietario', 'TelProprietario', 'PixProprietario', 'TitularPix',
+        'Inquilino', 'CpfInquilino', 'EmailInquilino', 'TelInquilino',
+        'Endereco', 'DataInicio', 'DataFim', 'ValorAluguel'
+      ];
+
+      const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      const canonicalKey = (raw) => String(raw || '')
+        .replace(/[{}\s]/g, '')
+        .toLowerCase();
+
+      const keyMap = Object.fromEntries(FIELD_KEYS.map(k => [canonicalKey(k), k]));
+
+      const parseHiddenFields = (block) => {
+        const result = {};
+        if (!block) return result;
+
+        // Coloca cada marcador em uma linha lógica. Isso evita depender
+        // de como o PDF.js quebrou os itens de texto.
+        let b = String(block)
+          .replace(/\u00A0/g, ' ')
+          .replace(/[\r\n]+/g, '\n')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        // Aceita marcador entre chaves, com ou sem espaços:
+        // {Proprietario:}, { Proprietario : }, Proprietario:
+        const keyPattern = FIELD_KEYS.map(k =>
+          k.split('').map(ch => escapeRegExp(ch)).join('\\s*')
+        ).join('|');
+
+        const fieldRegex = new RegExp(
+          '(?:\\{\\s*)?(' + keyPattern + ')(?:\\s*)(?::)(?:\\s*\\})?\\s*',
+          'gi'
+        );
+
+        const matches = [];
+        let m;
+        while ((m = fieldRegex.exec(b)) !== null) {
+          matches.push({
+            index: m.index,
+            end: fieldRegex.lastIndex,
+            key: keyMap[canonicalKey(m[1])]
           });
+        }
 
-          const getField = (chave) => {
-              const regex = new RegExp("\\|#\\|\\s*" + chave + "\\s*:\\s*(.*?)(?=\\|#\\||$)", "i");
-              const m = b.match(regex);
-              return m ? m[1].trim() : '';
-          };
+        for (let i = 0; i < matches.length; i++) {
+          const current = matches[i];
+          const next = matches[i + 1];
+          let value = b.slice(current.end, next ? next.index : b.length).trim();
 
-          // Limpa espaços grotescos nos nomes apenas no começo da palavra (conserta o "I vy" se ele ocorrer)
-          const fixSpacing = (str) => str.replace(/\b([A-Za-z])\s+(?=[a-z]{2,})/g, '$1');
+          // Fecha uma eventual chave residual do PDF.
+          value = value.replace(/^\s*\}/, '').trim();
+          value = value.replace(/\{\s*$/, '').trim();
 
-          ext.locador = fixSpacing(getField('Proprietario'));
-          ext.telLocador = getField('TelProprietario').replace(/\D/g, ''); 
-          ext.pix = getField('PixProprietario').replace(/\s/g, ''); 
-          ext.titularPix = fixSpacing(getField('TitularPix'));
-          ext.locatario = fixSpacing(getField('Inquilino'));
-          ext.cpfInquilino = getField('CpfInquilino').replace(/\D/g, '');
-          ext.emailLocatario = getField('EmailInquilino').replace(/\s/g, '');
-          ext.telLocatario = getField('TelInquilino').replace(/\D/g, '');
-          ext.endereco = getField('Endereco');
-          
-          let dIn = getField('DataInicio').replace(/\s/g, '');
-          if (dIn.includes('/')) ext.dataIn = dIn.split('/').reverse().join('-');
-          
-          let dFim = getField('DataFim').replace(/\s/g, '');
-          if (dFim.includes('/')) ext.dataFim = dFim.split('/').reverse().join('-');
-          
-          let vAlug = getField('ValorAluguel').replace(/\s/g, '');
-          if (vAlug) ext.valor = parseFloat(vAlug.replace(/\./g, '').replace(',', '.'));
-      }
-      // ============================================================================
+          if (current.key) result[current.key] = value;
+        }
 
-      // 2. FALLBACK SE NÃO ACHAR ALGO NO BLOCO OCULTO
+        return result;
+      };
+
+      const hidden = parseHiddenFields(hiddenBlock);
+
+      const cleanValue = (v) => String(v || '')
+        .replace(/^[\s{}]+|[\s{}]+$/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const fixSpacing = (str) => cleanValue(str);
+
+      ext.locador = fixSpacing(hidden.Proprietario);
+      ext.telLocador = cleanValue(hidden.TelProprietario).replace(/\D/g, '');
+      ext.pix = cleanValue(hidden.PixProprietario).replace(/\s/g, '');
+      ext.titularPix = fixSpacing(hidden.TitularPix);
+      ext.locatario = fixSpacing(hidden.Inquilino);
+      ext.cpfInquilino = cleanValue(hidden.CpfInquilino).replace(/\D/g, '');
+      ext.emailLocatario = cleanValue(hidden.EmailInquilino).replace(/\s/g, '');
+      ext.telLocatario = cleanValue(hidden.TelInquilino).replace(/\D/g, '');
+      ext.endereco = fixSpacing(hidden.Endereco);
+
+      const toIsoDate = (value) => {
+        const v = cleanValue(value).replace(/\s/g, '');
+        const m = v.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+        return m ? `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` : '';
+      };
+
+      ext.dataIn = toIsoDate(hidden.DataInicio);
+      ext.dataFim = toIsoDate(hidden.DataFim);
+
+      const parseMoney = (value) => {
+        const v = cleanValue(value).replace(/R\$\s*/gi, '').replace(/\s/g, '');
+        if (!v) return 0;
+        if (v.includes(',')) return parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0;
+        return parseFloat(v) || 0;
+      };
+
+      ext.valor = parseMoney(hidden.ValorAluguel);
+
+      // ================================================================
+      // 4) FALLBACK DO CONTRATO NORMAL — SEM SOBRESCREVER O MIC_DADOS
+      // ================================================================
+      const page1Text = page1RawLines.join(' ');
+
       if (!ext.locador) {
-          let mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
-          if (mLoc1 && isValidPersonName(mLoc1[1])) ext.locador = cleanName(mLoc1[1]);
-          if (!ext.locador) { for (let i = 0; i < allRawLines.length; i++) { if (cleanSearch(allRawLines[i]).indexOf("assinou como locador") !== -1) { ext.locador = findTrueSignerAbove(allRawLines, i); break; } } }
+        const mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
+        if (mLoc1 && isValidPersonName(mLoc1[1])) ext.locador = cleanName(mLoc1[1]);
+        if (!ext.locador) {
+          for (let i = 0; i < allRawLines.length; i++) {
+            if (cleanSearch(allRawLines[i]).indexOf('assinou como locador') !== -1) {
+              ext.locador = findTrueSignerAbove(allRawLines, i); break;
+            }
+          }
+        }
       }
+
       if (!ext.locatario) {
-          let mLocat1 = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
-          if (mLocat1 && isValidPersonName(mLocat1[1])) ext.locatario = cleanName(mLocat1[1]);
-          if (!ext.locatario) { for (let j = 0; j < allRawLines.length; j++) { if (cleanSearch(allRawLines[j]).indexOf("assinou como locatario") !== -1) { ext.locatario = findTrueSignerAbove(allRawLines, j); break; } } }
+        const mLocat1 = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
+        if (mLocat1 && isValidPersonName(mLocat1[1])) ext.locatario = cleanName(mLocat1[1]);
+        if (!ext.locatario) {
+          for (let j = 0; j < allRawLines.length; j++) {
+            if (cleanSearch(allRawLines[j]).indexOf('assinou como locatario') !== -1) {
+              ext.locatario = findTrueSignerAbove(allRawLines, j); break;
+            }
+          }
+        }
       }
-      
+
       if (!ext.endereco && !blockMatch) ext.endereco = extractAddressAfterSituado(page1Text);
 
       if (!ext.dataIn || !ext.dataFim) {
-          let dateMatches = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
-          if (dateMatches && dateMatches.length >= 2) { ext.dataIn = dateMatches[0].split('/').reverse().join('-'); ext.dataFim = dateMatches[1].split('/').reverse().join('-'); }
+        const dateMatches = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
+        if (dateMatches && dateMatches.length >= 2) {
+          if (!ext.dataIn) ext.dataIn = dateMatches[0].split('/').reverse().join('-');
+          if (!ext.dataFim) ext.dataFim = dateMatches[1].split('/').reverse().join('-');
+        }
       }
-      
+
       if (!ext.valor) {
-          let mVal = fullText.match(/R\$\s*([\d\.,]+)/i); if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
+        const mVal = normalizedFullText.match(/R\$\s*([\d\.,]+)/i);
+        if (mVal) ext.valor = parseMoney(mVal[1]);
       }
 
-      // 3. PINTA A TELA IMEDIATAMENTE
-      function flash(id, val) { 
-        if(val && String(val).trim() !== '') { 
-          const el = document.getElementById(id); if(el) { el.value = val; el.classList.add('field-ok'); el.addEventListener('input', function onEdit() { el.classList.remove('field-ok'); el.removeEventListener('input', onEdit); }); }
-        } 
+      // ================================================================
+      // 5) PREENCHIMENTO DA TELA
+      // ================================================================
+      function flash(id, val) {
+        if (val !== null && val !== undefined && String(val).trim() !== '') {
+          const el = document.getElementById(id);
+          if (el) {
+            el.value = val;
+            el.classList.add('field-ok');
+            el.addEventListener('input', function onEdit() {
+              el.classList.remove('field-ok');
+              el.removeEventListener('input', onEdit);
+            });
+          }
+        }
       }
-      flash('proprietario', decodeAddressOnly(ext.locador)); flash('telProprietario', ext.telLocador); flash('pixProprietario', ext.pix); flash('titularPix', ext.titularPix || decodeAddressOnly(ext.locador));
-      flash('inquilino', decodeAddressOnly(ext.locatario)); flash('cpfInquilino', ext.cpfInquilino); flash('emailInquilino', ext.emailLocatario); flash('telInquilino', ext.telLocatario);
-      flash('endereco', decodeAddressOnly(ext.endereco)); flash('dataInicio', ext.dataIn); flash('dataFim', ext.dataFim);
-      if(ext.valor > 0) flash('aluguelBase', formatadorStr(ext.valor));
 
-      // 4. CHAMA A IA SOMENTE SE FALTAR DADOS SENSÍVEIS (E NÃO USOU O BLOCO OCULTO)
-      let faltouContato = (!ext.telLocador || !ext.pix || !ext.emailLocatario || !ext.telLocatario);
-      if (faltouContato && !blockMatch) {
-          loader.innerHTML = '🤖 IA preenchendo as lacunas...';
-          try {
-            const promptIA = `Você é um perito de extração de dados. Analise o texto do contrato abaixo e retorne APENAS um objeto JSON.
-REGRAS OBRIGATÓRIAS:
-- telProprietario: Busque o Telefone APENAS dentro da qualificação do "LOCADOR(A)".
-- emailInquilino: Busque o Email APENAS dentro da qualificação do "LOCATÁRIO(A)".
-- telInquilino: Busque o Telefone APENAS dentro da qualificação do "LOCATÁRIO(A)".
-- pixProprietario: Busque a chave PIX na "CLÁUSULA SEGUNDA" após a frase "A chave PIX para transferência é" ou na qualificação do Locador. Nunca retorne a palavra "para". Retorne apenas a chave.
-Retorne o JSON estrito: {"telProprietario":"", "pixProprietario":"", "emailInquilino":"", "telInquilino":""}
-Texto: ${fullText.substring(0, 8000)}`;
+      flash('proprietario', decodeAddressOnly(ext.locador));
+      flash('telProprietario', ext.telLocador);
+      flash('pixProprietario', ext.pix);
+      flash('titularPix', ext.titularPix || decodeAddressOnly(ext.locador));
+      flash('inquilino', decodeAddressOnly(ext.locatario));
+      flash('cpfInquilino', ext.cpfInquilino);
+      flash('emailInquilino', ext.emailLocatario);
+      flash('telInquilino', ext.telLocatario);
+      flash('endereco', decodeAddressOnly(ext.endereco));
+      flash('dataInicio', ext.dataIn);
+      flash('dataFim', ext.dataFim);
+      if (ext.valor > 0) flash('aluguelBase', formatadorStr(ext.valor));
 
-            const resIA = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: promptIA }) });
-            if (resIA.ok) {
-              const matchJson = ((await resIA.json()).reply || "").match(/\{[\s\S]*\}/);
-              if (matchJson) {
-                const p = JSON.parse(matchJson[0]);
-                if (!ext.telLocador && p.telProprietario) flash('telProprietario', p.telProprietario);
-                if (!ext.pix && p.pixProprietario && String(p.pixProprietario).toLowerCase() !== "para") flash('pixProprietario', p.pixProprietario);
-                if (!ext.emailLocatario && p.emailInquilino) flash('emailInquilino', p.emailInquilino);
-                if (!ext.telLocatario && p.telInquilino) flash('telInquilino', p.telInquilino);
-              }
+      // ================================================================
+      // 6) IA = REDUNDÂNCIA / SEGUNDA CAMADA, NUNCA SUBSTITUIÇÃO
+      // ================================================================
+      // Se o MIC_DADOS existir, os valores encontrados nele são a fonte
+      // prioritária. A IA só recebe os campos que permaneceram vazios.
+      // Se houver divergência, não sobrescrevemos o MIC_DADOS automaticamente.
+      const camposFaltantes = [];
+      if (!ext.locador) camposFaltantes.push('proprietario');
+      if (!ext.telLocador) camposFaltantes.push('telProprietario');
+      if (!ext.pix) camposFaltantes.push('pixProprietario');
+      if (!ext.titularPix) camposFaltantes.push('titularPix');
+      if (!ext.locatario) camposFaltantes.push('inquilino');
+      if (!ext.cpfInquilino) camposFaltantes.push('cpfInquilino');
+      if (!ext.emailLocatario) camposFaltantes.push('emailInquilino');
+      if (!ext.telLocatario) camposFaltantes.push('telInquilino');
+      if (!ext.endereco) camposFaltantes.push('endereco');
+      if (!ext.dataIn) camposFaltantes.push('dataInicio');
+      if (!ext.dataFim) camposFaltantes.push('dataFim');
+      if (!ext.valor) camposFaltantes.push('aluguelBase');
+
+      if (camposFaltantes.length > 0) {
+        loader.innerHTML = blockMatch
+          ? '🔎 Bloco MIC_DADOS localizado. IA conferindo apenas campos ausentes...'
+          : '🤖 MIC_DADOS não localizado. IA fazendo extração de redundância...';
+
+        try {
+          const promptIA = `Você é um segundo extrator de dados de contratos imobiliários.
+NÃO invente dados.
+NÃO substitua dados já informados pelo bloco MIC_DADOS.
+Sua função é preencher SOMENTE os campos que estão ausentes.
+
+CAMPOS AUSENTES: ${JSON.stringify(camposFaltantes)}
+
+Retorne APENAS JSON válido, sem markdown, com estas chaves:
+{"proprietario":"","telProprietario":"","pixProprietario":"","titularPix":"","inquilino":"","cpfInquilino":"","emailInquilino":"","telInquilino":"","endereco":"","dataInicio":"","dataFim":"","valorAluguel":""}
+
+REGRAS:
+- Proprietário/telefone/Pix/titular: usar a qualificação do LOCADOR e cláusulas que indiquem expressamente o PIX.
+- Inquilino/CPF/e-mail/telefone: usar exclusivamente a qualificação do LOCATÁRIO.
+- Endereço: usar o endereço do imóvel objeto da locação.
+- DataInicio/DataFim: somente datas que correspondam ao período de vigência do contrato.
+- valorAluguel: somente o aluguel base, não condomínio, IPTU, caução ou outros valores.
+- Para telefone e CPF, retorne apenas números.
+- Para data, retorne DD/MM/AAAA.
+- Se não encontrar um campo com segurança, deixe vazio.
+
+Texto integral extraído do PDF:
+${normalizedFullText.substring(0, 30000)}`;
+
+          const resIA = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: promptIA })
+          });
+
+          if (resIA.ok) {
+            const reply = (await resIA.json()).reply || '';
+            const matchJson = reply.match(/\{[\s\S]*\}/);
+            if (matchJson) {
+              const p = JSON.parse(matchJson[0]);
+
+              // Só preenche se o campo realmente estiver vazio.
+              if (!ext.locador && p.proprietario) { ext.locador = p.proprietario; flash('proprietario', p.proprietario); }
+              if (!ext.telLocador && p.telProprietario) { ext.telLocador = String(p.telProprietario).replace(/\D/g,''); flash('telProprietario', ext.telLocador); }
+              if (!ext.pix && p.pixProprietario) { ext.pix = String(p.pixProprietario).trim(); flash('pixProprietario', ext.pix); }
+              if (!ext.titularPix && p.titularPix) { ext.titularPix = p.titularPix; flash('titularPix', ext.titularPix); }
+              if (!ext.locatario && p.inquilino) { ext.locatario = p.inquilino; flash('inquilino', p.inquilino); }
+              if (!ext.cpfInquilino && p.cpfInquilino) { ext.cpfInquilino = String(p.cpfInquilino).replace(/\D/g,''); flash('cpfInquilino', ext.cpfInquilino); }
+              if (!ext.emailLocatario && p.emailInquilino) { ext.emailLocatario = String(p.emailInquilino).replace(/\s/g,''); flash('emailInquilino', ext.emailLocatario); }
+              if (!ext.telLocatario && p.telInquilino) { ext.telLocatario = String(p.telInquilino).replace(/\D/g,''); flash('telInquilino', ext.telLocatario); }
+              if (!ext.endereco && p.endereco) { ext.endereco = p.endereco; flash('endereco', ext.endereco); }
+              if (!ext.dataIn && p.dataInicio) { ext.dataIn = toIsoDate(p.dataInicio); flash('dataInicio', ext.dataIn); }
+              if (!ext.dataFim && p.dataFim) { ext.dataFim = toIsoDate(p.dataFim); flash('dataFim', ext.dataFim); }
+              if (!ext.valor && p.valorAluguel) { ext.valor = parseMoney(p.valorAluguel); if (ext.valor > 0) flash('aluguelBase', formatadorStr(ext.valor)); }
             }
-          } catch(eIA) {}
+          }
+        } catch (eIA) {
+          console.warn('IA de redundância não disponível:', eIA);
+        }
       }
 
-    } catch (err) { alert('Erro ao processar contrato: ' + err.message); } finally { loader.style.display = 'none'; loader.innerHTML = '⏳ Extraindo dados contratuais...'; }
+      // ================================================================
+      // 7) AUDITORIA VISUAL NO CONSOLE
+      // ================================================================
+      console.info('[MIC_DADOS] Bloco localizado:', !!blockMatch);
+      console.info('[MIC_DADOS] Campos extraídos:', hidden);
+      console.info('[MIC_DADOS] Resultado final:', ext);
+
+    } catch (err) {
+      console.error('Erro ao processar contrato:', err);
+      alert('Erro ao processar contrato: ' + err.message);
+    } finally {
+      loader.style.display = 'none';
+      loader.innerHTML = '⏳ Extraindo dados contratuais...';
+    }
   }
 
   // =======================================================
