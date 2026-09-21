@@ -571,26 +571,40 @@
         }
       }
 
+      // Correção para erros comuns de leitura (pdf.js lendo 'I' maiúsculo como 'l' minúsculo)
+      fullText = fullText.replace(/Datalnicio/gi, 'DataInicio').replace(/Tellnquilino/gi, 'TelInquilino');
+
       let ext = { locador: '', telLocador: '', locatario: '', cpfInquilino: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '', titularPix: '' };
       let page1Text = page1RawLines.join(" ");
 
-      // 1. TENTATIVA DA BALA DE PRATA (BLOCO OCULTO)
+      // 1. TENTATIVA DA BALA DE PRATA (BLOCO OCULTO) - COM TRAVA DE LEITURA
       let blockMatch = fullText.match(/\[MIC_DADOS\]([\s\S]*?)\[\/MIC_DADOS\]/i);
       if (blockMatch) {
           let b = blockMatch[1];
-          ext.locador = (b.match(/Proprietario:\s*(.+)/i) || [])[1]?.trim() || '';
-          ext.telLocador = (b.match(/TelProprietario:\s*(.+)/i) || [])[1]?.trim() || '';
-          ext.pix = (b.match(/PixProprietario:\s*(.+)/i) || [])[1]?.trim() || '';
-          ext.titularPix = (b.match(/TitularPix:\s*(.+)/i) || [])[1]?.trim() || '';
-          ext.locatario = (b.match(/Inquilino:\s*(.+)/i) || [])[1]?.trim() || '';
-          ext.cpfInquilino = (b.match(/CpfInquilino:\s*(.+)/i) || [])[1]?.trim() || '';
-          ext.emailLocatario = (b.match(/EmailInquilino:\s*(.+)/i) || [])[1]?.trim() || '';
-          ext.telLocatario = (b.match(/TelInquilino:\s*(.+)/i) || [])[1]?.trim() || '';
-          let dIn = (b.match(/DataInicio:\s*(.+)/i) || [])[1]?.trim() || '';
+          
+          // O segredo está aqui: Ele captura o valor, mas PARA de ler quando acha a próxima Etiqueta com ":"
+          const getField = (chave) => {
+              const regex = new RegExp(chave + "\\s*:\\s*(.*?)(?=\\s*[A-Za-z]+\\s*:|$)", "i");
+              const m = b.match(regex);
+              return m ? m[1].trim() : '';
+          };
+
+          ext.locador = getField('Proprietario');
+          ext.telLocador = getField('TelProprietario');
+          ext.pix = getField('PixProprietario');
+          ext.titularPix = getField('TitularPix');
+          ext.locatario = getField('Inquilino');
+          ext.cpfInquilino = getField('CpfInquilino');
+          ext.emailLocatario = getField('EmailInquilino');
+          ext.telLocatario = getField('TelInquilino');
+          
+          let dIn = getField('DataInicio');
           if (dIn.includes('/')) ext.dataIn = dIn.split('/').reverse().join('-');
-          let dFim = (b.match(/DataFim:\s*(.+)/i) || [])[1]?.trim() || '';
+          
+          let dFim = getField('DataFim');
           if (dFim.includes('/')) ext.dataFim = dFim.split('/').reverse().join('-');
-          let vAlug = (b.match(/ValorAluguel:\s*(.+)/i) || [])[1]?.trim() || '';
+          
+          let vAlug = getField('ValorAluguel');
           if (vAlug) ext.valor = parseFloat(vAlug.replace(/\./g, '').replace(',', '.'));
       }
 
@@ -617,7 +631,7 @@
           let mVal = fullText.match(/R\$\s*([\d\.,]+)/i); if (mVal) ext.valor = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.'));
       }
 
-      // 3. PINTA A TELA IMEDIATAMENTE (Efeito UAU)
+      // 3. PINTA A TELA IMEDIATAMENTE
       function flash(id, val) { 
         if(val && String(val).trim() !== '') { 
           const el = document.getElementById(id); if(el) { el.value = val; el.classList.add('field-ok'); el.addEventListener('input', function onEdit() { el.classList.remove('field-ok'); el.removeEventListener('input', onEdit); }); }
@@ -630,7 +644,7 @@
 
       // 4. CHAMA A IA SOMENTE SE FALTAR DADOS SENSÍVEIS (E NÃO USOU O BLOCO OCULTO)
       let faltouContato = (!ext.telLocador || !ext.pix || !ext.emailLocatario || !ext.telLocatario);
-      if (faltouContato) {
+      if (faltouContato && !blockMatch) {
           loader.innerHTML = '🤖 IA preenchendo as lacunas...';
           try {
             const promptIA = `Você é um perito de extração de dados. Analise o texto do contrato abaixo e retorne APENAS um objeto JSON.
@@ -658,7 +672,6 @@ Texto: ${fullText.substring(0, 8000)}`;
 
     } catch (err) { alert('Erro ao processar contrato: ' + err.message); } finally { loader.style.display = 'none'; loader.innerHTML = '⏳ Extraindo dados contratuais...'; }
   }
-
 
   // =======================================================
   // BANCO CENTRAL DO BRASIL - REAJUSTE DE ALUGUEL
