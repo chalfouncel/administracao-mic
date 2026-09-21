@@ -793,9 +793,8 @@
     } catch(e) { alert('Falha: ' + e.message); } finally { btn.disabled = false; btn.innerText = '💾 Salvar dados do novo contrato'; }
   }
 
-
   // =======================================================
-  // LIVRO-RAZÃO: TAXAS CONDOMINIAIS MENSAIS E CAIXAS MÁGICAS
+  // LIVRO-RAZÃO: TAXAS CONDOMINIAIS MENSAIS E RECORRÊNCIA
   // =======================================================
   function getVariaveisMes(c, mesRef) {
       let lancamentos = {}; try { lancamentos = JSON.parse(c.lancamentos_mensais || '{}'); } catch(e){}
@@ -814,12 +813,95 @@
   async function updateLancamentoMensal(index, field, value) {
       const mesRef = document.getElementById('filtro-mes').value; const c = contratosDB[index];
       let lancamentos = {}; try { lancamentos = JSON.parse(c.lancamentos_mensais || '{}'); } catch(e){}
-      if (!lancamentos[mesRef]) lancamentos[mesRef] = {};
-      lancamentos[mesRef][field] = value; const strLanc = JSON.stringify(lancamentos); c.lancamentos_mensais = strLanc;
       
-      const v = getVariaveisMes(c, mesRef);
-      const total = parseMoedaToFloat(v.alugProp) + parseMoedaToFloat(v.alugMes) + parseMoedaToFloat(v.condProp) + parseMoedaToFloat(v.condMes) + parseMoedaToFloat(v.iptu) + parseMoedaToFloat(v.bombeiro) + parseMoedaToFloat(v.seguro) + parseMoedaToFloat(v.outras_taxas) - parseMoedaToFloat(v.desconto);
-      const tdTotal = document.getElementById(`total-linha-${index}`); if (tdTotal) tdTotal.innerHTML = `<strong style="color:var(--danger); font-size:0.95rem;">${fmtMoeda(total)}</strong>`;
+      let valorAntigo = '';
+      if (lancamentos[mesRef]) valorAntigo = lancamentos[mesRef][field] || '';
+
+      if (!lancamentos[mesRef]) lancamentos[mesRef] = {};
+      lancamentos[mesRef][field] = value;
+
+      // --- MOTOR DE RECORRÊNCIA IMEDIATA ---
+      const limpaFuturo = (baseField, descField) => {
+          let [ano, mes] = mesRef.split('-');
+          let dataFutura = new Date(parseInt(ano), parseInt(mes) - 1, 1);
+          for (let k = 1; k <= 36; k++) { 
+              dataFutura.setMonth(dataFutura.getMonth() + 1);
+              let mF = `${dataFutura.getFullYear()}-${String(dataFutura.getMonth() + 1).padStart(2, '0')}`;
+              if (lancamentos[mF]) {
+                  delete lancamentos[mF][baseField];
+                  delete lancamentos[mF][descField];
+              }
+          }
+      };
+
+      const projetaFuturo = (baseField, descField, valorBase, descAtual) => {
+          if (!valorBase || parseMoedaToFloat(valorBase) === 0) return;
+          let text = descAtual.trim();
+          const regex = /(\d+)\s*\/\s*(\d+)/;
+          const match = text.match(regex);
+          const isFixo = text.toLowerCase().includes('fixo') || text.toLowerCase().includes('recorrente');
+
+          if (match) {
+              let atual = parseInt(match[1]); let total = parseInt(match[2]);
+              if (atual < total) {
+                  let [ano, mes] = mesRef.split('-');
+                  let dataFutura = new Date(parseInt(ano), parseInt(mes) - 1, 1);
+                  for (let k = 1; k <= (total - atual); k++) {
+                      dataFutura.setMonth(dataFutura.getMonth() + 1);
+                      let mF = `${dataFutura.getFullYear()}-${String(dataFutura.getMonth() + 1).padStart(2, '0')}`;
+                      if (!lancamentos[mF]) lancamentos[mF] = {};
+                      lancamentos[mF][baseField] = valorBase;
+                      lancamentos[mF][descField] = text.replace(regex, `${atual + k}/${total}`);
+                  }
+                  alert(`✅ Valor de R$ ${valorBase} projetado automaticamente para as próximas ${total - atual} parcelas!`);
+              }
+          } else if (isFixo) {
+              let [ano, mes] = mesRef.split('-');
+              let dataFutura = new Date(parseInt(ano), parseInt(mes) - 1, 1);
+              for (let k = 1; k <= 12; k++) {
+                  dataFutura.setMonth(dataFutura.getMonth() + 1);
+                  let mF = `${dataFutura.getFullYear()}-${String(dataFutura.getMonth() + 1).padStart(2, '0')}`;
+                  if (!lancamentos[mF]) lancamentos[mF] = {};
+                  lancamentos[mF][baseField] = valorBase;
+                  lancamentos[mF][descField] = text;
+              }
+              alert(`✅ Valor de R$ ${valorBase} (Fixo) projetado automaticamente para os próximos 12 meses!`);
+          }
+      };
+
+      // Cenário 1: Apagou o Valor Base (R$ 0,00)
+      if ((field === 'outras_taxas' || field === 'desconto') && parseMoedaToFloat(value) === 0 && parseMoedaToFloat(valorAntigo) > 0) {
+          const descField = field === 'outras_taxas' ? 'desc_outras' : 'desc_desconto';
+          if (lancamentos[mesRef][descField]) {
+              if (confirm('Você zerou o valor. Deseja apagar também as parcelas projetadas para os próximos meses?')) {
+                  limpaFuturo(field, descField);
+                  lancamentos[mesRef][descField] = ''; // Limpa também a caixa de descrição atual
+              }
+          }
+      }
+      // Cenário 2: Escreveu ou Apagou a Descrição (Motivo 1/3)
+      else if (field === 'desc_outras' || field === 'desc_desconto') {
+          const baseField = field === 'desc_outras' ? 'outras_taxas' : 'desconto';
+          const baseValue = lancamentos[mesRef][baseField];
+          
+          if (value.trim() === '' && valorAntigo.trim() !== '') {
+              if (confirm('Você apagou a descrição (Motivo). Deseja apagar as parcelas projetadas para os próximos meses?')) limpaFuturo(baseField, field);
+          } else if (value.trim() !== '') {
+              limpaFuturo(baseField, field); // Limpa as projeções velhas
+              projetaFuturo(baseField, field, baseValue, value); // Projeta as novas
+          }
+      }
+      // Cenário 3: Alterou apenas o valor de uma parcela já recorrente
+      else if ((field === 'outras_taxas' || field === 'desconto') && parseMoedaToFloat(value) > 0 && parseMoedaToFloat(valorAntigo) !== parseMoedaToFloat(value)) {
+           const descField = field === 'outras_taxas' ? 'desc_outras' : 'desc_desconto';
+           if (lancamentos[mesRef][descField] && (lancamentos[mesRef][descField].includes('/') || lancamentos[mesRef][descField].toLowerCase().includes('fixo'))) {
+               limpaFuturo(field, descField);
+               projetaFuturo(field, descField, value, lancamentos[mesRef][descField]);
+           }
+      }
+
+      const strLanc = JSON.stringify(lancamentos);
+      c.lancamentos_mensais = strLanc;
       
       atualizarInterfaceGeral();
       const id = c.id; if(!id) return;
@@ -1078,6 +1160,7 @@
       let isCobrancaPaga = statusCob[mesRef] === 'recebida';
       let isRepasseFeito = statusRep[mesRef] === 'recebida';
 
+      // Design Diferenciado para Repasse OK (Verde Sólido e sem botão para evitar acidentes)
       let bgPainel = isRepasseFeito ? '#dcfce7' : '#f8fafc'; 
       let borderCor = isRepasseFeito ? '#22c55e' : '#cbd5e1'; 
       let acaoHtml = '';
@@ -1118,7 +1201,7 @@
   }
 
   // =======================================================
-  // GERENCIAL E EXPORTAÇÃO (FECHO DE CAIXA E RECORRÊNCIA)
+  // GERENCIAL E EXPORTAÇÃO (FECHO DE CAIXA)
   // =======================================================
   function renderizarGerencial() {
       const mesRef = document.getElementById('filtro-mes').value;
@@ -1191,74 +1274,16 @@
   let lastGeneratedPdfBlob = null;
   let lastGeneratedPdfText = "";
 
-  async function avancarMesAutomaticamente() {
+  function avancarMesAutomaticamente() {
       const inputMes = document.getElementById('filtro-mes');
       const mesAtual = inputMes.value;
       const [ano, mes] = mesAtual.split('-');
       let data = new Date(parseInt(ano), parseInt(mes) - 1, 1);
       data.setMonth(data.getMonth() + 1);
-      const mesSeguinte = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
-      
-      let recorrenciasAplicadas = 0;
-
-      // Robô de Recorrência Inteligente
-      for (let i = 0; i < contratosDB.length; i++) {
-          let c = contratosDB[i];
-          if (c.ativo !== 'SIM') continue;
-          
-          let lancamentos = {}; try { lancamentos = JSON.parse(c.lancamentos_mensais || '{}'); } catch(e){}
-          let lAtual = lancamentos[mesAtual] || {};
-          let lSeguinte = lancamentos[mesSeguinte] || {};
-          let teveMudanca = false;
-
-          const incrementaParcela = (texto) => {
-              if(!texto) return null;
-              const regex = /(\d+)\s*\/\s*(\d+)/;
-              const match = texto.match(regex);
-              if(match) {
-                  let atual = parseInt(match[1]);
-                  let total = parseInt(match[2]);
-                  if(atual < total) return texto.replace(regex, `${atual + 1}/${total}`);
-              } else if (texto.toLowerCase().includes('recorrente') || texto.toLowerCase().includes('fixo')) {
-                  return texto; 
-              }
-              return null;
-          };
-
-          // Empurra Outras Taxas
-          let novaDescOutras = incrementaParcela(lAtual.desc_outras);
-          if (novaDescOutras && lAtual.outras_taxas && parseMoedaToFloat(lAtual.outras_taxas) > 0) {
-              lSeguinte.outras_taxas = lAtual.outras_taxas; 
-              lSeguinte.desc_outras = novaDescOutras; 
-              teveMudanca = true; 
-              recorrenciasAplicadas++;
-          }
-
-          // Empurra Descontos
-          let novaDescDesconto = incrementaParcela(lAtual.desc_desconto);
-          if (novaDescDesconto && lAtual.desconto && parseMoedaToFloat(lAtual.desconto) > 0) {
-              lSeguinte.desconto = lAtual.desconto; 
-              lSeguinte.desc_desconto = novaDescDesconto; 
-              teveMudanca = true; 
-              recorrenciasAplicadas++;
-          }
-
-          if (teveMudanca) {
-              lancamentos[mesSeguinte] = lSeguinte;
-              c.lancamentos_mensais = JSON.stringify(lancamentos);
-              // Salva silenciosamente no banco
-              try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${c.id || c._tempId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lancamentos_mensais: c.lancamentos_mensais }) }); } catch(e) {}
-          }
-      }
-
-      inputMes.value = mesSeguinte;
+      inputMes.value = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
       atualizarInterfaceGeral();
-
-      let msgHtml = `O seu Relatório Gerencial foi gerado com sucesso. O ciclo do mês foi encerrado e o sistema já avançou para a próxima competência.`;
-      if (recorrenciasAplicadas > 0) {
-          msgHtml += `<br><br><strong style="color:var(--success);">🤖 Automação de Recorrência:</strong> O robô avançou <b>${recorrenciasAplicadas} parcela(s)</b> (Taxas/Descontos) para o novo mês automaticamente!`;
-      }
-      document.querySelector('#relatorio-modal-msg').innerHTML = msgHtml;
+      
+      document.querySelector('#relatorio-modal-msg').innerHTML = 'O seu Relatório Gerencial foi gerado com sucesso. O ciclo do mês foi encerrado e o sistema já avançou para a próxima competência.';
   }
 
   function gerarRelatorioPDF() {
@@ -1330,7 +1355,7 @@
       // Abre o Modal do PDF
       document.getElementById('relatorio-modal').style.display = 'flex';
       
-      // Dispara o Avanço Automático do Mês e a Lógica de Recorrência nos bastidores
+      // O Mês avança apenas visualmente, pois a recorrência já foi tratada
       avancarMesAutomaticamente();
   }
 
