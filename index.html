@@ -261,8 +261,8 @@
           <div>
              <label>Repassar Seguro p/ Proprietário?</label>
              <select id="regraSeguro">
-                <option value="S">SIM (Proprietário paga o seguro)</option>
-                <option value="N">NÃO (A M&IC paga o seguro)</option>
+                 <option value="S">SIM (Proprietário paga o seguro)</option>
+                 <option value="N">NÃO (A M&IC paga o seguro)</option>
              </select>
           </div>
         </div>
@@ -671,38 +671,6 @@
   }
 
   // =======================================================
-  // BANCO CENTRAL DO BRASIL - REAJUSTE DE ALUGUEL
-  // =======================================================
-  async function getIndiceAcumulado(serie) {
-     try {
-         const res = await fetch(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.${serie}/dados/ultimos/12?formato=json`);
-         const data = await res.json();
-         let mult = 1; data.forEach(item => { mult *= (1 + (parseFloat(item.valor) / 100)); }); return mult - 1;
-     } catch(e) { return null; }
-  }
-  function abrirModalReajuste(idReg) {
-     reajusteAtualId = idReg; document.getElementById('reajuste-modal').style.display = 'flex';
-     document.getElementById('btn-igpm').innerText = 'IGP-M (FGV)'; document.getElementById('btn-ipca').innerText = 'IPCA (IBGE)';
-  }
-  function fecharReajuste() { document.getElementById('reajuste-modal').style.display = 'none'; reajusteAtualId = null; }
-  async function aplicarReajuste(tipo) {
-     if(!reajusteAtualId) return; const btn = document.getElementById(tipo === 'IGPM' ? 'btn-igpm' : 'btn-ipca'); btn.innerText = 'Calculando... aguarde';
-     const serie = tipo === 'IGPM' ? 189 : 433; const acc = await getIndiceAcumulado(serie);
-     if (acc === null) { alert('Falha ao obter índice do Banco Central. Tente novamente mais tarde.'); btn.innerText = tipo === 'IGPM' ? 'IGP-M (FGV)' : 'IPCA (IBGE)'; return; }
-     const idx = contratosDB.findIndex(x => (x.id || x._tempId) == reajusteAtualId); const c = contratosDB[idx];
-     const alugBase = parseMoedaToFloat(c.aluguel_base); const novoVal = alugBase * (1 + acc);
-     const conf = confirm(`Índice ${tipo} acumulado nos últimos 12 meses: ${(acc*100).toFixed(2)}%\n\nValor Atual: ${fmtMoeda(alugBase)}\nNOVO VALOR: ${fmtMoeda(novoVal)}\n\nConfirmar o reajuste para as próximas cobranças?`);
-     if(conf) { 
-         const hist = `${c.historico_reajuste || ''}\n[${new Date().toLocaleDateString('pt-BR')}] ${tipo}: +${(acc*100).toFixed(2)}% -> R$ ${fmtMoeda(novoVal)}`.trim();
-         await updateDbLinear(idx, 'aluguel_base', novoVal); 
-         await updateDbLinear(idx, 'reajuste_aplicado', 'SIM'); 
-         await updateDbLinear(idx, 'historico_reajuste', hist);
-         alert('✅ Reajuste aplicado com sucesso!'); fecharReajuste(); 
-     } 
-     else { btn.innerText = tipo === 'IGPM' ? 'IGP-M (FGV)' : 'IPCA (IBGE)'; }
-  }
-
-  // =======================================================
   // TABELA MESTRE E FUNÇÕES DE EDIÇÃO
   // =======================================================
   function toggleMarcarTodos(isChecked) {
@@ -905,13 +873,12 @@
   }
 
   // =======================================================
-  // ASAAS E WPP - COBRANÇA E BOTÕES RESTAURADOS
+  // ASAAS E WPP - COBRANÇA
   // =======================================================
   async function gerarCobrancaAsaas(idReg, valorTotalBase) {
       const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
       if (!c.cpf_inquilino) { alert('Erro: Preencha o CPF do Inquilino na aba Imóveis.'); return; }
 
-      // Adiciona R$ 1,99 para cobrir o custo da emissão bancária
       const valorTotal = valorTotalBase + 1.99;
 
       const mesRef = document.getElementById('filtro-mes').value; const [anoRef, mesRefStr] = mesRef.split('-');
@@ -982,6 +949,9 @@
      }
   }
 
+  function avancarStatusCobranca(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_cobranca || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_cobranca', JSON.stringify(statusObj)); }
+  function avancarStatusRepasse(idReg, currentStatus) { const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg)); if (idx === -1) return; const mesRef = document.getElementById('filtro-mes').value; let statusObj = {}; try { statusObj = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e) {} if (currentStatus === 'pendente') statusObj[mesRef] = 'enviada'; else if (currentStatus === 'enviada') statusObj[mesRef] = 'recebida'; updateDbLinear(idx, 'status_repasse', JSON.stringify(statusObj)); }
+
   function gerarTextosCobranca() {
     const container = document.getElementById('cobrancas-container'); if (!container) return;
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
@@ -1030,13 +1000,18 @@
               ${linhasCard}
               <div class="comp-total"><span>TOTAL:</span> <span>${fmtMoeda(totalComTarifa)}</span></div></div>
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
-           <div style="display: flex; gap: 8px; margin-top: 16px;">${btnAsaasHtml}</div>
-           <div style="display: flex; gap: 8px; margin-top: 8px;">
+           
+           <div style="display: flex; gap: 8px; max-width: 420px; margin: 16px auto 0 auto;">${btnAsaasHtml}</div>
+           
+           <div style="display: flex; gap: 8px; max-width: 420px; margin: 8px auto 0 auto;">
               <button class="btn btn-gold" style="flex: 2; padding: 8px; font-size: 0.75rem;" onclick="copiarImagemETexto('${idCard}', '${idTextArea}', this)">📋 Imagem + Texto</button>
               <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.75rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Só Texto</button>
               <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.75rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_inquilino).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a>
            </div>
-           ${msgFinal}
+           
+           <div style="max-width: 420px; margin: 0 auto;">
+               ${msgFinal}
+           </div>
         </div>`;
     });
   }
@@ -1106,7 +1081,7 @@
       let repassaCond = c.regra_condominio !== 'N'; 
       let repassaSeguro = c.regra_seguro !== 'N';
 
-      let totalReceitas = vAlugProp + vAlugMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+      let totalReceitas = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
       
       let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
       let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
@@ -1145,7 +1120,7 @@
               <div class="comp-total"><span>TOTAL REPASSADO:</span> <span>${fmtMoeda(valProprietario)}</span></div>
            </div>
            
-           <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin-top:10px; font-size:0.75rem; color:#475569;">
+           <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin: 10px auto 0 auto; font-size:0.75rem; color:#475569; max-width: 420px; text-align: left;">
                <strong>Auditoria de Destinos (PIX):</strong><br>
                1. Proprietário: ${fmtMoeda(valProprietario)}<br>
                2. M&IC (Taxa + Seguro${repassaSeguro?'':' incluso'}): ${fmtMoeda(valMIC)}<br>
@@ -1153,8 +1128,10 @@
            </div>
 
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
-           <div style="margin-top: 16px;">${acaoHtml}</div>
-           <div style="display: flex; gap: 8px; margin-top: 8px;">
+           
+           <div style="max-width: 420px; margin: 16px auto 0 auto;">${acaoHtml}</div>
+           
+           <div style="display: flex; gap: 8px; max-width: 420px; margin: 8px auto 0 auto;">
               <button class="btn btn-gold" style="flex: 2; padding: 8px; font-size: 0.75rem;" onclick="copiarImagemETexto('${idCard}', '${idTextArea}', this)">📋 Imagem + Texto</button>
               <button class="btn btn-download" style="flex: 1; padding: 8px; font-size: 0.75rem;" onclick="copiarTextoCob('${idTextArea}')">📋 Só Texto</button>
               <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.75rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_proprietario).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 WPP</a>
