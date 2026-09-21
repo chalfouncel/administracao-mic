@@ -729,7 +729,21 @@
         .replace(/\s+/g, ' ')
         .trim();
 
-      const fixSpacing = (str) => cleanValue(str);
+      // Corrige fragmentações artificiais que o PDF.js pode introduzir em nomes.
+      // Exemplos reais: "I vy Car la Teixeira" -> "Ivy Carla Teixeira".
+      // IMPORTANTE: aplica somente a nomes, nunca a telefone/CPF/Pix/e-mail.
+      const fixSpacing = (str) => {
+        let s = cleanValue(str);
+        // Junta palavras que foram quebradas em fragmentos curtos pelo PDF.js.
+        // "I vy" e "Car la" são unidos; palavras normais como "Ivy Carla" permanecem intactas.
+        const rx = /\b([A-ZÀ-ÖØ-Ý][a-zà-öø-ÿ]{0,2})\s+([a-zà-öø-ÿ]{2,3})\b/g;
+        let anterior = '';
+        while (s !== anterior) {
+          anterior = s;
+          s = s.replace(rx, '$1$2');
+        }
+        return s.replace(/\s+/g, ' ').trim();
+      };
 
       ext.locador = fixSpacing(hidden.Proprietario);
       ext.telLocador = cleanValue(hidden.TelProprietario).replace(/\D/g, '');
