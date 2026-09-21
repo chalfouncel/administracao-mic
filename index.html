@@ -574,7 +574,7 @@
     document.getElementById('file-name-pill').style.display = 'inline-block';
 
     const loader = document.getElementById('ai-extract-loader');
-    loader.innerHTML = '⏳ Escaneando o contrato com Inteligência de Captura...';
+    loader.innerHTML = '⏳ Lendo o arquivo do contrato...';
     loader.style.display = 'block';
 
     try {
@@ -582,56 +582,72 @@
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       await renderPdfThumbnail(pdf);
 
-      let fullText = '';
+      let allRawLines = []; let page1RawLines = []; let fullText = '';
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p); const textContent = await page.getTextContent();
         for (const item of textContent.items) {
           const str = String(item.str || '').trim();
-          if (str) fullText += ' ' + str;
+          if (!str) continue;
+          allRawLines.push(str); fullText += ' ' + str;
+          if (p === 1) page1RawLines.push(str);
         }
       }
 
+      const normalizePdfText = (text) => String(text || '').replace(/\u00A0/g, ' ').replace(/[\r\n]+/g, '\n').replace(/[ \t]+/g, ' ').trim();
+      const normalizedFullText = normalizePdfText(fullText);
+
       let ext = { locador: '', telLocador: '', locatario: '', cpfInquilino: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '', titularPix: '' };
-      
-      // TENTA PRIMEIRO A TAG OCULTA [MIC_DADOS]
-      const normForTag = String(fullText || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '').toUpperCase();
-      if (normForTag.includes('[MIC_DADOS]')) {
-          const m = fullText.replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').match(/\[\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]([\s\S]*?)\[\s*\/\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]/i);
-          if (m) {
-              const hiddenBlock = m[1] || '';
-              const parseHiddenFields = (b) => {
-                  let res = {}; b = b.replace(/[\r\n]+/g, '\n').replace(/\s+/g, ' ');
-                  let regex = /(Proprietario|Inquilino|CpfInquilino|Endereco|DataInicio|ValorAluguel)\s*:\s*(.*?)(?=(Proprietario|Inquilino|CpfInquilino|Endereco|DataInicio|ValorAluguel)\s*:|$)/gi;
-                  let match; while((match = regex.exec(b)) !== null) { res[match[1].toLowerCase()] = match[2].trim(); }
-                  return res;
-              };
-              let hd = parseHiddenFields(hiddenBlock);
-              if(hd.proprietario) ext.locador = hd.proprietario;
-              if(hd.inquilino) ext.locatario = hd.inquilino;
-              if(hd.cpfinquilino) ext.cpfInquilino = hd.cpfinquilino.replace(/\D/g,'');
-              if(hd.endereco) ext.endereco = hd.endereco;
-              if(hd.valoraluguel) ext.valor = parseFloat(hd.valoraluguel.replace(/\D/g,''))/100;
-          }
-      } 
-      
-      // SE A TAG OCULTA NÃO PREENCHEU, ENTRA O MOTOR DE INTELIGÊNCIA REGEX GERAL
-      if (!ext.locador && !ext.locatario) {
-          let matchLocador = fullText.match(/(?:LOCADOR|LOCADORA|PROPRIETÁRIO|PROPRIETÁRIA).*?:\s*([A-ZÀ-Ÿ][a-zà-ÿA-ZÀ-Ÿ\s]{3,60}?)(?:,|-|CPF|CNPJ|brasileir|nacionalidade|residente)/i);
-          if (matchLocador) ext.locador = cleanValue(matchLocador[1]);
-          
-          let matchLocatario = fullText.match(/(?:LOCATÁRIO|LOCATÁRIA|INQUILINO|INQUILINA).*?:\s*([A-ZÀ-Ÿ][a-zà-ÿA-ZÀ-Ÿ\s]{3,60}?)(?:,|-|CPF|CNPJ|brasileir|nacionalidade|residente)/i);
-          if (matchLocatario) ext.locatario = cleanValue(matchLocatario[1]);
-          
-          let textPosLocatario = fullText.substring(fullText.toUpperCase().indexOf('LOCATÁRIO') || 0);
-          let matchCPF = textPosLocatario.match(/CPF[^\d]*?([\d]{3}\.?[\d]{3}\.?[\d]{3}-?[\d]{2})/i);
-          if(matchCPF) ext.cpfInquilino = matchCPF[1].replace(/\D/g, '');
+      const normForTag = (text) => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '').toUpperCase();
+      const compactFullText = normForTag(fullText);
+      const tagStart = '[MIC_DADOS]'; const tagEnd = '[/MIC_DADOS]';
+      const startPos = compactFullText.indexOf(tagStart); const endPos = compactFullText.indexOf(tagEnd, startPos + tagStart.length);
 
-          let matchEnd = fullText.match(/(?:imóvel.*?situado|imóvel.*?localizado|endereço|localizado).*?(?:na|no)\s+(Rua|Av|Avenida|Praça|Estrada).*?(\.|- |CEP|Rio de Janeiro)/i);
-          if(matchEnd) ext.endereco = cleanValue(matchEnd[0].replace(/(?:imóvel.*?situado|imóvel.*?localizado|endereço).*?(?:na|no)\s+/i, '').replace(/(\.|- |CEP|Rio de Janeiro).*/i, ''));
-
-          let matchValor = fullText.match(/(?:aluguel|valor|mensal).*?R\$\s*([\d\.,]+)/i);
-          if(matchValor) ext.valor = parseFloat(matchValor[1].replace(/\./g, '').replace(',', '.'));
+      let blockMatch = null; let hiddenBlock = '';
+      if (startPos !== -1 && endPos !== -1) {
+        const compactOriginal = String(fullText || '').replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
+        const m = compactOriginal.match(/\[\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]([\s\S]*?)\[\s*\/\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]/i);
+        if (m) { blockMatch = m; hiddenBlock = m[1] || ''; }
       }
+
+      const FIELD_KEYS = [ 'Proprietario', 'TelProprietario', 'PixProprietario', 'TitularPix', 'Inquilino', 'CpfInquilino', 'EmailInquilino', 'TelInquilino', 'Endereco', 'DataInicio', 'DataFim', 'ValorAluguel' ];
+      const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const canonicalKey = (raw) => String(raw || '').replace(/[{}\s]/g, '').toLowerCase();
+      const keyMap = Object.fromEntries(FIELD_KEYS.map(k => [canonicalKey(k), k]));
+
+      const parseHiddenFields = (block) => {
+        const result = {}; if (!block) return result;
+        let b = String(block).replace(/\u00A0/g, ' ').replace(/[\r\n]+/g, '\n').replace(/\s+/g, ' ').trim();
+        const keyPattern = FIELD_KEYS.map(k => k.split('').map(ch => escapeRegExp(ch)).join('\\s*')).join('|');
+        const fieldRegex = new RegExp('(?:\\{\\s*)?(' + keyPattern + ')(?:\\s*)(?::)(?:\\s*\\})?\\s*', 'gi');
+        const matches = []; let m;
+        while ((m = fieldRegex.exec(b)) !== null) { matches.push({ index: m.index, end: fieldRegex.lastIndex, key: keyMap[canonicalKey(m[1])] }); }
+        for (let i = 0; i < matches.length; i++) {
+          const current = matches[i]; const next = matches[i + 1];
+          let value = b.slice(current.end, next ? next.index : b.length).trim();
+          value = value.replace(/^\s*\}/, '').trim(); value = value.replace(/\{\s*$/, '').trim();
+          if (current.key) result[current.key] = value;
+        }
+        return result;
+      };
+
+      const hidden = parseHiddenFields(hiddenBlock);
+      const cleanValue = (v) => String(v || '').replace(/^[\s{}]+|[\s{}]+$/g, '').replace(/\s+/g, ' ').trim();
+      const fixSpacing = (str) => {
+        let s = cleanValue(str); const rx = /\b([A-ZÀ-ÖØ-Ý][a-zà-öø-ÿ]{0,2})\s+([a-zà-öø-ÿ]{2,3})\b/g;
+        let anterior = ''; while (s !== anterior) { anterior = s; s = s.replace(rx, '$1$2'); } return s.replace(/\s+/g, ' ').trim();
+      };
+
+      ext.locador = fixSpacing(hidden.Proprietario); ext.telLocador = cleanValue(hidden.TelProprietario).replace(/\D/g, '');
+      ext.pix = cleanValue(hidden.PixProprietario).replace(/\s/g, ''); ext.titularPix = fixSpacing(hidden.TitularPix);
+      ext.locatario = fixSpacing(hidden.Inquilino); ext.cpfInquilino = cleanValue(hidden.CpfInquilino).replace(/\D/g, '');
+      ext.emailLocatario = cleanValue(hidden.EmailInquilino).replace(/\s/g, ''); ext.telLocatario = cleanValue(hidden.TelInquilino).replace(/\D/g, '');
+      ext.endereco = fixSpacing(hidden.Endereco);
+
+      const toIsoDate = (value) => { const v = cleanValue(value).replace(/\s/g, ''); const m = v.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/); return m ? `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` : ''; };
+      ext.dataIn = toIsoDate(hidden.DataInicio); ext.dataFim = toIsoDate(hidden.DataFim);
+
+      const parseMoney = (value) => { const v = cleanValue(value).replace(/R\$\s*/gi, '').replace(/\s/g, ''); if (!v) return 0; if (v.includes(',')) return parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0; return parseFloat(v) || 0; };
+      ext.valor = parseMoney(hidden.ValorAluguel);
 
       function flash(id, val) {
         if (val !== null && val !== undefined && String(val).trim() !== '') {
@@ -640,13 +656,12 @@
         }
       }
 
-      flash('proprietario', ext.locador); flash('titularPix', ext.locador);
-      flash('inquilino', ext.locatario); flash('cpfInquilino', ext.cpfInquilino);
-      flash('endereco', ext.endereco);
+      flash('proprietario', ext.locador); flash('telProprietario', ext.telLocador); flash('pixProprietario', ext.pix); flash('titularPix', ext.titularPix || ext.locador);
+      flash('inquilino', ext.locatario); flash('cpfInquilino', ext.cpfInquilino); flash('emailInquilino', ext.emailLocatario); flash('telInquilino', ext.telLocatario);
+      flash('endereco', ext.endereco); flash('dataInicio', ext.dataIn); flash('dataFim', ext.dataFim);
       if (ext.valor > 0) flash('aluguelBase', formatadorStr(ext.valor));
 
-    } catch (err) { alert('Erro ao processar PDF: O ficheiro pode estar protegido ou corrompido.'); } 
-    finally { loader.style.display = 'none'; loader.innerHTML = '⏳ Escaneando o contrato com Inteligência de Captura...'; }
+    } catch (err) { alert('Erro ao processar contrato: ' + err.message); } finally { loader.style.display = 'none'; loader.innerHTML = '⏳ Extraindo dados contratuais...'; }
   }
 
   // =======================================================
@@ -785,7 +800,7 @@
         let diasNoMes = new Date(ano, mes, 0).getDate();
         let diasProp = diasNoMes - dia + 1;
 
-        if (diasProp > 0 && diasProp <= diasNoMes) {
+        if (diasProp > 0 && diasProp < diasNoMes) {
             let fator = diasProp / diasNoMes;
             let vAlugProp = alugBaseVal * fator;
             let vCondProp = condBaseVal * fator;
@@ -799,7 +814,7 @@
                 aluguel_prop: formatadorStr(vAlugProp),
                 aluguel_mes: "Não", 
                 cond_prop: formatadorStr(vCondProp),
-                cond_mes: "" // Deixa vazio para lançamento manual
+                cond_mes: "" // O condomínio mês fica livre para a conta real que chegar no boleto
             };
         }
     }
@@ -823,7 +838,7 @@
         const dadosGravados = await r.json(); if (dadosGravados && dadosGravados.length > 0) payload.id = dadosGravados[0].id; else payload._tempId = Date.now();
         contratosDB.unshift(payload); atualizarInterfaceGeral(); alert('✓ Dados salvos com sucesso!');
         
-        // LIMPEZA GERAL DA TELA DE RESUMO
+        // LIMPEZA GERAL DO ECRÃ DE NOVO CONTRATO
         document.querySelectorAll('#tab-resumo input, #tab-resumo select, #tab-resumo textarea').forEach(el => { 
             if(el.type !== 'file' && el.id !== 'filtro-mes') { el.value = ''; el.classList.remove('field-ok'); } 
         }); 
@@ -1011,7 +1026,7 @@
   }
 
   // =======================================================
-  // ASAAS E WPP - COBRANÇA E CÓPIAS
+  // ASAAS E WPP - COBRANÇA E CÓPIAS (TARIFA ATUALIZADA R$ 2,99)
   // =======================================================
   async function gerarCobrancaAsaas(idReg, valorTotalBase) {
       const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
