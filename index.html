@@ -1120,6 +1120,7 @@
       if (iptu > 0) { texto += `🔹 IPTU: ${fmtMoeda(iptu)}\n`; linhasCard += `<div class="comp-line"><span>IPTU</span> <span>${fmtMoeda(iptu)}</span></div>`; }
       if (bomb > 0) { texto += `🔹 Bombeiro: ${fmtMoeda(bomb)}\n`; linhasCard += `<div class="comp-line"><span>Bombeiro</span> <span>${fmtMoeda(bomb)}</span></div>`; }
       if (seg > 0) { texto += `🔹 Seguro: ${fmtMoeda(seg)}\n`; linhasCard += `<div class="comp-line"><span>Seguro</span> <span>${fmtMoeda(seg)}</span></div>`; }
+      
       if (out > 0) { texto += `🔹 Outras Taxas${descOutras}: ${fmtMoeda(out)}\n`; linhasCard += `<div class="comp-line"><span>Outras Taxas${descOutras}</span> <span>${fmtMoeda(out)}</span></div>`; }
       if (desc > 0) { texto += `🔹 Desconto${descDesconto}: -${fmtMoeda(desc)}\n`; linhasCard += `<div class="comp-line" style="color:var(--danger);"><span>Desconto${descDesconto}</span> <span>-${fmtMoeda(desc)}</span></div>`; }
       
@@ -1163,7 +1164,7 @@
   }
 
   // =======================================================
-  // TRANSFERÊNCIAS (SPLIT 3 VIAS) - REPASSE COM PROPORCIONAL
+  // TRANSFERÊNCIAS (SPLIT 3 VIAS) E REPASSE DETALHADO
   // =======================================================
   async function realizarTransferencias(idReg, alertSuccess = true) {
       const btn = document.getElementById(`btn-transf-${idReg}`);
@@ -1264,6 +1265,19 @@
           acaoHtml = `<div style="text-align:center; padding:12px; color:#166534; font-size:0.9rem; font-weight:bold; border-top: 1px dashed #22c55e; margin-top: 10px;">✅ Transferências Concluídas!</div>`;
       }
 
+      // MONTAR A ÁRVORE DE DETALHES DO PROPRIETÁRIO
+      let breakdownProp = "";
+      if (pAlug > 0) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ Alug. Prop.: ${fmtMoeda(pAlug)}<br>`;
+      if (pCond > 0 && repassaCond) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ Cond. Prop.: ${fmtMoeda(pCond)}<br>`;
+      if (mAlug > 0) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ Aluguel: ${fmtMoeda(mAlug)}<br>`;
+      if (mCond > 0 && repassaCond) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ Condomínio: ${fmtMoeda(mCond)}<br>`;
+      if (iptu > 0) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ IPTU: ${fmtMoeda(iptu)}<br>`;
+      if (bomb > 0) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ Bombeiro: ${fmtMoeda(bomb)}<br>`;
+      if (seg > 0 && repassaSeguro) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ Seguro: ${fmtMoeda(seg)}<br>`;
+      if (out > 0) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ Outras Taxas: ${fmtMoeda(out)}<br>`;
+      if (desc > 0) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ (-) Desconto: -${fmtMoeda(desc)}<br>`;
+      breakdownProp += `&nbsp;&nbsp;&nbsp;↳ (-) Taxa Adm: -${fmtMoeda(vTaxaAdm)}<br>`;
+
       const idTextArea = `txt-rep-${idReg}`; const idCard = `img-rep-${idReg}`;
       container.innerHTML += `
         <div style="background: ${bgPainel}; border: 2px solid ${borderCor}; border-radius: 8px; padding: 16px; max-width: 460px; margin: 0 auto; width: 100%;">
@@ -1274,9 +1288,10 @@
            
            <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin: 16px 0 10px 0; font-size:0.75rem; color:#475569; text-align: left; border: 1px solid #e2e8f0;">
                <strong>Auditoria de Destinos (PIX):</strong><br>
-               1. Proprietário: ${fmtMoeda(valProprietario)}<br>
-               2. M&IC (Taxa + Seguro${repassaSeguro?'':' incluso'}): ${fmtMoeda(valMIC)}<br>
-               ${!repassaCond ? `3. Síndico/Condomínio: ${fmtMoeda(valCondominioPix)}<br>` : ''}
+               1. Proprietário: <strong>${fmtMoeda(valProprietario)}</strong><br>
+               ${breakdownProp}
+               2. M&IC (Taxa Administração): <strong>${fmtMoeda(valMIC)}</strong><br>
+               ${valCondominioPix > 0 ? `3. Síndico/Condomínio: <strong>${fmtMoeda(valCondominioPix)}</strong><br>` : ''}
            </div>
 
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
