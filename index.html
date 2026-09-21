@@ -217,9 +217,40 @@
           <div><label>Telefone do Proprietário</label><input type="text" id="telProprietario"></div>
         </div>
 
-        <div class="grid-2 box-pix">
-          <div><label style="color:#0284c7;">Chave PIX do Proprietário</label><input type="text" id="pixProprietario" placeholder="Ex: 123.456.789-00"></div>
-          <div><label style="color:#0284c7;">Titular do PIX (Nome do Recebedor)</label><input type="text" id="titularPix" placeholder="Nome na conta PIX"></div>
+        <div class="box-pix">
+          <div class="grid-2" style="margin-bottom: 14px;">
+            <div>
+               <label style="color:#0284c7;">Forma de Repasse</label>
+               <select id="tipo_chave_repasse" onchange="window.toggleTipoRepasse()">
+                  <option value="PIX">PIX</option>
+                  <option value="TED">Conta Bancária (TED)</option>
+               </select>
+            </div>
+            <div><label style="color:#0284c7;">Titular da Conta / PIX (Recebedor)</label><input type="text" id="titularPix" placeholder="Nome exato na conta"></div>
+          </div>
+
+          <div id="divRepassePix">
+            <label style="color:#0284c7;">Chave PIX do Proprietário</label>
+            <input type="text" id="pixProprietario" placeholder="Ex: 123.456.789-00">
+          </div>
+
+          <div id="divRepasseTed" style="display:none;">
+            <div class="grid-3" style="gap:10px;">
+                <div><label style="color:#0284c7;">Banco (Código)</label><input type="text" id="tedBanco" placeholder="Ex: 341 (Itaú)"></div>
+                <div><label style="color:#0284c7;">Agência</label><input type="text" id="tedAgencia" placeholder="Sem dígito"></div>
+                <div><label style="color:#0284c7;">Conta com Dígito</label><input type="text" id="tedConta" placeholder="Ex: 12345-6"></div>
+            </div>
+            <div class="grid-2" style="gap:10px; margin-top:14px;">
+                <div>
+                    <label style="color:#0284c7;">Tipo de Conta</label>
+                    <select id="tedTipo">
+                        <option value="CONTA_CORRENTE">Conta Corrente</option>
+                        <option value="CONTA_POUPANCA">Conta Poupança</option>
+                    </select>
+                </div>
+                <div><label style="color:#0284c7;">CPF/CNPJ do Titular</label><input type="text" id="tedCpf" placeholder="Somente números"></div>
+            </div>
+          </div>
         </div>
 
         <div class="grid-2" style="margin-top:14px;">
@@ -413,6 +444,17 @@
   let reajusteAtualId = null;
   let isLoadingImoveis = false;
 
+  window.toggleTipoRepasse = function() {
+      const val = document.getElementById('tipo_chave_repasse').value;
+      if (val === 'PIX') {
+          document.getElementById('divRepassePix').style.display = 'block';
+          document.getElementById('divRepasseTed').style.display = 'none';
+      } else {
+          document.getElementById('divRepassePix').style.display = 'none';
+          document.getElementById('divRepasseTed').style.display = 'block';
+      }
+  }
+
   window.togglePixCond = function() {
       const val = document.getElementById('regraCond').value;
       document.getElementById('divPixCond').style.display = (val === 'N') ? 'block' : 'none';
@@ -528,9 +570,6 @@
     if (document.getElementById('tab-resumo_gerencial').classList.contains('active')) renderizarGerencial();
   }
 
-  function cleanSearch(text) { return text ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : ""; }
-  function cleanValue(v) { return String(v || '').replace(/^[\s{}]+|[\s{}]+$/g, '').replace(/\s+/g, ' ').trim(); }
-  
   async function renderPdfThumbnail(pdfDoc) {
     try {
       const page = await pdfDoc.getPage(1); const viewport = page.getViewport({ scale: 0.65 });
@@ -545,7 +584,6 @@
       document.getElementById('pdf-modal-title').innerText = 'Contrato - ' + inq;
       const iframe = document.getElementById('pdf-iframe');
       
-      // Converte o Base64 string para Blob e injeta no Iframe contornando bloqueios do navegador
       if (base64Url && base64Url.startsWith('data:application/pdf')) {
           fetch(base64Url)
               .then(res => res.blob())
@@ -574,7 +612,7 @@
     document.getElementById('file-name-pill').style.display = 'inline-block';
 
     const loader = document.getElementById('ai-extract-loader');
-    loader.innerHTML = '⏳ Lendo o arquivo do contrato...';
+    loader.innerHTML = '⏳ Lendo o arquivo do contrato com [MIC_DADOS]...';
     loader.style.display = 'block';
 
     try {
@@ -582,72 +620,65 @@
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       await renderPdfThumbnail(pdf);
 
-      let allRawLines = []; let page1RawLines = []; let fullText = '';
+      let fullText = '';
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p); const textContent = await page.getTextContent();
         for (const item of textContent.items) {
           const str = String(item.str || '').trim();
-          if (!str) continue;
-          allRawLines.push(str); fullText += ' ' + str;
-          if (p === 1) page1RawLines.push(str);
+          if (str) fullText += ' ' + str;
         }
       }
-
-      const normalizePdfText = (text) => String(text || '').replace(/\u00A0/g, ' ').replace(/[\r\n]+/g, '\n').replace(/[ \t]+/g, ' ').trim();
-      const normalizedFullText = normalizePdfText(fullText);
 
       let ext = { locador: '', telLocador: '', locatario: '', cpfInquilino: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '', titularPix: '' };
-      const normForTag = (text) => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '').toUpperCase();
-      const compactFullText = normForTag(fullText);
-      const tagStart = '[MIC_DADOS]'; const tagEnd = '[/MIC_DADOS]';
-      const startPos = compactFullText.indexOf(tagStart); const endPos = compactFullText.indexOf(tagEnd, startPos + tagStart.length);
+      
+      const compactOriginal = String(fullText || '').replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
+      const m = compactOriginal.match(/\[\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]([\s\S]*?)\[\s*\/\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]/i);
+      
+      if (m) { 
+          const hiddenBlock = m[1] || ''; 
+          const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const canonicalKey = (raw) => String(raw || '').replace(/[{}\s]/g, '').toLowerCase();
+          const FIELD_KEYS = [ 'Proprietario', 'TelProprietario', 'PixProprietario', 'TitularPix', 'Inquilino', 'CpfInquilino', 'EmailInquilino', 'TelInquilino', 'Endereco', 'DataInicio', 'DataFim', 'ValorAluguel' ];
+          const keyMap = Object.fromEntries(FIELD_KEYS.map(k => [canonicalKey(k), k]));
 
-      let blockMatch = null; let hiddenBlock = '';
-      if (startPos !== -1 && endPos !== -1) {
-        const compactOriginal = String(fullText || '').replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
-        const m = compactOriginal.match(/\[\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]([\s\S]*?)\[\s*\/\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]/i);
-        if (m) { blockMatch = m; hiddenBlock = m[1] || ''; }
+          const parseHiddenFields = (block) => {
+            const result = {}; if (!block) return result;
+            let b = String(block).replace(/\u00A0/g, ' ').replace(/[\r\n]+/g, '\n').replace(/\s+/g, ' ').trim();
+            const keyPattern = FIELD_KEYS.map(k => k.split('').map(ch => escapeRegExp(ch)).join('\\s*')).join('|');
+            const fieldRegex = new RegExp('(?:\\{\\s*)?(' + keyPattern + ')(?:\\s*)(?::)(?:\\s*\\})?\\s*', 'gi');
+            const matches = []; let mRegex;
+            while ((mRegex = fieldRegex.exec(b)) !== null) { matches.push({ index: mRegex.index, end: fieldRegex.lastIndex, key: keyMap[canonicalKey(mRegex[1])] }); }
+            for (let i = 0; i < matches.length; i++) {
+              const current = matches[i]; const next = matches[i + 1];
+              let value = b.slice(current.end, next ? next.index : b.length).trim();
+              value = value.replace(/^\s*\}/, '').trim(); value = value.replace(/\{\s*$/, '').trim();
+              if (current.key) result[current.key] = value;
+            }
+            return result;
+          };
+
+          const hidden = parseHiddenFields(hiddenBlock);
+          const cleanValue = (v) => String(v || '').replace(/^[\s{}]+|[\s{}]+$/g, '').replace(/\s+/g, ' ').trim();
+          const fixSpacing = (str) => {
+            let s = cleanValue(str); const rx = /\b([A-ZÀ-ÖØ-Ý][a-zà-öø-ÿ]{0,2})\s+([a-zà-öø-ÿ]{2,3})\b/g;
+            let anterior = ''; while (s !== anterior) { anterior = s; s = s.replace(rx, '$1$2'); } return s.replace(/\s+/g, ' ').trim();
+          };
+
+          ext.locador = fixSpacing(hidden.Proprietario); ext.telLocador = cleanValue(hidden.TelProprietario).replace(/\D/g, '');
+          ext.pix = cleanValue(hidden.PixProprietario).replace(/\s/g, ''); ext.titularPix = fixSpacing(hidden.TitularPix);
+          ext.locatario = fixSpacing(hidden.Inquilino); ext.cpfInquilino = cleanValue(hidden.CpfInquilino).replace(/\D/g, '');
+          ext.emailLocatario = cleanValue(hidden.EmailInquilino).replace(/\s/g, ''); ext.telLocatario = cleanValue(hidden.TelInquilino).replace(/\D/g, '');
+          ext.endereco = fixSpacing(hidden.Endereco);
+
+          const toIsoDate = (value) => { const v = cleanValue(value).replace(/\s/g, ''); const mx = v.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/); return mx ? `${mx[3]}-${mx[2].padStart(2,'0')}-${mx[1].padStart(2,'0')}` : ''; };
+          ext.dataIn = toIsoDate(hidden.DataInicio); ext.dataFim = toIsoDate(hidden.DataFim);
+
+          const parseMoney = (value) => { const v = cleanValue(value).replace(/R\$\s*/gi, '').replace(/\s/g, ''); if (!v) return 0; if (v.includes(',')) return parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0; return parseFloat(v) || 0; };
+          ext.valor = parseMoney(hidden.ValorAluguel);
+
+      } else {
+          alert("Tag [MIC_DADOS] não encontrada neste PDF. Por favor, preencha manualmente.");
       }
-
-      const FIELD_KEYS = [ 'Proprietario', 'TelProprietario', 'PixProprietario', 'TitularPix', 'Inquilino', 'CpfInquilino', 'EmailInquilino', 'TelInquilino', 'Endereco', 'DataInicio', 'DataFim', 'ValorAluguel' ];
-      const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const canonicalKey = (raw) => String(raw || '').replace(/[{}\s]/g, '').toLowerCase();
-      const keyMap = Object.fromEntries(FIELD_KEYS.map(k => [canonicalKey(k), k]));
-
-      const parseHiddenFields = (block) => {
-        const result = {}; if (!block) return result;
-        let b = String(block).replace(/\u00A0/g, ' ').replace(/[\r\n]+/g, '\n').replace(/\s+/g, ' ').trim();
-        const keyPattern = FIELD_KEYS.map(k => k.split('').map(ch => escapeRegExp(ch)).join('\\s*')).join('|');
-        const fieldRegex = new RegExp('(?:\\{\\s*)?(' + keyPattern + ')(?:\\s*)(?::)(?:\\s*\\})?\\s*', 'gi');
-        const matches = []; let m;
-        while ((m = fieldRegex.exec(b)) !== null) { matches.push({ index: m.index, end: fieldRegex.lastIndex, key: keyMap[canonicalKey(m[1])] }); }
-        for (let i = 0; i < matches.length; i++) {
-          const current = matches[i]; const next = matches[i + 1];
-          let value = b.slice(current.end, next ? next.index : b.length).trim();
-          value = value.replace(/^\s*\}/, '').trim(); value = value.replace(/\{\s*$/, '').trim();
-          if (current.key) result[current.key] = value;
-        }
-        return result;
-      };
-
-      const hidden = parseHiddenFields(hiddenBlock);
-      const cleanValue = (v) => String(v || '').replace(/^[\s{}]+|[\s{}]+$/g, '').replace(/\s+/g, ' ').trim();
-      const fixSpacing = (str) => {
-        let s = cleanValue(str); const rx = /\b([A-ZÀ-ÖØ-Ý][a-zà-öø-ÿ]{0,2})\s+([a-zà-öø-ÿ]{2,3})\b/g;
-        let anterior = ''; while (s !== anterior) { anterior = s; s = s.replace(rx, '$1$2'); } return s.replace(/\s+/g, ' ').trim();
-      };
-
-      ext.locador = fixSpacing(hidden.Proprietario); ext.telLocador = cleanValue(hidden.TelProprietario).replace(/\D/g, '');
-      ext.pix = cleanValue(hidden.PixProprietario).replace(/\s/g, ''); ext.titularPix = fixSpacing(hidden.TitularPix);
-      ext.locatario = fixSpacing(hidden.Inquilino); ext.cpfInquilino = cleanValue(hidden.CpfInquilino).replace(/\D/g, '');
-      ext.emailLocatario = cleanValue(hidden.EmailInquilino).replace(/\s/g, ''); ext.telLocatario = cleanValue(hidden.TelInquilino).replace(/\D/g, '');
-      ext.endereco = fixSpacing(hidden.Endereco);
-
-      const toIsoDate = (value) => { const v = cleanValue(value).replace(/\s/g, ''); const m = v.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/); return m ? `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` : ''; };
-      ext.dataIn = toIsoDate(hidden.DataInicio); ext.dataFim = toIsoDate(hidden.DataFim);
-
-      const parseMoney = (value) => { const v = cleanValue(value).replace(/R\$\s*/gi, '').replace(/\s/g, ''); if (!v) return 0; if (v.includes(',')) return parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0; return parseFloat(v) || 0; };
-      ext.valor = parseMoney(hidden.ValorAluguel);
 
       function flash(id, val) {
         if (val !== null && val !== undefined && String(val).trim() !== '') {
@@ -661,7 +692,8 @@
       flash('endereco', ext.endereco); flash('dataInicio', ext.dataIn); flash('dataFim', ext.dataFim);
       if (ext.valor > 0) flash('aluguelBase', formatadorStr(ext.valor));
 
-    } catch (err) { alert('Erro ao processar contrato: ' + err.message); } finally { loader.style.display = 'none'; loader.innerHTML = '⏳ Extraindo dados contratuais...'; }
+    } catch (err) { alert('Erro ao processar PDF: O ficheiro pode estar protegido ou corrompido.'); } 
+    finally { loader.style.display = 'none'; loader.innerHTML = '⏳ Escaneando o contrato com Inteligência de Captura...'; }
   }
 
   // =======================================================
@@ -701,11 +733,20 @@
   }
   async function editarPix(index) {
     const c = contratosDB[index];
-    const novoPix = prompt(`1/2 - Alterar chave PIX de ${c.proprietario}:\n\nDigite a nova chave (ou deixe em branco):`, c.pix_proprietario || ''); if (novoPix === null) return; 
-    const novoTitular = prompt(`2/2 - Nome do Titular da conta PIX:\n(Aparecerá no recibo do repasse para confirmação)`, c.titular_pix || c.proprietario || ''); if (novoTitular === null) return; 
+    let atual = c.pix_proprietario || '';
+    let msg = atual.startsWith('TED|') 
+      ? "O repasse atual é via CONTA BANCÁRIA (TED).\nEdite a string abaixo mantendo as divisões '|' (TED|Banco|Ag|Conta|TipoConta|CPF)\nou apague tudo e digite uma chave PIX normal:"
+      : `1/2 - Alterar chave PIX de ${c.proprietario}:\n(Para mudar para TED, digite no formato TED|Banco|Agencia|Conta|Tipo|CPF)`;
+      
+    const novoPix = prompt(msg, atual); 
+    if (novoPix === null) return; 
+    
+    const novoTitular = prompt(`2/2 - Nome do Titular da conta/PIX:\n(Aparecerá no recibo do repasse para confirmação)`, c.titular_pix || c.proprietario || ''); 
+    if (novoTitular === null) return; 
+    
     c.pix_proprietario = novoPix.trim(); c.titular_pix = novoTitular.trim(); atualizarInterfaceGeral();
     const id = c.id; if(!id) return;
-    try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pix_proprietario: c.pix_proprietario, titular_pix: c.titular_pix }) }); alert('PIX e Titular atualizados!'); } catch(e) {}
+    try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pix_proprietario: c.pix_proprietario, titular_pix: c.titular_pix }) }); alert('Dados de pagamento atualizados!'); } catch(e) {}
   }
 
   function getAvisoVencimento(c) {
@@ -741,7 +782,7 @@
           <td class="fit"><button class="btn btn-danger" onclick="excluirImovel('${idReg}')">🗑️</button></td>
           <td class="fit" style="text-align: center;"><input type="checkbox" class="checkbox-marcar" onchange="toggleMarcar('${idReg}', this.checked)" ${isMarcado}></td>
           <td class="fit"><select onchange="updateDbLinear(${i}, 'ativo', this.value)" style="padding: 6px; font-size: 0.82rem; min-width: 110px; width: auto;"><option value="SIM" ${c.ativo === 'SIM' ? 'selected' : ''}>🟢 Ativo</option><option value="NÃO" ${c.ativo === 'NÃO' ? 'selected' : ''}>🔴 Inativo</option></select></td>
-          <td><strong style="font-size: 0.95rem;">${c.inquilino}</strong> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarCPF(${i})">✏️ CPF</button><br><span style="font-size: 0.75rem; color: #64748b;">Locador: ${c.proprietario || '-'}</span> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarPix(${i})">✏️ PIX</button></td>
+          <td><strong style="font-size: 0.95rem;">${c.inquilino}</strong> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarCPF(${i})">✏️ CPF</button><br><span style="font-size: 0.75rem; color: #64748b;">Locador: ${c.proprietario || '-'}</span> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarPix(${i})">✏️ Dados Pgto</button></td>
           <td>${c.endereco || ''}</td><td class="fit" style="text-align: center;">${venc.html}</td><td class="fit" style="text-align: center;">${btnPdf}</td>
         </tr>`;
     });
@@ -789,6 +830,20 @@
 
     const s = getLocalSession(); let emailUser = 'chalfouncorretor@gmail.com'; if (s && s.user && s.user.email) emailUser = s.user.email;
 
+    // INTELIGÊNCIA DO TIPO DE REPASSE (PIX OU TED)
+    let repasseTipo = document.getElementById('tipo_chave_repasse').value;
+    let pixVal = "";
+    if(repasseTipo === 'PIX') {
+        pixVal = document.getElementById('pixProprietario').value;
+    } else {
+        let b = document.getElementById('tedBanco').value;
+        let ag = document.getElementById('tedAgencia').value;
+        let ct = document.getElementById('tedConta').value;
+        let tp = document.getElementById('tedTipo').value;
+        let cpf = document.getElementById('tedCpf').value;
+        pixVal = `TED|${b}|${ag}|${ct}|${tp}|${cpf}`;
+    }
+
     // INTELIGÊNCIA DE CÁLCULO PROPORCIONAL
     let lancamentosIniciais = {};
     let dataIn = document.getElementById('dataInicio').value;
@@ -821,7 +876,7 @@
 
     const payload = {
       user_email: emailUser, proprietario: document.getElementById('proprietario').value, telefone_proprietario: document.getElementById('telProprietario').value, 
-      pix_proprietario: document.getElementById('pixProprietario').value, titular_pix: document.getElementById('titularPix').value || document.getElementById('proprietario').value, 
+      pix_proprietario: pixVal, titular_pix: document.getElementById('titularPix').value || document.getElementById('proprietario').value, 
       inquilino: document.getElementById('inquilino').value, cpf_inquilino: document.getElementById('cpfInquilino').value, email_inquilino: document.getElementById('emailInquilino').value,
       telefone_inquilino: document.getElementById('telInquilino').value, endereco: document.getElementById('endereco').value, data_inicio: document.getElementById('dataInicio').value || null, 
       data_fim: document.getElementById('dataFim').value || null, aluguel_base: alugBaseVal, 
@@ -842,6 +897,8 @@
         document.querySelectorAll('#tab-resumo input, #tab-resumo select, #tab-resumo textarea').forEach(el => { 
             if(el.type !== 'file' && el.id !== 'filtro-mes') { el.value = ''; el.classList.remove('field-ok'); } 
         }); 
+        document.getElementById('tipo_chave_repasse').value = 'PIX';
+        window.toggleTipoRepasse();
         document.getElementById('regraCond').value = 'S';
         document.getElementById('regraSeguro').value = 'S';
         document.getElementById('divPixCond').style.display = 'none';
@@ -1247,9 +1304,18 @@
       let valProprietario = totalReceitas - vTaxaAdm - valCondominioPix - valSeguroMIC;
       let valMIC = vTaxaAdm + valSeguroMIC; 
 
+      let pixBruto = c.pix_proprietario || 'Não informada';
+      let txtChaveWpp = pixBruto;
+      if (pixBruto.startsWith('TED|')) {
+          let p = pixBruto.split('|');
+          txtChaveWpp = `Banco ${p[1]} | Ag: ${p[2]} | Conta: ${p[3]} | CPF: ${p[5]}`;
+      } else {
+          txtChaveWpp = `PIX: ${pixBruto}`;
+      }
+
       let texto = `Prezado(a) ${c.proprietario},\nSegue repasse de *${repasseMesTexto}*:\n`;
       let titularStr = c.titular_pix ? `\nTitular: ${c.titular_pix}` : `\nTitular: ${c.proprietario}`;
-      texto += `\n💰 *TOTAL REPASSADO: ${fmtMoeda(valProprietario)}*\nO valor foi transferido para a chave PIX: ${c.pix_proprietario || 'Não informada'}${titularStr}`;
+      texto += `\n💰 *TOTAL REPASSADO: ${fmtMoeda(valProprietario)}*\nO valor foi transferido para: ${txtChaveWpp}${titularStr}`;
       
       if (!repassaCond && valCondominioPix > 0) { texto += `\n📌 *Nota:* O Condomínio (${fmtMoeda(valCondominioPix)}) foi transferido direto ao Síndico (PIX: ${c.pix_condominio}).`; }
       if (!repassaSeguro && seg > 0) { texto += `\n📌 *Nota:* O Seguro (${fmtMoeda(seg)}) foi retido para pagamento pela corretora.`; }
@@ -1293,7 +1359,7 @@
            </div>
            
            <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin: 16px 0 10px 0; font-size:0.75rem; color:#475569; text-align: left; border: 1px solid #e2e8f0;">
-               <strong>Auditoria de Destinos (PIX):</strong><br>
+               <strong>Auditoria de Destinos (PIX/TED):</strong><br>
                1. Proprietário: <strong>${fmtMoeda(valProprietario)}</strong><br>
                ${breakdownProp}
                2. M&IC (Taxa Administração): <strong>${fmtMoeda(valMIC)}</strong><br>
