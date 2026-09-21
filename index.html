@@ -836,6 +836,9 @@
       const i = contratosDB.indexOf(c); const v = getVariaveisMes(c, mesRef);
       const totalCalculado = parseMoedaToFloat(v.alugProp) + parseMoedaToFloat(v.alugMes) + parseMoedaToFloat(v.condProp) + parseMoedaToFloat(v.condMes) + parseMoedaToFloat(v.iptu) + parseMoedaToFloat(v.bombeiro) + parseMoedaToFloat(v.seguro) + parseMoedaToFloat(v.outras_taxas) - parseMoedaToFloat(v.desconto);
 
+      let styleOutras = parseMoedaToFloat(v.outras_taxas) > 0 ? 'block' : 'none';
+      let styleDesconto = parseMoedaToFloat(v.desconto) > 0 ? 'block' : 'none';
+
       tbody.innerHTML += `<tr>
           <td><strong style="font-size:0.85rem;">${c.inquilino}</strong></td><td style="font-size:0.75rem;">${c.endereco}</td>
           <td class="fit"><input type="text" value="${v.alugProp}" onchange="updateLancamentoMensal(${i}, 'aluguel_prop', this.value)" class="input-calc"></td>
@@ -846,12 +849,12 @@
           <td class="fit"><input type="text" value="${v.bombeiro}" onchange="updateLancamentoMensal(${i}, 'bombeiro', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
           <td class="fit"><input type="text" value="${v.seguro}" onchange="updateLancamentoMensal(${i}, 'seguro', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
           <td class="fit">
-            <input type="text" value="${v.outras_taxas}" onchange="updateLancamentoMensal(${i}, 'outras_taxas', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"><br>
-            <textarea class="input-desc" placeholder="Motivo (ex: 1/3)" onchange="updateLancamentoMensal(${i}, 'desc_outras', this.value)">${v.desc_outras || ''}</textarea>
+            <input type="text" value="${v.outras_taxas}" onchange="updateLancamentoMensal(${i}, 'outras_taxas', this.value)" onkeyup="formatarMoedaInput(this); this.nextElementSibling.style.display = (parseMoedaToFloat(this.value) > 0 ? 'block' : 'none');" class="input-calc">
+            <textarea class="input-desc" style="display:${styleOutras}; margin-top:6px;" placeholder="Motivo (ex: 1/3)" onchange="updateLancamentoMensal(${i}, 'desc_outras', this.value)">${v.desc_outras || ''}</textarea>
           </td>
           <td class="fit">
-            <input type="text" value="${v.desconto}" onchange="updateLancamentoMensal(${i}, 'desconto', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"><br>
-            <textarea class="input-desc" placeholder="Motivo..." onchange="updateLancamentoMensal(${i}, 'desc_desconto', this.value)">${v.desc_desconto || ''}</textarea>
+            <input type="text" value="${v.desconto}" onchange="updateLancamentoMensal(${i}, 'desconto', this.value)" onkeyup="formatarMoedaInput(this); this.nextElementSibling.style.display = (parseMoedaToFloat(this.value) > 0 ? 'block' : 'none');" class="input-calc">
+            <textarea class="input-desc" style="display:${styleDesconto}; margin-top:6px;" placeholder="Motivo..." onchange="updateLancamentoMensal(${i}, 'desc_desconto', this.value)">${v.desc_desconto || ''}</textarea>
           </td>
           <td class="fit" id="total-linha-${i}" style="background-color:#f8fafc; text-align:center; vertical-align: middle;"><strong style="color:var(--danger); font-size:0.95rem;">${fmtMoeda(totalCalculado)}</strong></td></tr>`;
     });
