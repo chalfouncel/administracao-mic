@@ -1,7 +1,11 @@
-import fetch from 'node-fetch';
-
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+    // Mantém a sua proteção original de origem
+    const origin = req.headers.origin || req.headers.referer || '';
+    if (!origin.includes("vercel.app") && !origin.includes("localhost")) {
+        return res.status(403).json({ error: "Acesso bloqueado. Origem não autorizada." });
+    }
+
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
 
     const { nomeInquilino, cpfInquilino, emailInquilino, valor, vencimento, descricao, externalReference, reciboBase64 } = req.body;
     
@@ -9,7 +13,7 @@ export default async function handler(req, res) {
     const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
     try {
-        // 1. Procurar ou Criar o Cliente no Asaas
+        // 1. Procurar ou Criar o Cliente no Asaas (Para não duplicar cadastros)
         let asaasCustomerId;
         const searchCustomer = await fetch(`https://api.asaas.com/v3/customers?cpfCnpj=${cpfInquilino}`, {
             method: 'GET',
@@ -36,7 +40,7 @@ export default async function handler(req, res) {
             headers: { 'Content-Type': 'application/json', 'access_token': API_KEY },
             body: JSON.stringify({
                 customer: asaasCustomerId,
-                billingType: "UNDEFINED",
+                billingType: "PIX",
                 value: valor,
                 dueDate: vencimento,
                 description: descricao,
@@ -47,11 +51,11 @@ export default async function handler(req, res) {
         if (!createPayment.ok) throw new Error(paymentResult.errors[0].description);
 
         const linkFatura = paymentResult.invoiceUrl;
-        const ids = externalReference.split('||'); // [0] = locacao_id, [1] = mesRef
+        const ids = externalReference.split('||'); 
         const locacao_id = ids[0];
         const mes_ref = ids[1];
 
-        // 3. Gravar na tabela 'disparos_email' do Supabase para o robô trabalhar
+        // 3. Gravar na nova tabela 'disparos_email' do Supabase
         if (reciboBase64 && emailInquilino) {
              const supabaseUrl = `https://dgadztmmarvbjcouvrnp.supabase.co/rest/v1/disparos_email`;
              await fetch(supabaseUrl, {
