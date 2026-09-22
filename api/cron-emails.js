@@ -107,5 +107,5 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error("ERRO CRÍTICO DETETADO:", error.message);
         return res.status(500).json({ error: error.message });
-    }
+    } 
 }
