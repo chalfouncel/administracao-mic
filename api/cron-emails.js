@@ -1,28 +1,32 @@
 export default async function handler(req, res) {
-    const SUPABASE_KEY = process.env.SUPABASE_KEY;
-    const RESEND_API_KEY = process.env.RESEND_API_KEY;
-    const ASAAS_API_KEY = process.env.ASAAS_API_KEY;
-
     try {
-        // 1. Buscar no Supabase os e-mails que ainda não foram totalmente enviados
+        const SUPABASE_KEY = process.env.SUPABASE_KEY;
+        const RESEND_API_KEY = process.env.RESEND_API_KEY;
+        const ASAAS_API_KEY = process.env.ASAAS_API_KEY;
+
+        if (!SUPABASE_KEY || !RESEND_API_KEY || !ASAAS_API_KEY) {
+            throw new Error("Falta configurar variáveis de ambiente na Vercel (SUPABASE_KEY, RESEND_API_KEY ou ASAAS_API_KEY).");
+        }
+
         const supabaseUrl = `https://dgadztmmarvbjcouvrnp.supabase.co/rest/v1/disparos_email?or=(status_disparo_1.eq.false,status_disparo_2.eq.false,status_disparo_3.eq.false)`;
         const resDb = await fetch(supabaseUrl, {
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
         });
         const pendentes = await resDb.json();
 
-        if (!pendentes || pendentes.length === 0) {
+        if (!Array.isArray(pendentes)) {
+            throw new Error("Erro de leitura no Supabase: " + JSON.stringify(pendentes));
+        }
+
+        if (pendentes.length === 0) {
             return res.status(200).json({ message: 'Nenhum e-mail pendente.' });
         }
 
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
-
         let disparosFeitos = 0;
 
-        // 2. Analisar cada inquilino pendente
         for (const item of pendentes) {
-            // Verificar no Asaas se a fatura JÁ FOI PAGA
             const asaasRes = await fetch(`https://api.asaas.com/v3/payments?externalReference=${item.locacao_id}||${item.mes_ref}`, {
                 headers: { 'access_token': ASAAS_API_KEY }
             });
@@ -31,7 +35,6 @@ export default async function handler(req, res) {
             if (asaasData.data && asaasData.data.length > 0) {
                 const statusFatura = asaasData.data[0].status;
                 if (statusFatura === 'RECEIVED' || statusFatura === 'CONFIRMED') {
-                    // Mata a régua de cobrança atualizando tudo para TRUE
                     await fetch(`https://dgadztmmarvbjcouvrnp.supabase.co/rest/v1/disparos_email?id=eq.${item.id}`, {
                         method: 'PATCH',
                         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
@@ -41,17 +44,14 @@ export default async function handler(req, res) {
                 }
             }
 
-            // Calcular a diferença de dias
             const dataVenc = new Date(item.data_vencimento);
             dataVenc.setHours(0, 0, 0, 0);
-            const diffTime = dataVenc.getTime() - hoje.getTime();
-            const diffDias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const diffDias = Math.ceil((dataVenc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
 
             let deveEnviar = false;
             let campoAtualizar = '';
             let assuntoEmail = '';
 
-            // Lógica dos 3 Momentos:
             if (item.status_disparo_1 === false) {
                 deveEnviar = true;
                 campoAtualizar = 'status_disparo_1';
@@ -66,7 +66,6 @@ export default async function handler(req, res) {
                 assuntoEmail = 'Aviso de Vencimento: O seu aluguel vence HOJE - M&IC';
             }
 
-            // 3. Disparar via Resend
             if (deveEnviar) {
                 const resendRes = await fetch('https://api.resend.com/emails', {
                     method: 'POST',
@@ -90,19 +89,23 @@ export default async function handler(req, res) {
                     })
                 });
 
-                if (resendRes.ok) {
-                    await fetch(`https://dgadztmmarvbjcouvrnp.supabase.co/rest/v1/disparos_email?id=eq.${item.id}`, {
-                        method: 'PATCH',
-                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ [campoAtualizar]: true })
-                    });
-                    disparosFeitos++;
+                if (!resendRes.ok) {
+                    const resendErro = await resendRes.json();
+                    throw new Error("Erro na API da Resend: " + JSON.stringify(resendErro));
                 }
+
+                await fetch(`https://dgadztmmarvbjcouvrnp.supabase.co/rest/v1/disparos_email?id=eq.${item.id}`, {
+                    method: 'PATCH',
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [campoAtualizar]: true })
+                });
+                disparosFeitos++;
             }
         }
 
         return res.status(200).json({ success: true, disparos: disparosFeitos });
     } catch (error) {
+        console.error("ERRO CRÍTICO DETETADO:", error.message);
         return res.status(500).json({ error: error.message });
     }
 }
