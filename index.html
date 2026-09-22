@@ -592,7 +592,12 @@
       try {
           const res = await fetch(`${SUPABASE_BASE_URL}/auth/v1/user`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` } });
           const userData = await res.json();
-          if (userData.error) { doLogout(); return; }
+          
+          if (!res.ok || userData.error) { 
+              console.error("Erro na sessão MFA:", userData);
+              doLogout(); 
+              return; 
+          }
 
           const factors = userData.factors || [];
           const totpFactor = factors.find(f => f.factor_type === 'totp' && f.status === 'verified');
@@ -609,6 +614,11 @@
                   body: JSON.stringify({ factor_type: 'totp', friendly_name: 'M&IC Corretores', issuer: 'adm.miccorretores.com.br' })
               });
               const dataF = await resF.json();
+              
+              if (!resF.ok || !dataF.id) {
+                  throw new Error(dataF.error_description || dataF.msg || 'Erro ao gerar fator TOTP');
+              }
+
               globalFactorId = dataF.id;
               
               document.getElementById('mfa-qr-container').style.display = 'block';
@@ -623,9 +633,17 @@
                   method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
               });
               const dataC = await resC.json();
+              
+              if (!resC.ok || !dataC.id) {
+                  throw new Error(dataC.error_description || 'Erro ao criar desafio de segurança');
+              }
+
               globalChallengeId = dataC.id;
           }
-      } catch (e) { alert('Erro na segurança: ' + e.message); doLogout(); }
+      } catch (e) { 
+          alert('Erro na segurança: ' + e.message); 
+          doLogout(); 
+      }
   }
 
   async function doLogin() {
@@ -639,7 +657,7 @@
 
       // --- BARREIRA DE APROVAÇÃO ---
       const isMario = email.toLowerCase() === 'chalfouncorretor@gmail.com';
-      let isAprovado = isMario; // Mário tem aprovação garantida
+      let isAprovado = isMario; 
 
       if (!isMario) {
           const resVerifica = await fetch(`${SUPABASE_BASE_URL}/rest/v1/usuarios_aprovados?email=eq.${encodeURIComponent(email)}`, {
@@ -677,19 +695,16 @@
       if (!resp.ok) { 
           status.className = 'auth-msg err'; status.innerText = 'Erro: ' + data.message; 
       } else { 
-          // 1. Registra na tabela de controle como "pendente"
           await fetch(`${SUPABASE_BASE_URL}/rest/v1/usuarios_aprovados`, {
               method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
               body: JSON.stringify({ email: email, status: 'pendente' })
           });
 
-          // 2. Dispara e-mail alertando Mário
           fetch('/api/solicitar-acesso', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email_solicitante: email })
           });
 
-          // 3. Interrompe a entrada automática, barra a sessão e exibe a mensagem de espera
           setLocalSession(null); 
           status.className = 'auth-msg ok'; 
           status.innerHTML = '✓ Cadastro realizado!<br>Aguardando o administrador validar o acesso.';
@@ -783,7 +798,6 @@
     } catch (e) {}
   }
   
-  // Função otimizada para carregar o PDF apenas sob demanda
   async function baixarEAbrirPdf(idReg, inq) {
       document.getElementById('pdf-modal-title').innerText = 'Carregando PDF... aguarde';
       document.getElementById('pdf-iframe').src = '';
@@ -986,7 +1000,6 @@
     imoveisVisiveis.forEach((c) => {
       const i = contratosDB.indexOf(c); const idReg = c.id || c._tempId; const isMarcado = contratosMarcados.has(String(idReg)) ? 'checked' : ''; const venc = getAvisoVencimento(c);
       
-      // Botão otimizado que chama a função sob demanda
       const btnPdf = `<div onclick="baixarEAbrirPdf('${idReg}', '${c.inquilino}')" class="row-pdf-btn"><div class="icon">📄</div><div class="thumb-label">VER</div></div>`;
           
       tbody.innerHTML += `
@@ -1008,7 +1021,6 @@
     const tbody = document.getElementById('tabela-imoveis-linear-body');
     if (forceUI && tbody && contratosDB.length === 0) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">Sincronizando...</td></tr>';
     try {
-      // Exclui o campo 'contrato_url' da listagem inicial para acelerar drasticamente o carregamento
       const colunas = 'id,created_at,user_email,proprietario,telefone_proprietario,pix_proprietario,titular_pix,inquilino,cpf_inquilino,email_inquilino,telefone_inquilino,endereco,data_inicio,data_fim,aluguel_base,condominio_base,taxa_adm_fixa,taxa_adm_pct,regra_condominio,pix_condominio,regra_seguro,ativo,reajuste_aplicado,historico_reajuste,lancamentos_mensais,status_cobranca,status_repasse';
       const resp = await supabaseFetchWithRefresh(`/rest/v1/locacoes?select=${colunas}&order=created_at.desc`, { method: 'GET' });
       if (resp.ok) { contratosDB = await resp.json(); atualizarInterfaceGeral(); } else throw new Error("Erro na API.");
