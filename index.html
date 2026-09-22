@@ -656,7 +656,7 @@
       if (!isAprovado) {
            status.className = 'auth-msg err'; status.innerHTML = '⚠️ Aguardando validação do acesso pelo administrador.';
            btn.disabled = false; 
-           setLocalSession(null); // Evita sessão fantasma
+           setLocalSession(null); 
            return;
       }
       // -----------------------------
@@ -733,12 +733,12 @@
 
               if (resVerify.ok) {
                   const verifyData = await resVerify.json();
-                  if (verifyData.access_token) setLocalSession(verifyData); // Atualiza token para nível AAL2
+                  if (verifyData.access_token) setLocalSession(verifyData); 
                   
                   document.getElementById('mfa-codigo').value = '';
                   btn.innerText = "Validar Código"; btn.disabled = false;
                   
-                  checkSession(); // Re-avalia a segurança e libera a tela principal
+                  checkSession(); 
               } else {
                   alert("❌ Código inválido. Tente novamente.");
                   btn.innerText = "Validar Código"; btn.disabled = false;
@@ -783,21 +783,31 @@
     } catch (e) {}
   }
   
-  function abrirVisualizadorPdf(base64Url, inq) {
-      document.getElementById('pdf-modal-title').innerText = 'Contrato - ' + inq;
-      const iframe = document.getElementById('pdf-iframe');
-      
-      if (base64Url && base64Url.startsWith('data:application/pdf')) {
-          fetch(base64Url)
-              .then(res => res.blob())
-              .then(blob => {
-                  iframe.src = URL.createObjectURL(blob) + '#toolbar=0';
-                  document.getElementById('pdf-modal').style.display = 'flex';
-              })
-              .catch(err => alert("Erro ao abrir PDF. O arquivo pode estar corrompido."));
-      } else {
-          iframe.src = base64Url + '#toolbar=0';
-          document.getElementById('pdf-modal').style.display = 'flex';
+  // Função otimizada para carregar o PDF apenas sob demanda
+  async function baixarEAbrirPdf(idReg, inq) {
+      document.getElementById('pdf-modal-title').innerText = 'Carregando PDF... aguarde';
+      document.getElementById('pdf-iframe').src = '';
+      document.getElementById('pdf-modal').style.display = 'flex';
+
+      try {
+          const resp = await supabaseFetchWithRefresh(`/rest/v1/locacoes?select=contrato_url&id=eq.${idReg}`, { method: 'GET' });
+          if (!resp.ok) throw new Error('Falha no banco de dados');
+          const data = await resp.json();
+          const base64Url = data[0]?.contrato_url;
+          
+          if (base64Url && base64Url.startsWith('data:application/pdf')) {
+              document.getElementById('pdf-modal-title').innerText = 'Contrato - ' + inq;
+              fetch(base64Url).then(res => res.blob()).then(blob => {
+                  document.getElementById('pdf-iframe').src = URL.createObjectURL(blob) + '#toolbar=0';
+              });
+          } else {
+              document.getElementById('pdf-modal').style.display = 'none';
+              alert('Nenhum contrato em anexo para este imóvel.');
+          }
+      } catch(e) {
+          document.getElementById('pdf-modal-title').innerText = 'Erro';
+          alert('Erro ao carregar o contrato: ' + e.message);
+          document.getElementById('pdf-modal').style.display = 'none';
       }
   }
 
@@ -976,9 +986,8 @@
     imoveisVisiveis.forEach((c) => {
       const i = contratosDB.indexOf(c); const idReg = c.id || c._tempId; const isMarcado = contratosMarcados.has(String(idReg)) ? 'checked' : ''; const venc = getAvisoVencimento(c);
       
-      const btnPdf = c.contrato_url 
-          ? `<div onclick="abrirVisualizadorPdf('${c.contrato_url}', '${c.inquilino}')" class="row-pdf-btn"><div class="icon">📄</div><div class="thumb-label">VER</div></div>` 
-          : `<div class="row-pdf-btn vazio"><div class="icon">📄</div><div class="thumb-label">VAZIO</div></div>`;
+      // Botão otimizado que chama a função sob demanda
+      const btnPdf = `<div onclick="baixarEAbrirPdf('${idReg}', '${c.inquilino}')" class="row-pdf-btn"><div class="icon">📄</div><div class="thumb-label">VER</div></div>`;
           
       tbody.innerHTML += `
         <tr>
@@ -992,14 +1001,16 @@
   }
 
   // =======================================================
-  // AS FUNÇÕES DE BANCO DE DADOS RESTAURADAS
+  // BANCO DE DADOS (CARREGAMENTO LEVE E RÁPIDO)
   // =======================================================
   async function carregarImoveis(forceUI = true) {
     if (isLoadingImoveis) return; isLoadingImoveis = true;
     const tbody = document.getElementById('tabela-imoveis-linear-body');
     if (forceUI && tbody && contratosDB.length === 0) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">Sincronizando...</td></tr>';
     try {
-      const resp = await supabaseFetchWithRefresh('/rest/v1/locacoes?select=*&order=created_at.desc', { method: 'GET' });
+      // Exclui o campo 'contrato_url' da listagem inicial para acelerar drasticamente o carregamento
+      const colunas = 'id,created_at,user_email,proprietario,telefone_proprietario,pix_proprietario,titular_pix,inquilino,cpf_inquilino,email_inquilino,telefone_inquilino,endereco,data_inicio,data_fim,aluguel_base,condominio_base,taxa_adm_fixa,taxa_adm_pct,regra_condominio,pix_condominio,regra_seguro,ativo,reajuste_aplicado,historico_reajuste,lancamentos_mensais,status_cobranca,status_repasse';
+      const resp = await supabaseFetchWithRefresh(`/rest/v1/locacoes?select=${colunas}&order=created_at.desc`, { method: 'GET' });
       if (resp.ok) { contratosDB = await resp.json(); atualizarInterfaceGeral(); } else throw new Error("Erro na API.");
     } catch(e) { if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: red;">Falha de conexão: ${e.message}</td></tr>`; } 
     finally { isLoadingImoveis = false; }
@@ -1033,7 +1044,6 @@
 
     const s = getLocalSession(); let emailUser = 'chalfouncorretor@gmail.com'; if (s && s.user && s.user.email) emailUser = s.user.email;
 
-    // INTELIGÊNCIA DO TIPO DE REPASSE (PIX OU TED)
     let repasseTipo = document.getElementById('tipo_chave_repasse').value;
     let pixVal = "";
     if(repasseTipo === 'PIX') {
@@ -1047,7 +1057,6 @@
         pixVal = `TED|${b}|${ag}|${ct}|${tp}|${cpf}`;
     }
 
-    // INTELIGÊNCIA DE CÁLCULO PROPORCIONAL
     let lancamentosIniciais = {};
     let dataIn = document.getElementById('dataInicio').value;
     let alugBaseVal = parseMoedaToFloat(document.getElementById('aluguelBase').value);
@@ -1073,13 +1082,11 @@
             dCob.setMonth(dCob.getMonth() + 1); 
             let mCob = `${dCob.getFullYear()}-${String(dCob.getMonth() + 1).padStart(2, '0')}`;
 
-            // Regra Ouro: Aluguel é pós-pago (Proporcional anula o Cheio no 1º mês). Condomínio é pré-pago (Soma Proporcional + Mês).
-            // E o novo bloqueio inteligente: Se não existe base, também trava o proporcional em "Não".
             lancamentosIniciais[mCob] = {
                 aluguel_prop: vAlugPropStr,
                 aluguel_mes: "Não", 
                 cond_prop: vCondPropStr,
-                cond_mes: "" // O condomínio mês fica livre para a conta real que chegar no boleto
+                cond_mes: "" 
             };
         }
     }
@@ -1103,7 +1110,6 @@
         const dadosGravados = await r.json(); if (dadosGravados && dadosGravados.length > 0) payload.id = dadosGravados[0].id; else payload._tempId = Date.now();
         contratosDB.unshift(payload); atualizarInterfaceGeral(); alert('✓ Dados salvos com sucesso!');
         
-        // LIMPEZA GERAL DO ECRÃ DE NOVO CONTRATO
         document.querySelectorAll('#tab-resumo input, #tab-resumo select, #tab-resumo textarea').forEach(el => { 
             if(el.type !== 'file' && el.id !== 'filtro-mes') { el.value = ''; el.classList.remove('field-ok'); } 
         }); 
@@ -1130,7 +1136,7 @@
   }
 
   // =======================================================
-  // LIVRO-RAZÃO: TAXAS CONDOMINIAIS MENSAIS E RECORRÊNCIA EM TEMPO REAL
+  // LIVRO-RAZÃO: TAXAS CONDOMINIAIS MENSAIS E RECORRÊNCIA
   // =======================================================
   function getVariaveisMes(c, mesRef) {
       let lancamentos = {}; try { lancamentos = JSON.parse(c.lancamentos_mensais || '{}'); } catch(e){}
@@ -1159,7 +1165,6 @@
       if (!lancamentos[mesRef]) lancamentos[mesRef] = {};
       lancamentos[mesRef][field] = value;
 
-      // --- MOTOR DE RECORRÊNCIA EM TEMPO REAL ---
       const limpaFuturo = (baseField, descField) => {
           let [ano, mes] = mesRef.split('-');
           let dataFutura = new Date(parseInt(ano), parseInt(mes) - 1, 1);
@@ -1208,7 +1213,6 @@
           }
       };
 
-      // Cenário 1: Apagou o Valor Base (R$ 0,00)
       if ((field === 'outras_taxas' || field === 'desconto') && parseMoedaToFloat(value) === 0 && parseMoedaToFloat(valorAntigo) > 0) {
           const descField = field === 'outras_taxas' ? 'desc_outras' : 'desc_desconto';
           if (lancamentos[mesRef][descField]) {
@@ -1218,7 +1222,6 @@
               }
           }
       }
-      // Cenário 2: Escreveu ou Apagou a Descrição
       else if (field === 'desc_outras' || field === 'desc_desconto') {
           const baseField = field === 'desc_outras' ? 'outras_taxas' : 'desconto';
           const baseValue = lancamentos[mesRef][baseField];
@@ -1230,7 +1233,6 @@
               projetaFuturo(baseField, field, baseValue, value); 
           }
       }
-      // Cenário 3: Alterou apenas o valor de uma parcela já recorrente
       else if ((field === 'outras_taxas' || field === 'desconto') && parseMoedaToFloat(value) > 0 && parseMoedaToFloat(valorAntigo) !== parseMoedaToFloat(value)) {
            const descField = field === 'outras_taxas' ? 'desc_outras' : 'desc_desconto';
            if (lancamentos[mesRef][descField] && (lancamentos[mesRef][descField].includes('/') || lancamentos[mesRef][descField].toLowerCase().includes('fixo'))) {
@@ -1307,7 +1309,6 @@
       const btn = document.getElementById(`btn-asaas-${idReg}`);
       btn.innerText = 'Gerando...'; btn.disabled = true;
 
-      // 1. Capturar o recibo em imagem (Base64) ANTES de enviar para a Vercel
       const cardHtmlId = `img-cob-${idReg}`;
       const cardElement = document.getElementById(cardHtmlId);
       let imagemBase64 = "";
@@ -1325,12 +1326,12 @@
               body: JSON.stringify({ 
                   nomeInquilino: c.inquilino, 
                   cpfInquilino: c.cpf_inquilino, 
-                  emailInquilino: c.email_inquilino, // Novo campo para o Resend
+                  emailInquilino: c.email_inquilino,
                   valor: valorTotal, 
                   vencimento: dataVenc, 
                   descricao: `Aluguel M&IC - ${mesRef} - ${c.endereco}`, 
                   externalReference: `${c.id || c._tempId}||${mesRef}`,
-                  reciboBase64: imagemBase64 // Enviando a imagem empacotada
+                  reciboBase64: imagemBase64
               })
           });
           const data = await response.json();
