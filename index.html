@@ -647,13 +647,31 @@
   }
 
   async function doLogin() {
-    const email = document.getElementById('auth-email').value.trim(); const password = document.getElementById('auth-pass').value;
-    const status = document.getElementById('auth-status'); const btn = document.getElementById('btn-login');
-    status.style.display = 'block'; status.className = 'auth-msg loading'; status.innerText = 'Autenticando...'; btn.disabled = true;
+    const email = document.getElementById('auth-email').value.trim(); 
+    const password = document.getElementById('auth-pass').value;
+    const status = document.getElementById('auth-status'); 
+    const btn = document.getElementById('btn-login');
+    
+    status.style.display = 'block'; 
+    status.className = 'auth-msg loading'; 
+    status.innerText = 'Autenticando...'; 
+    btn.disabled = true;
+    
     try {
-      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/token?grant_type=password`, { 
+          method: 'POST', 
+          headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ email, password }) 
+      });
       const data = await resp.json();
-      if (!resp.ok) { status.className = 'auth-msg err'; status.innerText = 'Erro: ' + (data.error_description || data.message); btn.disabled = false; return; }
+      
+      if (!resp.ok) { 
+          const mensagemErro = data.error_description || data.msg || data.message || JSON.stringify(data);
+          status.className = 'auth-msg err'; 
+          status.innerText = 'Erro Supabase: ' + mensagemErro; 
+          btn.disabled = false; 
+          return; 
+      }
 
       // --- BARREIRA DE APROVAÇÃO ---
       const isMario = email.toLowerCase() === 'chalfouncorretor@gmail.com';
@@ -672,17 +690,24 @@
       }
 
       if (!isAprovado) {
-           status.className = 'auth-msg err'; status.innerHTML = '⚠️ Aguardando validação do acesso pelo administrador.';
+           status.className = 'auth-msg err'; 
+           status.innerHTML = '⚠️ Aguardando validação do acesso pelo administrador.';
            btn.disabled = false; 
            setLocalSession(null); 
            return;
       }
       // -----------------------------
 
-      status.className = 'auth-msg ok'; status.innerText = '✓ Senha correta!'; 
+      status.className = 'auth-msg ok'; 
+      status.innerText = '✓ Senha correta!'; 
       setLocalSession(data); 
       setTimeout(() => checkSession(), 300);
-    } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
+    } catch (err) { 
+        status.className = 'auth-msg err'; 
+        status.innerText = 'Falha de rede: ' + err.message; 
+    } finally { 
+        btn.disabled = false; 
+    }
   }
   
   async function doRegister() {
