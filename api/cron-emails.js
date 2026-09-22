@@ -84,7 +84,7 @@ export default async function handler(req, res) {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        from: 'M&IC Corretores <onboarding@resend.dev>', // Email de remetente obrigatório no plano gratuito
+                        from: 'M&IC Corretores de Imóveis <onboarding@resend.dev>', // Email de remetente obrigatório no plano gratuito
                         to: item.email_inquilino,
                         subject: assuntoEmail,
                         html: `
