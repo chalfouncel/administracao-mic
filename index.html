@@ -121,7 +121,7 @@
   <div class="auth-card" style="max-width: 380px;">
     <img src="/Loga%20marca%20nova.png" alt="M&IC Corretores" style="max-height:56px; margin-bottom:12px;" onerror="this.src='/Loga marca nova.png'">
     <h2 style="font-size:1.2rem; color:var(--primary); margin-bottom:18px;">GESTÃO DE LOCAÇÃO</h2>
-    <input type="email" id="auth-email" placeholder="E-mail" value="chalfouncorretor@gmail.com" style="margin-bottom:12px;">
+    <input type="email" id="auth-email" placeholder="E-mail" style="margin-bottom:12px;">
     <input type="password" id="auth-pass" placeholder="Senha" style="margin-bottom:16px;">
     <button type="button" class="btn btn-gold" id="btn-login" style="width:100%; margin-bottom:8px;">Entrar no Sistema</button>
     <button type="button" class="btn btn-dark" id="btn-register" style="width:100%;">Cadastrar</button>
@@ -661,11 +661,11 @@
 
       if (!isMario) {
           const resVerifica = await fetch(`${SUPABASE_BASE_URL}/rest/v1/usuarios_aprovados?email=eq.${encodeURIComponent(email)}`, {
-              method: 'GET', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}` }
+              method: 'GET', headers: { 'apikey': SUPABASE_KEY }
           });
           if (resVerifica.ok) {
               const dadosAprovacao = await resVerifica.json();
-              if (dadosAprovacao.length > 0 && dadosAprovacao[0].status === 'aprovado') {
+              if (dadosAprovacao.length > 0 && String(dadosAprovacao[0].status).trim().toLowerCase() === 'aprovado') {
                   isAprovado = true;
               }
           }
@@ -1791,7 +1791,7 @@
   document.getElementById('btn-baixar-pdf').addEventListener('click', () => {
       if(!lastGeneratedPdfBlob) return;
       const pdfUrl = URL.createObjectURL(lastGeneratedPdfBlob);
-      const a = document.createElement('a'); a.href = pdfUrl; a.download = `Relatorio_Gerencial_MIC.pdf`; a.click();
+      const a = document.createElement('a'); a.href = url; a.download = `Relatorio_Gerencial_MIC.pdf`; a.click();
   });
 
   document.getElementById('btn-share-pdf').addEventListener('click', async () => {
