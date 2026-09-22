@@ -711,22 +711,38 @@
   }
   
   async function doRegister() {
-    const email = document.getElementById('auth-email').value.trim(); const password = document.getElementById('auth-pass').value;
-    const status = document.getElementById('auth-status'); const btn = document.getElementById('btn-register');
-    status.style.display = 'block'; status.className = 'auth-msg loading'; status.innerText = 'Criando conta...'; btn.disabled = true;
+    const email = document.getElementById('auth-email').value.trim(); 
+    const password = document.getElementById('auth-pass').value;
+    const status = document.getElementById('auth-status'); 
+    const btn = document.getElementById('btn-register');
+    
+    status.style.display = 'block'; 
+    status.className = 'auth-msg loading'; 
+    status.innerText = 'Criando conta...'; 
+    btn.disabled = true;
+    
     try {
-      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/signup`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+      const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/signup`, { 
+          method: 'POST', 
+          headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ email, password }) 
+      });
       const data = await resp.json();
+      
       if (!resp.ok) { 
-          status.className = 'auth-msg err'; status.innerText = 'Erro: ' + data.message; 
+          const mensagemErro = data.error_description || data.msg || data.message || JSON.stringify(data);
+          status.className = 'auth-msg err'; 
+          status.innerText = 'Erro Cadastro: ' + mensagemErro; 
       } else { 
           await fetch(`${SUPABASE_BASE_URL}/rest/v1/usuarios_aprovados`, {
-              method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+              method: 'POST', 
+              headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
               body: JSON.stringify({ email: email, status: 'pendente' })
           });
 
           fetch('/api/solicitar-acesso', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email_solicitante: email })
           });
 
@@ -734,7 +750,12 @@
           status.className = 'auth-msg ok'; 
           status.innerHTML = '✓ Cadastro realizado!<br>Aguardando o administrador validar o acesso.';
       }
-    } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
+    } catch (err) { 
+        status.className = 'auth-msg err'; 
+        status.innerText = 'Falha de rede: ' + err.message; 
+    } finally { 
+        btn.disabled = false; 
+    }
   }
   
   function doLogout() { setLocalSession(null); checkSession(); }
