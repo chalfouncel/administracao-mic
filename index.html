@@ -1123,11 +1123,11 @@
   }
 
   // =======================================================
-  // ASAAS E WPP - COBRANÇA E CÓPIAS (TARIFA ATUALIZADA R$ 2,99)
+  // ASAAS E WPP - COBRANÇA E CÓPIAS E DISPARO DE EMAIL
   // =======================================================
   async function gerarCobrancaAsaas(idReg, valorTotalBase) {
       const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
-      if (!c.cpf_inquilino) { alert('Erro: Preencha o CPF do Inquilino na aba Imóveis.'); return; }
+      if (!c.cpf_inquilino || !c.email_inquilino) { alert('Erro: Preencha o CPF e o E-mail do Inquilino na aba Imóveis.'); return; }
 
       const valorTotal = valorTotalBase + 2.99; 
       const mesRef = document.getElementById('filtro-mes').value; 
@@ -1137,19 +1137,40 @@
       const btn = document.getElementById(`btn-asaas-${idReg}`);
       btn.innerText = 'Gerando...'; btn.disabled = true;
 
+      // 1. Capturar o recibo em imagem (Base64) ANTES de enviar para a Vercel
+      const cardHtmlId = `img-cob-${idReg}`;
+      const cardElement = document.getElementById(cardHtmlId);
+      let imagemBase64 = "";
+
+      try {
+          const canvas = await html2canvas(cardElement, { scale: 2, backgroundColor: "#ffffff" });
+          imagemBase64 = canvas.toDataURL('image/png');
+      } catch (err) {
+          console.error("Falha ao gerar imagem do recibo:", err);
+      }
+
       try {
           const response = await fetch('/api/asaas', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ nomeInquilino: c.inquilino, cpfInquilino: c.cpf_inquilino, valor: valorTotal, vencimento: dataVenc, descricao: `Aluguel M&IC - ${mesRef} - ${c.endereco}`, externalReference: `${c.id || c._tempId}||${mesRef}` })
+              body: JSON.stringify({ 
+                  nomeInquilino: c.inquilino, 
+                  cpfInquilino: c.cpf_inquilino, 
+                  emailInquilino: c.email_inquilino, // Novo campo para o Resend
+                  valor: valorTotal, 
+                  vencimento: dataVenc, 
+                  descricao: `Aluguel M&IC - ${mesRef} - ${c.endereco}`, 
+                  externalReference: `${c.id || c._tempId}||${mesRef}`,
+                  reciboBase64: imagemBase64 // Enviando a imagem empacotada
+              })
           });
           const data = await response.json();
 
-          if (!response.ok) { alert('Erro Asaas: ' + data.error); btn.innerText = '⚡ Gerar Link Asaas'; btn.disabled = false; } 
+          if (!response.ok) { alert('Erro Asaas/E-mail: ' + data.error); btn.innerText = '⚡ Gerar Link Asaas'; btn.disabled = false; } 
           else {
               let statusObj = {}; try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
               statusObj[`${mesRef}_url`] = data.urlFatura; statusObj[mesRef] = 'aguardando_asaas';
               await updateDbLinear(contratosDB.indexOf(c), 'status_cobranca', JSON.stringify(statusObj));
-              alert('✅ Fatura gerada! A tela ficará amarela aguardando pagamento.'); atualizarInterfaceGeral(); 
+              alert('✅ Fatura gerada no Asaas e e-mail agendado/enviado com sucesso!'); atualizarInterfaceGeral(); 
           }
       } catch(e) { alert('Erro: ' + e.message); btn.innerText = '⚡ Gerar Link Asaas'; btn.disabled = false; }
   }
@@ -1412,7 +1433,7 @@
 
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
            
-           <div style="margin-bottom: 12px;">${acaoHtml}</div>
+           <div style="margin:bottom: 12px;">${acaoHtml}</div>
            
            <div style="display: flex; gap: 8px;">
               <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.85rem;" onclick="copiarApenasImagem('${idCard}', this)">📸 Copiar Recibo</button>
@@ -1507,8 +1528,6 @@
       data.setMonth(data.getMonth() + 1);
       inputMes.value = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
       atualizarInterfaceGeral();
-      
-      document.querySelector('#relatorio-modal-msg').innerHTML = 'O seu Relatório Gerencial foi gerado com sucesso. O ciclo do mês foi encerrado e o sistema já avançou para a próxima competência.';
   }
 
   function gerarRelatorioPDF() {
