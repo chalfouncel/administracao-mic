@@ -562,14 +562,72 @@
     } return res;
   }
   
+  let globalFactorId = null;
+  let globalChallengeId = null;
+
   function checkSession() {
     const s = getLocalSession();
     if (s && s.user) {
-      document.getElementById('auth-modal').style.display = 'none'; document.getElementById('user-pill').style.display = 'flex';
-      document.getElementById('logged-user-email').innerText = s.user.email; carregarImoveis(); 
-    } else { document.getElementById('auth-modal').style.display = 'flex'; document.getElementById('user-pill').style.display = 'none'; }
+       document.getElementById('auth-modal').style.display = 'none';
+       
+       let aal2 = false;
+       try { const payload = JSON.parse(atob(s.access_token.split('.')[1])); aal2 = payload.aal === 'aal2'; } catch(e){}
+
+       if (aal2) {
+           document.getElementById('mfa-modal').style.display = 'none';
+           document.getElementById('user-pill').style.display = 'flex';
+           document.getElementById('logged-user-email').innerText = s.user.email;
+           carregarImoveis();
+       } else {
+           iniciarMFA(s.access_token);
+       }
+    } else { 
+       document.getElementById('auth-modal').style.display = 'flex'; 
+       document.getElementById('mfa-modal').style.display = 'none';
+       document.getElementById('user-pill').style.display = 'none'; 
+    }
   }
-  
+
+  async function iniciarMFA(token) {
+      try {
+          const res = await fetch(`${SUPABASE_BASE_URL}/auth/v1/user`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` } });
+          const userData = await res.json();
+          if (userData.error) { doLogout(); return; }
+
+          const factors = userData.factors || [];
+          const totpFactor = factors.find(f => f.factor_type === 'totp' && f.status === 'verified');
+
+          document.getElementById('auth-modal').style.display = 'none';
+          document.getElementById('mfa-modal').style.display = 'flex';
+          document.getElementById('btn-fechar-mfa').style.display = 'block';
+
+          if (!totpFactor) {
+              document.getElementById('mfa-instrucoes').innerText = "1º Acesso: Escaneie o QR Code no seu aplicativo Google Authenticator.";
+              const resF = await fetch(`${SUPABASE_BASE_URL}/auth/v1/factors`, {
+                  method: 'POST',
+                  headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ factor_type: 'totp', friendly_name: 'M&IC Corretores', issuer: 'adm.miccorretores.com.br' })
+              });
+              const dataF = await resF.json();
+              globalFactorId = dataF.id;
+              
+              document.getElementById('mfa-qr-container').style.display = 'block';
+              document.getElementById('mfa-qr-container').innerHTML = dataF.totp.qr_code;
+              globalChallengeId = null; 
+          } else {
+              document.getElementById('mfa-instrucoes').innerText = "Digite o código de 6 dígitos gerado no seu celular.";
+              document.getElementById('mfa-qr-container').style.display = 'none';
+              globalFactorId = totpFactor.id;
+
+              const resC = await fetch(`${SUPABASE_BASE_URL}/auth/v1/factors/${globalFactorId}/challenge`, {
+                  method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
+              });
+              const dataC = await resC.json();
+              globalChallengeId = dataC.id;
+          }
+      } catch (e) { alert('Erro na segurança: ' + e.message); doLogout(); }
+  }
+
   async function doLogin() {
     const email = document.getElementById('auth-email').value.trim(); const password = document.getElementById('auth-pass').value;
     const status = document.getElementById('auth-status'); const btn = document.getElementById('btn-login');
@@ -578,7 +636,11 @@
       const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
       const data = await resp.json();
       if (!resp.ok) { status.className = 'auth-msg err'; status.innerText = 'Erro: ' + (data.error_description || data.message); } 
-      else { status.className = 'auth-msg ok'; status.innerText = '✓ Sucesso!'; setLocalSession(data); setTimeout(() => checkSession(), 300); }
+      else { 
+          status.className = 'auth-msg ok'; status.innerText = '✓ Senha correta!'; 
+          setLocalSession(data); 
+          setTimeout(() => checkSession(), 300);
+      }
     } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
   }
   
@@ -590,7 +652,11 @@
       const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/signup`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
       const data = await resp.json();
       if (!resp.ok) { status.className = 'auth-msg err'; status.innerText = 'Erro: ' + data.message; } 
-      else { status.className = 'auth-msg ok'; status.innerText = '✓ Cadastro concluído!'; setLocalSession(data); setTimeout(() => checkSession(), 400); }
+      else { 
+          status.className = 'auth-msg ok'; status.innerText = '✓ Cadastro concluído!'; 
+          setLocalSession(data); 
+          setTimeout(() => checkSession(), 400); 
+      }
     } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
   }
   
@@ -600,6 +666,53 @@
     document.getElementById('btn-login').addEventListener('click', doLogin);
     document.getElementById('btn-register').addEventListener('click', doRegister);
     document.getElementById('btn-logout-action').addEventListener('click', doLogout);
+    
+    const btnValidarMfa = document.getElementById('btn-validar-mfa');
+    if(btnValidarMfa) {
+      btnValidarMfa.addEventListener('click', async () => {
+          const code = document.getElementById('mfa-codigo').value.trim();
+          if(code.length !== 6) return alert("Digite os 6 números do aplicativo.");
+
+          const btn = document.getElementById('btn-validar-mfa');
+          btn.innerText = "Validando..."; btn.disabled = true;
+
+          const s = getLocalSession();
+          if (!s) return doLogout();
+
+          try {
+              if (!globalChallengeId) {
+                  const resChal = await fetch(`${SUPABASE_BASE_URL}/auth/v1/factors/${globalFactorId}/challenge`, {
+                      method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}` }
+                  });
+                  const chalData = await resChal.json();
+                  globalChallengeId = chalData.id;
+              }
+
+              const resVerify = await fetch(`${SUPABASE_BASE_URL}/auth/v1/factors/${globalFactorId}/verify`, {
+                  method: 'POST',
+                  headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${s.access_token}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ challenge_id: globalChallengeId, code: code })
+              });
+
+              if (resVerify.ok) {
+                  const verifyData = await resVerify.json();
+                  if (verifyData.access_token) setLocalSession(verifyData); // Atualiza token para nível AAL2
+                  
+                  document.getElementById('mfa-codigo').value = '';
+                  btn.innerText = "Validar Código"; btn.disabled = false;
+                  
+                  checkSession(); // Re-avalia a segurança e libera a tela principal
+              } else {
+                  alert("❌ Código inválido. Tente novamente.");
+                  btn.innerText = "Validar Código"; btn.disabled = false;
+                  document.getElementById('mfa-codigo').value = '';
+              }
+          } catch (e) {
+              alert("Erro na validação: " + e.message);
+              btn.innerText = "Validar Código"; btn.disabled = false;
+          }
+      });
+    }
     
     const hoje = new Date(); let proxMes = hoje.getMonth() + 2; let anoVenc = hoje.getFullYear();
     if(proxMes > 12) { proxMes = 1; anoVenc++; }
