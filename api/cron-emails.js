@@ -1,10 +1,4 @@
 export default async function handler(req, res) {
-    // Segurança: Garantir que a Vercel chamou este Cron e não um curioso
-    const authHeader = req.headers.authorization;
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && process.env.NODE_ENV === 'production') {
-        return res.status(401).json({ error: 'Não autorizado' });
-    }
-
     const SUPABASE_KEY = process.env.SUPABASE_KEY;
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
     const ASAAS_API_KEY = process.env.ASAAS_API_KEY;
@@ -28,7 +22,7 @@ export default async function handler(req, res) {
 
         // 2. Analisar cada inquilino pendente
         for (const item of pendentes) {
-            // Verificar no Asaas se a fatura JÁ FOI PAGA (se sim, cancelamos os próximos envios)
+            // Verificar no Asaas se a fatura JÁ FOI PAGA
             const asaasRes = await fetch(`https://api.asaas.com/v3/payments?externalReference=${item.locacao_id}||${item.mes_ref}`, {
                 headers: { 'access_token': ASAAS_API_KEY }
             });
@@ -43,7 +37,7 @@ export default async function handler(req, res) {
                         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ status_disparo_1: true, status_disparo_2: true, status_disparo_3: true })
                     });
-                    continue; // Pula para o próximo inquilino
+                    continue; 
                 }
             }
 
@@ -59,17 +53,14 @@ export default async function handler(req, res) {
 
             // Lógica dos 3 Momentos:
             if (item.status_disparo_1 === false) {
-                // Momento 1: Acabou de ser gerado (Primeiro aviso)
                 deveEnviar = true;
                 campoAtualizar = 'status_disparo_1';
                 assuntoEmail = 'Sua nova cobrança de aluguel já está disponível - M&IC';
             } else if (diffDias === 2 && item.status_disparo_2 === false) {
-                // Momento 2: Faltam 2 dias
                 deveEnviar = true;
                 campoAtualizar = 'status_disparo_2';
                 assuntoEmail = 'Lembrete: O seu aluguel vence em 2 dias - M&IC';
             } else if (diffDias === 0 && item.status_disparo_3 === false) {
-                // Momento 3: É hoje!
                 deveEnviar = true;
                 campoAtualizar = 'status_disparo_3';
                 assuntoEmail = 'Aviso de Vencimento: O seu aluguel vence HOJE - M&IC';
@@ -81,7 +72,7 @@ export default async function handler(req, res) {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        from: 'M&IC Corretores <onboarding@resend.dev>', // Restrição da Resend Gratuita
+                        from: 'M&IC Corretores <onboarding@resend.dev>', 
                         to: item.email_inquilino,
                         subject: assuntoEmail,
                         html: `
@@ -100,7 +91,6 @@ export default async function handler(req, res) {
                 });
 
                 if (resendRes.ok) {
-                    // Atualiza o banco para não enviar repetido
                     await fetch(`https://dgadztmmarvbjcouvrnp.supabase.co/rest/v1/disparos_email?id=eq.${item.id}`, {
                         method: 'PATCH',
                         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
