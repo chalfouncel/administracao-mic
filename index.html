@@ -635,12 +635,35 @@
     try {
       const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
       const data = await resp.json();
-      if (!resp.ok) { status.className = 'auth-msg err'; status.innerText = 'Erro: ' + (data.error_description || data.message); } 
-      else { 
-          status.className = 'auth-msg ok'; status.innerText = '✓ Senha correta!'; 
-          setLocalSession(data); 
-          setTimeout(() => checkSession(), 300);
+      if (!resp.ok) { status.className = 'auth-msg err'; status.innerText = 'Erro: ' + (data.error_description || data.message); btn.disabled = false; return; }
+
+      // --- BARREIRA DE APROVAÇÃO ---
+      const isMario = email.toLowerCase() === 'chalfouncorretor@gmail.com';
+      let isAprovado = isMario; // Mário tem aprovação garantida
+
+      if (!isMario) {
+          const resVerifica = await fetch(`${SUPABASE_BASE_URL}/rest/v1/usuarios_aprovados?email=eq.${encodeURIComponent(email)}`, {
+              method: 'GET', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}` }
+          });
+          if (resVerifica.ok) {
+              const dadosAprovacao = await resVerifica.json();
+              if (dadosAprovacao.length > 0 && dadosAprovacao[0].status === 'aprovado') {
+                  isAprovado = true;
+              }
+          }
       }
+
+      if (!isAprovado) {
+           status.className = 'auth-msg err'; status.innerHTML = '⚠️ Aguardando validação do acesso pelo administrador.';
+           btn.disabled = false; 
+           setLocalSession(null); // Evita sessão fantasma
+           return;
+      }
+      // -----------------------------
+
+      status.className = 'auth-msg ok'; status.innerText = '✓ Senha correta!'; 
+      setLocalSession(data); 
+      setTimeout(() => checkSession(), 300);
     } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
   }
   
@@ -651,11 +674,25 @@
     try {
       const resp = await fetch(`${SUPABASE_BASE_URL}/auth/v1/signup`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
       const data = await resp.json();
-      if (!resp.ok) { status.className = 'auth-msg err'; status.innerText = 'Erro: ' + data.message; } 
-      else { 
-          status.className = 'auth-msg ok'; status.innerText = '✓ Cadastro concluído!'; 
-          setLocalSession(data); 
-          setTimeout(() => checkSession(), 400); 
+      if (!resp.ok) { 
+          status.className = 'auth-msg err'; status.innerText = 'Erro: ' + data.message; 
+      } else { 
+          // 1. Registra na tabela de controle como "pendente"
+          await fetch(`${SUPABASE_BASE_URL}/rest/v1/usuarios_aprovados`, {
+              method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+              body: JSON.stringify({ email: email, status: 'pendente' })
+          });
+
+          // 2. Dispara e-mail alertando Mário
+          fetch('/api/solicitar-acesso', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email_solicitante: email })
+          });
+
+          // 3. Interrompe a entrada automática, barra a sessão e exibe a mensagem de espera
+          setLocalSession(null); 
+          status.className = 'auth-msg ok'; 
+          status.innerHTML = '✓ Cadastro realizado!<br>Aguardando o administrador validar o acesso.';
       }
     } catch (err) { status.className = 'auth-msg err'; status.innerText = 'Falha: ' + err.message; } finally { btn.disabled = false; }
   }
