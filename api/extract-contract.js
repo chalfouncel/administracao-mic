@@ -5,11 +5,12 @@ export default async function handler(req, res) {
     });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const admOpenApiKey = process.env.ADM_OPEN_API_KEY;
 
-  if (!apiKey) {
+  if (!geminiApiKey && !admOpenApiKey) {
     return res.status(500).json({
-      error: 'GEMINI_API_KEY não configurada na Vercel.'
+      error: 'Configure GEMINI_API_KEY ou ADM_OPEN_API_KEY nas variáveis de ambiente da Vercel.'
     });
   }
 
@@ -43,10 +44,10 @@ export default async function handler(req, res) {
 
     /*
      * ============================================================
-     * 2. PROMPT PARA O GEMINI
+     * 2. PROMPT PARA A IA
      * ============================================================
      *
-     * O Gemini deve fazer SOMENTE a extração.
+     * A IA deve fazer SOMENTE a extração.
      *
      * É importante deixar claro que:
      * - LOCADOR(A) corresponde ao proprietário
@@ -159,109 +160,158 @@ ${texto}
 
     /*
      * ============================================================
-     * 3. CHAMADA À API GEMINI
+     * 3. CHAMADA À IA (Gemini principal → OpenRouter fallback)
      * ============================================================
      */
 
-    const url =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' +
-      encodeURIComponent(apiKey);
+    let rawText = '';
+    const erros = [];
 
-    const response = await fetch(url, {
-      method: 'POST',
+    // --------- PROVEDOR 1: GEMINI (schema estruturado garante JSON) ---------
+    if (geminiApiKey) {
+      try {
+        const url =
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' +
+          encodeURIComponent(geminiApiKey);
 
-      headers: {
-        'Content-Type': 'application/json'
-      },
+        const response = await fetch(url, {
+          method: 'POST',
 
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
+          headers: {
+            'Content-Type': 'application/json'
+          },
+
+          body: JSON.stringify({
+            contents: [
               {
-                text: prompt
+                parts: [
+                  {
+                    text: prompt
+                  }
+                ]
               }
-            ]
-          }
-        ],
+            ],
 
-        generationConfig: {
-          temperature: 0,
+            generationConfig: {
+              temperature: 0,
 
-          responseMimeType: 'application/json',
+              responseMimeType: 'application/json',
 
-          responseSchema: {
-            type: 'OBJECT',
+              responseSchema: {
+                type: 'OBJECT',
 
-            properties: {
-              proprietario: {
-                type: 'STRING'
-              },
+                properties: {
+                  proprietario: {
+                    type: 'STRING'
+                  },
 
-              inquilino: {
-                type: 'STRING'
-              },
+                  inquilino: {
+                    type: 'STRING'
+                  },
 
-              endereco: {
-                type: 'STRING'
-              },
+                  endereco: {
+                    type: 'STRING'
+                  },
 
-              data_inicio: {
-                type: 'STRING'
-              },
+                  data_inicio: {
+                    type: 'STRING'
+                  },
 
-              data_fim: {
-                type: 'STRING'
-              },
+                  data_fim: {
+                    type: 'STRING'
+                  },
 
-              valor_aluguel: {
-                type: 'NUMBER'
+                  valor_aluguel: {
+                    type: 'NUMBER'
+                  }
+                },
+
+                required: [
+                  'proprietario',
+                  'inquilino',
+                  'endereco',
+                  'data_inicio',
+                  'data_fim',
+                  'valor_aluguel'
+                ]
               }
-            },
+            }
+          })
+        });
 
-            required: [
-              'proprietario',
-              'inquilino',
-              'endereco',
-              'data_inicio',
-              'data_fim',
-              'valor_aluguel'
-            ]
-          }
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data?.error?.message || 'Erro ao consultar a API do Gemini.');
         }
-      })
-    });
 
-    /*
-     * ============================================================
-     * 4. VERIFICAÇÃO DA RESPOSTA DA API
-     * ============================================================
-     */
+        rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('Erro Gemini:', data);
-
-      return res.status(response.status).json({
-        error:
-          data?.error?.message ||
-          'Erro ao consultar a API do Gemini.'
-      });
+        if (!rawText) {
+          throw new Error('O Gemini não retornou dados para o contrato.');
+        }
+      } catch (err) {
+        erros.push('Gemini: ' + err.message);
+        rawText = '';
+      }
     }
 
-    let rawText =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    // --------- PROVEDOR 2: OPENROUTER (fallback — GPT-4o-mini) ---------
+    if (!rawText && admOpenApiKey) {
+      try {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${admOpenApiKey}`,
+            'HTTP-Referer': 'https://adm.miccorretores.com.br',
+            'X-Title': 'M&IC Extract Contract'
+          },
+          body: JSON.stringify({
+            model: 'openai/gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: 'Você é um sistema de extração de dados de contratos de locação. Responda APENAS com JSON válido, sem explicações, sem markdown, sem blocos de código.'
+              },
+              {
+                role: 'user',
+                content: prompt
+              }
+            ],
+            temperature: 0,
+            max_tokens: 1024,
+            response_format: { type: 'json_object' }
+          })
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`OpenRouter HTTP ${response.status}: ${errText}`);
+        }
+
+        const data = await response.json();
+        rawText = data?.choices?.[0]?.message?.content || '';
+
+        if (!rawText) {
+          throw new Error('O OpenRouter não retornou dados para o contrato.');
+        }
+      } catch (err) {
+        erros.push('OpenRouter: ' + err.message);
+        rawText = '';
+      }
+    }
 
     if (!rawText) {
       return res.status(500).json({
-        error: 'O Gemini não retornou dados para o contrato.'
+        error: 'Nenhum provedor de IA respondeu para o contrato.',
+        details: erros
       });
     }
 
     /*
      * ============================================================
-     * 5. LIMPEZA DA RESPOSTA
+     * 4. LIMPEZA DA RESPOSTA
      * ============================================================
      */
 
@@ -275,31 +325,31 @@ ${texto}
     try {
       resultadoIA = JSON.parse(rawText);
     } catch (parseError) {
-      console.error('Resposta inválida do Gemini:', rawText);
+      console.error('Resposta inválida da IA:', rawText);
 
       return res.status(500).json({
-        error: 'O Gemini retornou um JSON inválido.',
+        error: 'A IA retornou um JSON inválido.',
         raw: rawText
       });
     }
 
     /*
      * ============================================================
-     * 6. FUNÇÕES DE NORMALIZAÇÃO
+     * 5. FUNÇÕES DE NORMALIZAÇÃO
      * ============================================================
      */
 
     const limparNome = (valor) => {
       return String(valor || '')
-        .replace(/^LOCADOR\s*\(?A?\)?\s*:\s*/i, '')
-        .replace(/^LOCATÁRIO\s*\(?A?\)?\s*:\s*/i, '')
+        .replace(/^LOCADOR\s*\(?\s*A?\s*\)?\s*:\s*/i, '')
+        .replace(/^LOCAT[ÁA]RIO\s*\(?\s*A?\s*\)?\s*:\s*/i, '')
         .replace(/\s+/g, ' ')
         .trim();
     };
 
     const limparEndereco = (valor) => {
       return String(valor || '')
-        .replace(/^IMÓVEL\s*:\s*/i, '')
+        .replace(/^IM[ÓO]VEL\s*:\s*/i, '')
         .replace(/\s+/g, ' ')
         .trim();
     };
@@ -312,7 +362,7 @@ ${texto}
       }
 
       /*
-       * Caso o Gemini retorne DD/MM/AAAA
+       * Caso retorne DD/MM/AAAA
        */
       let match = data.match(
         /^(\d{2})\/(\d{2})\/(\d{4})$/
@@ -394,7 +444,7 @@ ${texto}
 
     /*
      * ============================================================
-     * 7. RESULTADO NORMALIZADO
+     * 6. RESULTADO NORMALIZADO
      * ============================================================
      */
 
@@ -426,7 +476,7 @@ ${texto}
 
     /*
      * ============================================================
-     * 8. RETORNO
+     * 7. RETORNO
      * ============================================================
      */
 
