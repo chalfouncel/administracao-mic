@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     const origin = req.headers.origin || req.headers.referer || '';
     
     // IMPORTANTE: Substitua 'seusite.vercel.app' pelo link real da sua aplicação na Vercel
-    if (!origin.includes("seusite.vercel.app") && !origin.includes("localhost")) {
+    if (!origin.includes("adm.miccorretores.com.br") && !origin.includes("localhost")) {
         return res.status(403).json({ error: "Acesso não autorizado. Tentativa bloqueada." });
     }
 
