@@ -741,55 +741,59 @@
     if (!file) return;
     const reader = new FileReader();
     reader.onload = async (e) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
 
-      const lotes = [];
-      for (let i = 1; i < rows.length; i++) {
-        const r = rows[i];
-        if (!r || !r[3]) continue;
-        
-        // Mapeamento correto das colunas originais do Excel para garantir fidelidade total
-        let valOpcaoExcel = r[17] ? String(r[17]).trim().toUpperCase() : 'NÃO';
-        if (valOpcaoExcel !== 'SIM') valOpcaoExcel = 'NÃO';
-        let valTaxaExcel = parseFloat(r[18]) || 0;
+        const lotes = [];
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i];
+          if (!r || !r[3]) continue;
+          
+          let valOpcaoExcel = r[17] ? String(r[17]).trim().toUpperCase() : 'NÃO';
+          if (valOpcaoExcel !== 'SIM') valOpcaoExcel = 'NÃO';
+          let valTaxaExcel = parseFloat(r[18]) || 0;
 
-        const item = calcularFórmulas({
-          ano: parseInt(r[1]) || new Date().getFullYear(),
-          mes: r[2] || '',
-          nome: r[3] || '',
-          situacao: r[4] || 'OUTROS',
-          unidade: r[5] || '',
-          valor: parseFloat(r[6]) || 0,
-          corretor: r[7] || 'Mario',
-          faturada: r[9] || 'NÃO',
-          premio: parseFloat(r[10]) || 0,
-          comissao: parseFloat(r[11]) || 0,
-          recebido: r[14] || 'NÃO',
-          valor_recebido: parseFloat(r[16]) || 0,
-          opcao: valOpcaoExcel,
-          taxa_mensal: valTaxaExcel,
-          obs: r[19] || ''
-        });
-        lotes.push(item);
-      }
+          const itemBase = {
+            ano: parseInt(r[1]) || new Date().getFullYear(),
+            mes: r[2] || '',
+            nome: r[3] || '',
+            situacao: r[4] || 'OUTROS',
+            unidade: r[5] || '',
+            valor: parseFloat(r[6]) || 0,
+            corretor: r[7] || 'Mario',
+            faturada: r[9] || 'NÃO',
+            premio: parseFloat(r[10]) || 0,
+            comissao: parseFloat(r[11]) || 0,
+            recebido: r[14] || 'NÃO',
+            valor_recebido: parseFloat(r[16]) || 0,
+            opcao: valOpcaoExcel,
+            taxa_mensal: valTaxaExcel,
+            obs: r[19] || ''
+          };
 
-      if (lotes.length > 0 && confirm(`Deseja substituir a base atual por essas ${lotes.length} linhas da planilha lendo fielmente os dados originais?`)) {
-        await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao?id=gt.0`, {
-          method: 'DELETE',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-        });
+          lotes.push(calcularFórmulas(itemBase));
+        }
 
-        await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao`, {
-          method: 'POST',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(lotes)
-        });
+        if (lotes.length > 0 && confirm(`Deseja substituir a base atual por essas ${lotes.length} linhas da planilha mantendo os valores originais?`)) {
+          await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao?id=gt.0`, {
+            method: 'DELETE',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+          });
 
-        alert('✅ Importação concluída com sucesso!');
-        carregarDados();
+          await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao`, {
+            method: 'POST',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(lotes)
+          });
+
+          alert('✅ Importação concluída com sucesso!');
+          carregarDados();
+        }
+      } catch (err) {
+        alert('Erro ao processar o arquivo: ' + err.message);
       }
       evt.target.value = '';
     };
