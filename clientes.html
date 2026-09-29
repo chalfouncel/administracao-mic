@@ -48,7 +48,10 @@
 
   .table-container { width: 100%; max-height: 72vh; overflow-y: auto; overflow-x: hidden; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
   table.table-compact { width: 100%; border-collapse: collapse; font-size: 0.73rem; table-layout: fixed; }
-  table.table-compact th { background: #000; color: #fff; padding: 8px 3px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.69rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  table.table-compact th { background: #000; color: #fff; padding: 6px 3px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.69rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  table.table-compact th.th-filtro { background: #1a1c20; padding: 4px 2px; position: sticky; top: 28px; z-index: 10; }
+  table.table-compact th.th-filtro input, table.table-compact th.th-filtro select { width: 100%; padding: 2px 3px; font-size: 0.66rem; background: #fff; border: 1px solid #475569; border-radius: 3px; color: #1e293b; }
+  
   table.table-compact td { padding: 4px 2px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.72rem; }
   table.table-compact tr:hover { background: #f8fafc; }
   
@@ -193,28 +196,10 @@
       </form>
     </div>
 
-    <!-- BARRA DE FILTROS AVANÇADOS DO HISTÓRICO -->
     <div class="card">
       <div class="card-title">
         <span>Histórico de Lançamentos (Planilha Viva - Edição Direta)</span>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <select id="filtro-ano" style="width: 100px; padding: 4px; font-size: 0.78rem;" onchange="filtrarTabela()">
-            <option value="TODOS">Ano: Todos</option>
-          </select>
-          <select id="filtro-mes-hist" style="width: 110px; padding: 4px; font-size: 0.78rem;" onchange="filtrarTabela()">
-            <option value="TODOS">Mês: Todos</option>
-            <option value="Janeiro">Janeiro</option><option value="Fevereiro">Fevereiro</option><option value="Março">Março</option>
-            <option value="Abril">Abril</option><option value="Maio">Maio</option><option value="Junho">Junho</option>
-            <option value="Julho">Julho</option><option value="Agosto">Agosto</option><option value="Setembro">Setembro</option>
-            <option value="Outubro">Outubro</option><option value="Novembro">Novembro</option><option value="Dezembro">Dezembro</option>
-          </select>
-          <select id="filtro-rec" style="width: 110px; padding: 4px; font-size: 0.78rem;" onchange="filtrarTabela()">
-            <option value="TODOS">Rec.: Todos</option>
-            <option value="SIM">Rec: SIM</option>
-            <option value="NÃO">Rec: NÃO</option>
-          </select>
-          <input type="text" id="filtro-busca" placeholder="🔍 Pesquisar por nome..." style="width: 180px; padding: 4px 8px; font-size: 0.78rem;" oninput="filtrarTabela()">
-        </div>
+        <button class="btn btn-dark" style="font-size:0.75rem; padding:4px 8px;" onclick="limparFiltrosTabela()">🔄 Limpar Filtros</button>
       </div>
       
       <div class="table-container">
@@ -238,6 +223,63 @@
               <th class="col-liq">Líquido</th>
               <th class="col-opc">Opção</th>
               <th class="col-tax">Taxa Mês</th>
+            </tr>
+            <!-- LINHA DE FILTROS INDIVIDUAIS POR COLUNA -->
+            <tr style="background: #1a1c20;">
+              <th class="th-filtro"></th>
+              <th class="th-filtro"></th>
+              <th class="th-filtro"><input type="text" id="f-ano" placeholder="Filtrar" oninput="filtrarTabela()"></th>
+              <th class="th-filtro"><input type="text" id="f-mes" placeholder="Filtrar" oninput="filtrarTabela()"></th>
+              <th class="th-filtro"><input type="text" id="f-nome" placeholder="Filtrar..." oninput="filtrarTabela()"></th>
+              <th class="th-filtro">
+                <select id="f-sit" onchange="filtrarTabela()">
+                  <option value="">Todas</option>
+                  <option value="VENDA">Venda</option>
+                  <option value="ALUGUEL">Aluguel</option>
+                  <option value="CRÉDITO">Crédito</option>
+                  <option value="REGISTRO">Registro</option>
+                  <option value="LEILÃO">Leilão</option>
+                  <option value="CONTRATO">Contrato</option>
+                  <option value="ASS. DIGITAL">Ass. Digital</option>
+                </select>
+              </th>
+              <th class="th-filtro"><input type="text" id="f-un" placeholder="Filtrar" oninput="filtrarTabela()"></th>
+              <th class="th-filtro"></th>
+              <th class="th-filtro">
+                <select id="f-cor" onchange="filtrarTabela()">
+                  <option value="">Todos</option>
+                  <option value="Mario">Mario</option>
+                  <option value="Cris">Cris</option>
+                  <option value="Gerente">Gerente</option>
+                  <option value="Fábio">Fábio</option>
+                </select>
+              </th>
+              <th class="th-filtro">
+                <select id="f-fat" onchange="filtrarTabela()">
+                  <option value="">Todos</option>
+                  <option value="SIM">SIM</option>
+                  <option value="NÃO">NÃO</option>
+                </select>
+              </th>
+              <th class="th-filtro"></th>
+              <th class="th-filtro"></th>
+              <th class="th-filtro"></th>
+              <th class="th-filtro">
+                <select id="f-rec" onchange="filtrarTabela()">
+                  <option value="">Todos</option>
+                  <option value="SIM">SIM</option>
+                  <option value="NÃO">NÃO</option>
+                </select>
+              </th>
+              <th class="th-filtro"></th>
+              <th class="th-filtro">
+                <select id="f-opc" onchange="filtrarTabela()">
+                  <option value="">Todos</option>
+                  <option value="SIM">SIM</option>
+                  <option value="NÃO">NÃO</option>
+                </select>
+              </th>
+              <th class="th-filtro"></th>
             </tr>
           </thead>
           <tbody id="tabela-corpo">
@@ -364,13 +406,6 @@
     document.getElementById('inp-taxa').value = '0';
   }
 
-  function popularFiltroAnosHist(anos) {
-    const sel = document.getElementById('filtro-ano');
-    const valAtual = sel.value;
-    sel.innerHTML = `<option value="TODOS">Ano: Todos</option>` + 
-      anos.map(a => `<option value="${a}" ${valAtual == a ? 'selected' : ''}>${a}</option>`).join('');
-  }
-
   function calcularFórmulas(item) {
     const nome = (item.nome || '').trim();
     const situacao = (item.situacao || '').trim();
@@ -467,10 +502,6 @@
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       dadosDB = await res.json();
-      
-      const anos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean).sort((a,b) => b - a);
-      popularFiltroAnosHist(anos);
-
       filtrarTabela();
       montarSlicers();
       if (document.getElementById('page-mapa').classList.contains('active')) renderizarMapa();
@@ -485,7 +516,7 @@
     let vol = 0, com = 0, liq = 0;
 
     if (!dados || dados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center; padding:16px;">Nenhum registro encontrado com esses filtros.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center; padding:16px;">Nenhum registro encontrado com estes filtros.</td></tr>';
       document.getElementById('stat-total').innerText = 0;
       document.getElementById('stat-volume').innerText = fmt(0);
       document.getElementById('stat-comissao').innerText = fmt(0);
@@ -586,6 +617,46 @@
     document.getElementById('stat-liquido').innerText = fmt(liq);
   }
 
+  function filtrarTabela() {
+    const fAno = document.getElementById('f-ano').value.trim().toLowerCase();
+    const fMes = document.getElementById('f-mes').value.trim().toLowerCase();
+    const fNome = document.getElementById('f-nome').value.trim().toLowerCase();
+    const fSit = document.getElementById('f-sit').value;
+    const fUn = document.getElementById('f-un').value.trim().toLowerCase();
+    const fCor = document.getElementById('f-cor').value;
+    const fFat = document.getElementById('f-fat').value;
+    const fRec = document.getElementById('f-rec').value;
+    const fOpc = document.getElementById('f-opc').value;
+
+    const filtrados = dadosDB.filter(d => {
+      if (fAno && !String(d.ano).toLowerCase().includes(fAno)) return false;
+      if (fMes && !String(d.mes || '').toLowerCase().includes(fMes)) return false;
+      if (fNome && !String(d.nome || '').toLowerCase().includes(fNome)) return false;
+      if (fSit && String(d.situacao || '').toUpperCase() !== fSit) return false;
+      if (fUn && !String(d.unidade || '').toLowerCase().includes(fUn)) return false;
+      if (fCor && String(d.corretor || '') !== fCor) return false;
+      if (fFat && String(d.faturada || '').toUpperCase() !== fFat) return false;
+      if (fRec && String(d.recebido || '').toUpperCase() !== fRec) return false;
+      if (fOpc && String(d.opcao || '').toUpperCase() !== fOpc) return false;
+      return true;
+    });
+
+    renderizarTabela(filtrados);
+  }
+
+  function limparFiltrosTabela() {
+    document.getElementById('f-ano').value = '';
+    document.getElementById('f-mes').value = '';
+    document.getElementById('f-nome').value = '';
+    document.getElementById('f-sit').value = '';
+    document.getElementById('f-un').value = '';
+    document.getElementById('f-cor').value = '';
+    document.getElementById('f-fat').value = '';
+    document.getElementById('f-rec').value = '';
+    document.getElementById('f-opc').value = '';
+    renderizarTabela(dadosDB);
+  }
+
   async function atualizarItemDireto(id, campo, valorNovo) {
     const idx = dadosDB.findIndex(x => x.id === id);
     if (idx === -1) return;
@@ -606,28 +677,6 @@
     } catch(err) {
       console.error("Falha ao sincronizar alteração com o Supabase:", err);
     }
-  }
-
-  function filtrarTabela() {
-    const fAno = document.getElementById('filtro-ano').value;
-    const fMes = document.getElementById('filtro-mes-hist').value;
-    const fRec = document.getElementById('filtro-rec').value;
-    const q = document.getElementById('filtro-busca').value.toLowerCase();
-
-    const filtrados = dadosDB.filter(d => {
-      const matchAno = (fAno === 'TODOS') || (d.ano == fAno);
-      const matchMes = (fMes === 'TODOS') || (String(d.mes || '').toLowerCase() === String(fMes).toLowerCase());
-      const matchRec = (fRec === 'TODOS') || (String(d.recebido || '').toUpperCase() === fRec);
-      const matchTexto = !q || 
-        (d.nome && d.nome.toLowerCase().includes(q)) ||
-        (d.corretor && d.corretor.toLowerCase().includes(q)) ||
-        (d.unidade && d.unidade.toLowerCase().includes(q)) ||
-        (d.situacao && d.situacao.toLowerCase().includes(q));
-
-      return matchAno && matchMes && matchRec && matchTexto;
-    });
-
-    renderizarTabela(filtrados);
   }
 
   async function salvarLinha(e) {
@@ -720,7 +769,7 @@
         lotes.push(item);
       }
 
-      if (lotes.length > 0 && confirm(`Deseja substituir a base atual por essas ${lotes.length} linhas lendo a Opção (Col. R) e a Taxa Mensal (Col. S) do Excel?`)) {
+      if (lotes.length > 0 && confirm(`Deseja substituir a base atual por essas ${lotes.length} linhas da planilha? Os dados anteriores serão limpos para não duplicar.`)) {
         await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao?id=gt.0`, {
           method: 'DELETE',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
