@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
-  :root { --primary: #121315; --secondary: #1a1c20; --accent: #c59b27; --gold: #d4af37; --border: #e2e8f0; --bg: #f4f6f9; --card: #ffffff; --text: #1e293b; --success: #16a34a; --danger: #dc2626; }
+  :root { --primary: #121315; --secondary: #1a1c20; --accent: #c59b27; --gold: #d4af37; --border: #cbd5e1; --bg: #f4f6f9; --card: #ffffff; --text: #1e293b; --success: #16a34a; --danger: #dc2626; }
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   body { background: var(--bg); color: var(--text); padding-bottom: 40px; overflow-x: hidden; }
 
@@ -18,17 +18,23 @@
   header h1 { font-size: 1.1rem; color: var(--gold); font-weight: 700; }
   header p { font-size: 0.74rem; color: #cfd4dc; }
   
-  .container { max-width: 99%; margin: 16px auto; padding: 0 10px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+  .container { max-width: 99%; margin: 14px auto; padding: 0 10px; }
+
+  /* ABAS SUPERIORES */
+  .main-tabs { display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 2px solid var(--border); padding-bottom: 4px; }
+  .tab-nav-btn { background: #fff; border: 1px solid var(--border); border-radius: 8px 8px 0 0; padding: 10px 18px; font-size: 0.88rem; font-weight: 700; color: #64748b; cursor: pointer; transition: 0.2s; }
+  .tab-nav-btn.active { background: var(--secondary); color: var(--gold); border-color: var(--secondary); border-bottom: 2px solid var(--accent); }
+  .tab-page { display: none; }
+  .tab-page.active { display: block; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
   .card-title { font-size: 0.95rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
-  .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 10px; }
   label { display: block; font-size: 0.68rem; font-weight: 700; color: #475569; margin-bottom: 3px; text-transform: uppercase; }
   input, select, textarea { width: 100%; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 0.82rem; outline: none; }
   input:focus, select:focus { border-color: var(--accent); }
   .read-only-field { background-color: #f8fafc; font-weight: bold; color: #334155; }
-
-  /* FORMATAÇÃO CONDICIONAL NO FORMULÁRIO (CAMPO PRETO/BLOQUEADO) */
   .input-bloqueado { background-color: #121315 !important; border-color: #000 !important; color: #121315 !important; cursor: not-allowed; }
 
   .btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; border: none; transition: 0.15s; font-size: 0.8rem; }
@@ -41,18 +47,15 @@
   .stat-card span { font-size: 0.68rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
   .stat-card h3 { font-size: 1.15rem; color: var(--primary); margin-top: 2px; }
 
-  /* TABELA COMPACTA HORIZONTAL */
+  /* TABELA COMPACTA CLIENTES */
   .table-container { width: 100%; max-height: 72vh; overflow-y: auto; overflow-x: hidden; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
   table.table-compact { width: 100%; border-collapse: collapse; font-size: 0.73rem; table-layout: fixed; }
-  table.table-compact th { background: #000; color: #fff; padding: 8px 3px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.69rem; letter-spacing: -0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  table.table-compact th { background: #000; color: #fff; padding: 8px 3px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.69rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   table.table-compact td { padding: 6px 3px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.72rem; }
   table.table-compact tr:hover { background: #f8fafc; }
+  td.celula-bloqueada { background-color: #121315 !important; color: #121315 !important; text-align: center !important; }
+  td.celula-bloqueada::after { content: "—"; color: #334155; }
 
-  /* FORMATAÇÃO CONDICIONAL NA TABELA (FUNDO PRETO) */
-  td.celula-bloqueada { background-color: #121315 !important; color: #121315 !important; border-color: #1e293b; user-select: none; text-align: center !important; }
-  td.celula-bloqueada::after { content: "—"; color: #334155; font-size: 0.7rem; }
-
-  /* LARGURAS ESPECÍFICAS DAS COLUNAS */
   .col-del { width: 30px; text-align: center; }
   .col-id { width: 34px; text-align: center; font-weight: bold; }
   .col-ano { width: 40px; text-align: center; }
@@ -71,6 +74,25 @@
   .col-liq { width: 85px; text-align: right; font-weight: bold; color: var(--success); }
   .col-opc { width: 42px; text-align: center; }
   .col-tax { width: 65px; text-align: right; }
+
+  /* ESTILOS EXCLUSIVOS DO MAPA FINANCEIRO */
+  .mapa-layout { display: grid; grid-template-columns: 140px 1fr; gap: 14px; align-items: start; }
+  .slicer-card { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; }
+  .slicer-title { font-size: 0.72rem; font-weight: 800; color: #475569; margin-bottom: 6px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+  .slicer-btn { display: block; width: 100%; text-align: left; padding: 5px 8px; margin-bottom: 4px; font-size: 0.75rem; border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 4px; cursor: pointer; font-weight: 600; }
+  .slicer-btn.active { background: #001e60; color: #fff; border-color: #001e60; }
+
+  .mapa-grid-blocos { display: grid; grid-template-columns: 210px 1.4fr 1.3fr 1.4fr 1.4fr; gap: 10px; align-items: start; }
+  .pivot-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
+  .pivot-header-yellow { background: #ffff00; color: #000; font-weight: 900; font-size: 0.8rem; text-align: center; padding: 8px; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
+  .pivot-header-green { background: #70ad47; color: #fff; font-weight: 900; font-size: 0.8rem; text-align: center; padding: 8px; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
+  
+  table.pivot-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+  table.pivot-table th { background: #f1f5f9; color: #475569; padding: 6px 8px; font-size: 0.7rem; border-bottom: 1px solid #cbd5e1; }
+  table.pivot-table td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+  table.pivot-table tr.total-row { background: #d9e1f2; font-weight: 800; border-top: 1px solid #8ea9db; }
+  .tree-node { font-weight: bold; background: #fafafa; }
+  .tree-leaf { padding-left: 18px !important; color: #475569; }
 </style>
 </head>
 <body>
@@ -79,7 +101,7 @@
   <div class="brand-area">
     <img src="/Loga%20marca%20nova.png" class="app-header-logo" onerror="this.src='/Loga marca nova.png'">
     <div>
-      <h1>ADMINISTRAÇÃO DO CLIENTE</h1>
+      <h1>ADMINISTRAÇÃO DO CLIENTE & MAPA FINANCEIRO</h1>
       <p>M&IC Corretores de Imóveis</p>
     </div>
   </div>
@@ -90,109 +112,185 @@
 
 <div class="container">
   
-  <div class="stat-grid">
-    <div class="stat-card"><span>Total de Lançamentos</span><h3 id="stat-total">0</h3></div>
-    <div class="stat-card"><span>Volume Operacionado</span><h3 id="stat-volume">R$ 0,00</h3></div>
-    <div class="stat-card"><span>Comissão Total</span><h3 id="stat-comissao">R$ 0,00</h3></div>
-    <div class="stat-card"><span>Líquido a Receber</span><h3 id="stat-liquido" style="color:var(--success);">R$ 0,00</h3></div>
+  <!-- NAVEGAÇÃO DE ABAS INTERNAS -->
+  <div class="main-tabs">
+    <button class="tab-nav-btn active" onclick="trocarAbaPrincipal('producao', this)">📋 Lançamentos e Produção</button>
+    <button class="tab-nav-btn" onclick="trocarAbaPrincipal('mapa', this)">🗺️ MAPA Financeiro</button>
   </div>
 
-  <div class="card">
-    <div class="card-title">
-      <span>Novo Lançamento</span>
-      <div>
-        <input type="file" id="fileImport" accept=".xlsx, .xls, .csv, .xlsm" style="display:none;" onchange="importarExcel(event)">
-        <button class="btn btn-dark" onclick="document.getElementById('fileImport').click()">📥 Importar Linhas da Planilha</button>
-      </div>
+  <!-- ========================================== -->
+  <!-- ABA 1: LANÇAMENTOS E PRODUÇÃO               -->
+  <!-- ========================================== -->
+  <div id="page-producao" class="tab-page active">
+    <div class="stat-grid">
+      <div class="stat-card"><span>Total de Lançamentos</span><h3 id="stat-total">0</h3></div>
+      <div class="stat-card"><span>Volume Operacionado</span><h3 id="stat-volume">R$ 0,00</h3></div>
+      <div class="stat-card"><span>Comissão Total</span><h3 id="stat-comissao">R$ 0,00</h3></div>
+      <div class="stat-card"><span>Líquido a Receber</span><h3 id="stat-liquido" style="color:var(--success);">R$ 0,00</h3></div>
     </div>
 
-    <form id="form-cliente" onsubmit="salvarLinha(event)">
-      <div class="grid-form">
-        <div><label>Ano</label><input type="number" id="inp-ano" required></div>
+    <div class="card">
+      <div class="card-title">
+        <span>Novo Lançamento</span>
         <div>
-          <label>Mês</label>
-          <select id="inp-mes" required>
-            <option value="Janeiro">Janeiro</option><option value="Fevereiro">Fevereiro</option><option value="Março">Março</option>
-            <option value="Abril">Abril</option><option value="Maio">Maio</option><option value="Junho">Junho</option>
-            <option value="Julho">Julho</option><option value="Agosto">Agosto</option><option value="Setembro">Setembro</option>
-            <option value="Outubro">Outubro</option><option value="Novembro">Novembro</option><option value="Dezembro">Dezembro</option>
-          </select>
+          <input type="file" id="fileImport" accept=".xlsx, .xls, .csv, .xlsm" style="display:none;" onchange="importarExcel(event)">
+          <button class="btn btn-dark" onclick="document.getElementById('fileImport').click()">📥 Importar Linhas da Planilha</button>
         </div>
-        <div style="grid-column: span 2;"><label>Nome / Operação</label><input type="text" id="inp-nome" required oninput="recalcularForm()"></div>
-        <div>
-          <label>Situação</label>
-          <select id="inp-situacao" onchange="recalcularForm()"></select>
-        </div>
-        <div><label>Unidade</label><input type="text" id="inp-unidade"></div>
-        <div><label>Valor (R$)</label><input type="number" step="0.01" id="inp-valor" required oninput="recalcularForm()"></div>
-        <div>
-          <label>Corretor</label>
-          <select id="inp-corretor" onchange="recalcularForm()"></select>
-        </div>
-        <div>
-          <label>Faturada?</label>
-          <select id="inp-faturada" onchange="recalcularForm()">
-            <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
-          </select>
-        </div>
-        <div><label>Prêmio (R$)</label><input type="number" step="0.01" id="inp-premio" value="0" oninput="recalcularForm()"></div>
-        <div><label>Comissão (Calc)</label><input type="text" id="inp-comissao" class="read-only-field" readonly></div>
-        <div><label>Prêmio Corr.</label><input type="text" id="inp-premio-corr" class="read-only-field" readonly></div>
-        <div><label>Imposto (15%)</label><input type="text" id="inp-imposto" class="read-only-field" readonly></div>
-        <div>
-          <label>Recebido?</label>
-          <select id="inp-recebido">
-            <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
-          </select>
-        </div>
-        <div><label>Líquido R$</label><input type="text" id="inp-liquido" class="read-only-field" readonly></div>
-        <div><label>Valor Recebido</label><input type="number" step="0.01" id="inp-val-recebido" value="0"></div>
-        <div><label>Opção</label><input type="text" id="inp-opcao" class="read-only-field" readonly></div>
-        <div><label>Taxa Mensal</label><input type="text" id="inp-taxa" class="read-only-field" readonly></div>
-        <div style="grid-column: span 2;"><label>Observações</label><input type="text" id="inp-obs"></div>
       </div>
-      <div style="margin-top: 12px; text-align: right;">
-        <button type="submit" class="btn btn-gold" id="btn-salvar">💾 Salvar Lançamento</button>
+
+      <form id="form-cliente" onsubmit="salvarLinha(event)">
+        <div class="grid-form">
+          <div><label>Ano</label><input type="number" id="inp-ano" required></div>
+          <div>
+            <label>Mês</label>
+            <select id="inp-mes" required>
+              <option value="Janeiro">Janeiro</option><option value="Fevereiro">Fevereiro</option><option value="Março">Março</option>
+              <option value="Abril">Abril</option><option value="Maio">Maio</option><option value="Junho">Junho</option>
+              <option value="Julho">Julho</option><option value="Agosto">Agosto</option><option value="Setembro">Setembro</option>
+              <option value="Outubro">Outubro</option><option value="Novembro">Novembro</option><option value="Dezembro">Dezembro</option>
+            </select>
+          </div>
+          <div style="grid-column: span 2;"><label>Nome / Operação</label><input type="text" id="inp-nome" required oninput="recalcularForm()"></div>
+          <div><label>Situação</label><select id="inp-situacao" onchange="recalcularForm()"></select></div>
+          <div><label>Unidade</label><input type="text" id="inp-unidade"></div>
+          <div><label>Valor (R$)</label><input type="number" step="0.01" id="inp-valor" required oninput="recalcularForm()"></div>
+          <div><label>Corretor</label><select id="inp-corretor" onchange="recalcularForm()"></select></div>
+          <div>
+            <label>Faturada?</label>
+            <select id="inp-faturada" onchange="recalcularForm()">
+              <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
+            </select>
+          </div>
+          <div><label>Prêmio (R$)</label><input type="number" step="0.01" id="inp-premio" value="0" oninput="recalcularForm()"></div>
+          <div><label>Comissão (Calc)</label><input type="text" id="inp-comissao" class="read-only-field" readonly></div>
+          <div><label>Prêmio Corr.</label><input type="text" id="inp-premio-corr" class="read-only-field" readonly></div>
+          <div><label>Imposto (15%)</label><input type="text" id="inp-imposto" class="read-only-field" readonly></div>
+          <div>
+            <label>Recebido?</label>
+            <select id="inp-recebido">
+              <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
+            </select>
+          </div>
+          <div><label>Líquido R$</label><input type="text" id="inp-liquido" class="read-only-field" readonly></div>
+          <div><label>Valor Recebido</label><input type="number" step="0.01" id="inp-val-recebido" value="0"></div>
+          <div><label>Opção</label><input type="text" id="inp-opcao" class="read-only-field" readonly></div>
+          <div><label>Taxa Mensal</label><input type="text" id="inp-taxa" class="read-only-field" readonly></div>
+          <div style="grid-column: span 2;"><label>Observações</label><input type="text" id="inp-obs"></div>
+        </div>
+        <div style="margin-top: 12px; text-align: right;">
+          <button type="submit" class="btn btn-gold" id="btn-salvar">💾 Salvar Lançamento</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Histórico de Lançamentos</span>
+        <input type="text" id="filtro-busca" placeholder="🔍 Filtrar registros..." style="width: 260px;" oninput="filtrarTabela()">
       </div>
-    </form>
+      
+      <div class="table-container">
+        <table class="table-compact">
+          <thead>
+            <tr>
+              <th class="col-del">Del</th>
+              <th class="col-id">ID</th>
+              <th class="col-ano">Ano</th>
+              <th class="col-mes">Mês</th>
+              <th class="col-nome">Nome / Operação</th>
+              <th class="col-sit">Situação</th>
+              <th class="col-un">Unidade</th>
+              <th class="col-val">Valor</th>
+              <th class="col-cor">Corretor</th>
+              <th class="col-pct">%</th>
+              <th class="col-fat">Fat.</th>
+              <th class="col-com">Comissão</th>
+              <th class="col-prem">Prêmio</th>
+              <th class="col-imp">Imposto</th>
+              <th class="col-rec">Rec.</th>
+              <th class="col-liq">Líquido</th>
+              <th class="col-opc">Opção</th>
+              <th class="col-tax">Taxa Mês</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-corpo">
+            <tr><td colspan="18" style="text-align:center; padding:16px;">Carregando registros...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="card-title">
-      <span>Histórico de Lançamentos</span>
-      <input type="text" id="filtro-busca" placeholder="🔍 Filtrar registros..." style="width: 260px;" oninput="filtrarTabela()">
-    </div>
-    
-    <div class="table-container">
-      <table class="table-compact">
-        <thead>
-          <tr>
-            <th class="col-del">Del</th>
-            <th class="col-id">ID</th>
-            <th class="col-ano">Ano</th>
-            <th class="col-mes">Mês</th>
-            <th class="col-nome">Nome / Operação</th>
-            <th class="col-sit">Situação</th>
-            <th class="col-un">Unidade</th>
-            <th class="col-val">Valor</th>
-            <th class="col-cor">Corretor</th>
-            <th class="col-pct">%</th>
-            <th class="col-fat">Fat.</th>
-            <th class="col-com">Comissão</th>
-            <th class="col-prem">Prêmio</th>
-            <th class="col-imp">Imposto</th>
-            <th class="col-rec">Rec.</th>
-            <th class="col-liq">Líquido</th>
-            <th class="col-opc">Opção</th>
-            <th class="col-tax">Taxa Mês</th>
-          </tr>
-        </thead>
-        <tbody id="tabela-corpo">
-          <tr><td colspan="18" style="text-align:center; padding:16px;">Carregando registros...</td></tr>
-        </tbody>
-      </table>
+  <!-- ========================================== -->
+  <!-- ABA 2: MAPA FINANCEIRO (COCKPIT EXCEL)     -->
+  <!-- ========================================== -->
+  <div id="page-mapa" class="tab-page">
+    <div class="mapa-layout">
+      
+      <!-- SEGMENTADORES (SLICERS LATERAIS) -->
+      <aside>
+        <div class="slicer-card" style="margin-bottom: 12px;">
+          <div class="slicer-title">Ano</div>
+          <div id="slicer-anos"></div>
+        </div>
+        <div class="slicer-card">
+          <div class="slicer-title">Mês</div>
+          <div id="slicer-meses"></div>
+        </div>
+      </aside>
+
+      <!-- 5 BLOCOS DO MAPA -->
+      <div class="mapa-grid-blocos">
+        
+        <!-- BLOCO 1: CORRETOR / VGV -->
+        <div class="pivot-box">
+          <div class="pivot-header-yellow">VGV Corretor</div>
+          <table class="pivot-table">
+            <thead><tr><th>Corretor</th><th style="text-align:right;">VGV</th></tr></thead>
+            <tbody id="mapa-vgv-body"></tbody>
+          </table>
+        </div>
+
+        <!-- BLOCO 2: A RECEBER -->
+        <div class="pivot-box">
+          <div class="pivot-header-yellow">A Receber</div>
+          <table class="pivot-table">
+            <thead><tr><th>Nome</th><th style="text-align:right;">Saldo</th></tr></thead>
+            <tbody id="mapa-receber-body"></tbody>
+          </table>
+        </div>
+
+        <!-- BLOCO 3: RESUMO VENDA -->
+        <div class="pivot-box">
+          <div class="pivot-header-green">Resumo Venda</div>
+          <table class="pivot-table">
+            <thead><tr><th>Status / Corretor</th><th style="text-align:right;">R$</th></tr></thead>
+            <tbody id="mapa-venda-body"></tbody>
+          </table>
+        </div>
+
+        <!-- BLOCO 4: RESUMO ALUGUEL -->
+        <div class="pivot-box">
+          <div class="pivot-header-green">Resumo Aluguel</div>
+          <table class="pivot-table">
+            <thead><tr><th>Status / Corretor</th><th style="text-align:right;">R$</th></tr></thead>
+            <tbody id="mapa-aluguel-body"></tbody>
+          </table>
+        </div>
+
+        <!-- BLOCO 5: MENSAL OPÇÕES -->
+        <div class="pivot-box">
+          <div class="pivot-header-yellow">Mensal Opções</div>
+          <table class="pivot-table">
+            <thead><tr><th>Ano / Mês / Inquilino</th><th style="text-align:right;">Taxa</th></tr></thead>
+            <tbody id="mapa-opcoes-body"></tbody>
+          </table>
+        </div>
+
+      </div>
     </div>
   </div>
+
 </div>
 
 <script>
@@ -212,8 +310,20 @@
     'Parceria 3,5%': 0.035, 'Parceria': 0.35
   };
 
+  const MESES_LISTA = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
   const ALIQUOTA_IMPOSTO = 0.15;
   let dadosDB = [];
+
+  let mapaFiltroAno = 'TODOS';
+  let mapaFiltroMes = 'TODOS';
+
+  function trocarAbaPrincipal(qual, btn) {
+    document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`page-${qual}`).classList.add('active');
+    btn.classList.add('active');
+    if (qual === 'mapa') renderizarMapa();
+  }
 
   function initSelects() {
     const sSit = document.getElementById('inp-situacao');
@@ -308,7 +418,6 @@
 
     document.getElementById('inp-comissao').value = fmt(c.comissao);
     
-    // Formatação condicional nos campos de entrada
     const setCampoCondicional = (id, val) => {
       const el = document.getElementById(id);
       if (val === 'XXXXXX') {
@@ -335,6 +444,7 @@
       });
       dadosDB = await res.json();
       renderizarTabela(dadosDB);
+      montarSlicers();
     } catch (e) {
       console.error(e);
     }
@@ -486,6 +596,122 @@
       }
     };
     reader.readAsArrayBuffer(file);
+  }
+
+  // ========================================================
+  // MOTOR DE CÁLCULO E RENDERIZAÇÃO DO MAPA FINANCEIRO
+  // ========================================================
+  function montarSlicers() {
+    const anos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean).sort((a,b) => b - a);
+    const divAnos = document.getElementById('slicer-anos');
+    divAnos.innerHTML = `<button class="slicer-btn ${mapaFiltroAno === 'TODOS' ? 'active' : ''}" onclick="setFiltroMapa('ano', 'TODOS')">TODOS</button>` +
+      anos.map(a => `<button class="slicer-btn ${mapaFiltroAno == a ? 'active' : ''}" onclick="setFiltroMapa('ano', ${a})">${a}</button>`).join('');
+
+    const divMeses = document.getElementById('slicer-meses');
+    divMeses.innerHTML = `<button class="slicer-btn ${mapaFiltroMes === 'TODOS' ? 'active' : ''}" onclick="setFiltroMapa('mes', 'TODOS')">TODOS</button>` +
+      MESES_LISTA.map(m => `<button class="slicer-btn ${mapaFiltroMes === m ? 'active' : ''}" onclick="setFiltroMapa('mes', '${m}')">${m}</button>`).join('');
+  }
+
+  function setFiltroMapa(tipo, valor) {
+    if (tipo === 'ano') mapaFiltroAno = valor;
+    if (tipo === 'mes') mapaFiltroMes = valor;
+    montarSlicers();
+    renderizarMapa();
+  }
+
+  function renderizarMapa() {
+    const fmt = v => (parseFloat(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    
+    // Filtragem conforme os segmentadores
+    const base = dadosDB.filter(d => {
+      const matchAno = (mapaFiltroAno === 'TODOS') || (d.ano == mapaFiltroAno);
+      const matchMes = (mapaFiltroMes === 'TODOS') || (String(d.mes || '').toLowerCase() === String(mapaFiltroMes).toLowerCase());
+      return matchAno && matchMes;
+    });
+
+    // 1. BLOCO VGV CORRETOR
+    const vgvCorretor = {};
+    let totalVGV = 0;
+    base.forEach(d => {
+      const c = d.corretor || 'Outros';
+      const v = parseFloat(d.valor) || 0;
+      vgvCorretor[c] = (vgvCorretor[c] || 0) + v;
+      totalVGV += v;
+    });
+    document.getElementById('mapa-vgv-body').innerHTML = Object.keys(vgvCorretor).map(c => 
+      `<tr><td>${c}</td><td style="text-align:right;">R$ ${fmt(vgvCorretor[c])}</td></tr>`
+    ).join('') + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ${fmt(totalVGV)}</td></tr>`;
+
+    // 2. BLOCO A RECEBER (Recebido = NÃO)
+    const aReceber = base.filter(d => String(d.recebido || '').toUpperCase() === 'NÃO');
+    let totalAReceber = 0;
+    document.getElementById('mapa-receber-body').innerHTML = aReceber.map(d => {
+      const saldo = parseFloat(d.valor_liquido) || 0;
+      totalAReceber += saldo;
+      return `<tr><td>${d.nome}</td><td style="text-align:right;">${fmt(saldo)}</td></tr>`;
+    }).join('') + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalAReceber)}</td></tr>`;
+
+    // 3. BLOCO RESUMO VENDA (Situação != ALUGUEL)
+    const baseVenda = base.filter(d => String(d.situacao || '').toUpperCase() !== 'ALUGUEL');
+    let totalVenda = 0;
+    let htmlVenda = '';
+    ['NÃO', 'SIM'].forEach(st => {
+      const sub = baseVenda.filter(d => String(d.recebido || '').toUpperCase() === st);
+      if (sub.length > 0) {
+        const subTotal = sub.reduce((acc, x) => acc + (parseFloat(x.valor_liquido) || 0), 0);
+        totalVenda += subTotal;
+        htmlVenda += `<tr class="tree-node"><td>📁 ${st}</td><td style="text-align:right;">${fmt(subTotal)}</td></tr>`;
+        sub.forEach(x => {
+          htmlVenda += `<tr class="tree-leaf"><td>${x.corretor} - ${x.nome}</td><td style="text-align:right;">${fmt(x.valor_liquido)}</td></tr>`;
+        });
+      }
+    });
+    document.getElementById('mapa-venda-body').innerHTML = htmlVenda + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalVenda)}</td></tr>`;
+
+    // 4. BLOCO RESUMO ALUGUEL (Situação == ALUGUEL)
+    const baseAluguel = base.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL');
+    let totalAluguel = 0;
+    let htmlAluguel = '';
+    ['NÃO', 'SIM'].forEach(st => {
+      const sub = baseAluguel.filter(d => String(d.recebido || '').toUpperCase() === st);
+      if (sub.length > 0) {
+        const subTotal = sub.reduce((acc, x) => acc + (parseFloat(x.valor_liquido) || 0), 0);
+        totalAluguel += subTotal;
+        htmlAluguel += `<tr class="tree-node"><td>📁 ${st}</td><td style="text-align:right;">${fmt(subTotal)}</td></tr>`;
+        sub.forEach(x => {
+          htmlAluguel += `<tr class="tree-leaf"><td>${x.nome}</td><td style="text-align:right;">${fmt(x.valor_liquido)}</td></tr>`;
+        });
+      }
+    });
+    document.getElementById('mapa-aluguel-body').innerHTML = htmlAluguel + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalAluguel)}</td></tr>`;
+
+    // 5. BLOCO MENSAL OPÇÕES (Situação == ALUGUEL & Opção == SIM)
+    const baseOpcoes = dadosDB.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM');
+    let totalOpcoes = 0;
+    const treeOpcoes = {};
+    baseOpcoes.forEach(d => {
+      const a = d.ano || 'Sem Ano';
+      const m = d.mes || 'Sem Mês';
+      const v = typeof d.taxa_mensal === 'number' ? d.taxa_mensal : (parseFloat(d.taxa_mensal) || 0);
+      if (!treeOpcoes[a]) treeOpcoes[a] = { total: 0, meses: {} };
+      if (!treeOpcoes[a].meses[m]) treeOpcoes[a].meses[m] = { total: 0, itens: [] };
+      treeOpcoes[a].total += v;
+      treeOpcoes[a].meses[m].total += v;
+      treeOpcoes[a].meses[m].itens.push({ nome: d.nome, valor: v });
+      totalOpcoes += v;
+    });
+
+    let htmlOpcoes = '';
+    Object.keys(treeOpcoes).sort().forEach(ano => {
+      htmlOpcoes += `<tr class="tree-node"><td>📅 ${ano}</td><td style="text-align:right;">${fmt(treeOpcoes[ano].total)}</td></tr>`;
+      Object.keys(treeOpcoes[ano].meses).forEach(mes => {
+        htmlOpcoes += `<tr class="tree-leaf" style="font-weight:bold;"><td>↳ ${mes}</td><td style="text-align:right;">${fmt(treeOpcoes[ano].meses[mes].total)}</td></tr>`;
+        treeOpcoes[ano].meses[mes].itens.forEach(it => {
+          htmlOpcoes += `<tr style="font-size:0.7rem; color:#64748b;"><td style="padding-left:30px;">${it.nome}</td><td style="text-align:right;">${fmt(it.valor)}</td></tr>`;
+        });
+      });
+    });
+    document.getElementById('mapa-opcoes-body').innerHTML = htmlOpcoes + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalOpcoes)}</td></tr>`;
   }
 
   document.addEventListener('DOMContentLoaded', () => {
