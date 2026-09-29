@@ -750,8 +750,25 @@
         const lotes = [];
         for (let i = 1; i < rows.length; i++) {
           const r = rows[i];
-          if (!r || !r[3]) continue;
+          // Valida se a linha possui Ano (coluna 2 -> índice 1) e Nome (coluna 4 -> índice 3)
+          if (!r || !r[1] || !r[3]) continue;
           
+          // Mapeamento exato baseado no seu layout:
+          // Coluna 2 (Ano) -> r[1]
+          // Coluna 3 (Mês) -> r[2]
+          // Coluna 4 (Nome) -> r[3]
+          // Coluna 5 (Situação) -> r[4]
+          // Coluna 6 (Unidade) -> r[5]
+          // Coluna 7 (Valor) -> r[6]
+          // Coluna 8 (Corretor) -> r[7]
+          // Coluna 10 (Faturada?) -> r[9]
+          // Coluna 11 (Prêmio) -> r[10]
+          // Coluna 12 (Comissão) -> r[11]
+          // Coluna 15 (Recebido?) -> r[14]
+          // Coluna 17 (Valor Recebido) -> r[16]
+          // Coluna 18 (Opção) -> r[17]
+          // Coluna 19 (Taxa Mensal Aluguel) -> r[18]
+
           let valOpcaoExcel = r[17] ? String(r[17]).trim().toUpperCase() : 'NÃO';
           if (valOpcaoExcel !== 'SIM') valOpcaoExcel = 'NÃO';
           let valTaxaExcel = parseFloat(r[18]) || 0;
@@ -771,13 +788,13 @@
             valor_recebido: parseFloat(r[16]) || 0,
             opcao: valOpcaoExcel,
             taxa_mensal: valTaxaExcel,
-            obs: r[19] || ''
+            obs: ''
           };
 
           lotes.push(calcularFórmulas(itemBase));
         }
 
-        if (lotes.length > 0 && confirm(`Deseja substituir a base atual por essas ${lotes.length} linhas da planilha mantendo os valores originais?`)) {
+        if (lotes.length > 0 && confirm(`Deseja substituir a base atual por essas ${lotes.length} linhas importadas do Excel?`)) {
           await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao?id=gt.0`, {
             method: 'DELETE',
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
