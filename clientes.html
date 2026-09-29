@@ -278,7 +278,7 @@
           </table>
         </div>
 
-        <!-- BLOCO 5: RECOLHÍVEL POR ANO E MÊS -->
+        <!-- BLOCO 5: MENSAL OPÇÕES (TOTALMENTE INDEPENDENTE DE ANO/MÊS) -->
         <div class="pivot-box">
           <div class="pivot-header-yellow">Mensal Opções</div>
           <table class="pivot-table">
@@ -667,7 +667,7 @@
   }
 
   // ========================================================
-  // MAPA FINANCEIRO RIGOROSO (CORRIGIDO PARA VALORES DO EXCEL)
+  // MAPA FINANCEIRO RIGOROSO
   // ========================================================
   function montarSlicers() {
     const anos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean).sort((a,b) => b - a);
@@ -809,12 +809,8 @@
     });
     document.getElementById('mapa-aluguel-body').innerHTML = htmlAluguel + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalAluguel)}</td></tr>`;
 
-    // 5. BLOCO MENSAL OPÇÕES (Filtrado pelo Ano selecionado no Slicer e Situação == ALUGUEL & Opção == SIM)
-    const baseOpcoes = dadosDB.filter(d => {
-      const matchAno = (mapaFiltroAno === 'TODOS') || (d.ano == mapaFiltroAno);
-      return matchAno && String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM';
-    });
-
+    // 5. BLOCO MENSAL OPÇÕES (TOTALMENTE INDEPENDENTE DE ANO/MÊS DOS SLICERS LATERAIS, Exatamente como no Excel)
+    const baseOpcoes = dadosDB.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM');
     let totalOpcoes = 0;
     const treeOpcoes = {};
 
