@@ -557,7 +557,7 @@
     const recalculado = calcularFórmulas(dadosDB[idx]);
     dadosDB[idx] = recalculado;
 
-    // Atualiza a tabela e o mapa na hora
+    // Atualiza a tabela e o mapa em tempo real
     renderizarTabela(dadosDB);
     if (document.getElementById('page-mapa').classList.contains('active')) renderizarMapa();
 
@@ -704,16 +704,18 @@
   function renderizarMapa() {
     const fmt = v => (parseFloat(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     
+    // Filtro base pelos Segmentadores (Ano e Mês)
     const base = dadosDB.filter(d => {
       const matchAno = (mapaFiltroAno === 'TODOS') || (d.ano == mapaFiltroAno);
       const matchMes = (mapaFiltroMes === 'TODOS') || (String(d.mes || '').toLowerCase() === String(mapaFiltroMes).toLowerCase());
       return matchAno && matchMes;
     });
 
-    // 1. BLOCO VGV CORRETOR
+    // 1. BLOCO VGV CORRETOR (Filtrado por Situação VENDA conforme topo da planilha)
+    const baseVGV = base.filter(d => String(d.situacao || '').toUpperCase() === 'VENDA');
     const vgvCorretor = {};
     let totalVGV = 0;
-    base.forEach(d => {
+    baseVGV.forEach(d => {
       const c = d.corretor || 'Outros';
       const v = parseFloat(d.valor) || 0;
       vgvCorretor[c] = (vgvCorretor[c] || 0) + v;
@@ -723,27 +725,57 @@
       `<tr><td>${c}</td><td style="text-align:right;">R$ ${fmt(vgvCorretor[c])}</td></tr>`
     ).join('') + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ${fmt(totalVGV)}</td></tr>`;
 
-    // 2. BLOCO A RECEBER (Recebido = NÃO)
-    const aReceber = base.filter(d => String(d.recebido || '').toUpperCase() === 'NÃO');
+    // 2. BLOCO A RECEBER
+    // Filtro: Recebido = NÃO e Situações específicas (Venda, Aluguel, Registro, Crédito, Ass. Digital, Contrato, Leilão)
+    const situacoesAReceber = ['VENDA', 'ALUGUEL', 'REGISTRO', 'CRÉDITO', 'ASS. DIGITAL', 'CONTRATO', 'LEILÃO'];
+    const aReceber = base.filter(d => 
+      String(d.recebido || '').toUpperCase() === 'NÃO' &&
+      situacoesAReceber.includes(String(d.situacao || '').toUpperCase())
+    );
+
     let totalAReceber = 0;
     document.getElementById('mapa-receber-body').innerHTML = aReceber.map(d => {
-      const saldo = parseFloat(d.valor_liquido) || 0;
+      const valLiq = parseFloat(d.valor_liquido) || 0;
+      const valRec = parseFloat(d.valor_recebido) || 0;
+      const sit = String(d.situacao || '').toUpperCase();
+      
+      // Se situação for CRÉDITO e comissão for zero, saldo = 0
+      let saldo = (sit === 'CRÉDITO' && valLiq === 0) ? 0 : (valLiq - valRec);
+      if (saldo < 0) saldo = 0;
       totalAReceber += saldo;
-      return `<tr><td>${d.nome}</td><td style="text-align:right;">${fmt(saldo)}</td></tr>`;
+
+      const labelNome = (sit === 'CRÉDITO') ? `${d.nome} (CRÉDITO)` : d.nome;
+      return `<tr><td>${labelNome}</td><td style="text-align:right;">${fmt(saldo)}</td></tr>`;
     }).join('') + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalAReceber)}</td></tr>`;
 
-    // 3. BLOCO RESUMO VENDA (Situação != ALUGUEL)
-    const baseVenda = base.filter(d => String(d.situacao || '').toUpperCase() !== 'ALUGUEL');
+    // 3. BLOCO RESUMO VENDA
+    // Filtro estrito: Apenas VENDA, REGISTRO e CRÉDITO
+    const situacoesResumoVenda = ['VENDA', 'REGISTRO', 'CRÉDITO'];
+    const baseVenda = base.filter(d => situacoesResumoVenda.includes(String(d.situacao || '').toUpperCase()));
     let totalVenda = 0;
     let htmlVenda = '';
+
     ['NÃO', 'SIM'].forEach(st => {
       const sub = baseVenda.filter(d => String(d.recebido || '').toUpperCase() === st);
       if (sub.length > 0) {
         const subTotal = sub.reduce((acc, x) => acc + (parseFloat(x.valor_liquido) || 0), 0);
         totalVenda += subTotal;
         htmlVenda += `<tr class="tree-node"><td>📁 ${st}</td><td style="text-align:right;">${fmt(subTotal)}</td></tr>`;
+        
+        // Agrupa por Corretor dentro do Status
+        const porCorretor = {};
         sub.forEach(x => {
-          htmlVenda += `<tr class="tree-leaf"><td>${x.corretor} - ${x.nome}</td><td style="text-align:right;">${fmt(x.valor_liquido)}</td></tr>`;
+          const c = x.corretor || 'Outros';
+          if (!porCorretor[c]) porCorretor[c] = { total: 0, itens: [] };
+          porCorretor[c].total += (parseFloat(x.valor_liquido) || 0);
+          porCorretor[c].itens.push(x);
+        });
+
+        Object.keys(porCorretor).forEach(c => {
+          htmlVenda += `<tr class="tree-leaf" style="font-weight:bold;"><td>↳ ${c}</td><td style="text-align:right;">${fmt(porCorretor[c].total)}</td></tr>`;
+          porCorretor[c].itens.forEach(it => {
+            htmlVenda += `<tr style="font-size:0.7rem; color:#64748b;"><td style="padding-left:26px;">${it.nome}</td><td style="text-align:right;">${fmt(it.valor_liquido)}</td></tr>`;
+          });
         });
       }
     });
@@ -753,14 +785,27 @@
     const baseAluguel = base.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL');
     let totalAluguel = 0;
     let htmlAluguel = '';
+
     ['NÃO', 'SIM'].forEach(st => {
       const sub = baseAluguel.filter(d => String(d.recebido || '').toUpperCase() === st);
       if (sub.length > 0) {
         const subTotal = sub.reduce((acc, x) => acc + (parseFloat(x.valor_liquido) || 0), 0);
         totalAluguel += subTotal;
         htmlAluguel += `<tr class="tree-node"><td>📁 ${st}</td><td style="text-align:right;">${fmt(subTotal)}</td></tr>`;
+        
+        const porCorretor = {};
         sub.forEach(x => {
-          htmlAluguel += `<tr class="tree-leaf"><td>${x.nome}</td><td style="text-align:right;">${fmt(x.valor_liquido)}</td></tr>`;
+          const c = x.corretor || 'Outros';
+          if (!porCorretor[c]) porCorretor[c] = { total: 0, itens: [] };
+          porCorretor[c].total += (parseFloat(x.valor_liquido) || 0);
+          porCorretor[c].itens.push(x);
+        });
+
+        Object.keys(porCorretor).forEach(c => {
+          htmlAluguel += `<tr class="tree-leaf" style="font-weight:bold;"><td>↳ ${c}</td><td style="text-align:right;">${fmt(porCorretor[c].total)}</td></tr>`;
+          porCorretor[c].itens.forEach(it => {
+            htmlAluguel += `<tr style="font-size:0.7rem; color:#64748b;"><td style="padding-left:26px;">${it.nome}</td><td style="text-align:right;">${fmt(it.valor_liquido)}</td></tr>`;
+          });
         });
       }
     });
