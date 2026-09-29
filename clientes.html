@@ -334,7 +334,6 @@
     const sCor = document.getElementById('inp-corretor');
     sCor.innerHTML = Object.keys(TABELA_CORRETORES).map(c => `<option value="${c}">${c}</option>`).join('');
     
-    // Default para o Ano e Mês atual
     const hoje = new Date();
     document.getElementById('inp-ano').value = hoje.getFullYear();
     document.getElementById('inp-mes').selectedIndex = hoje.getMonth();
@@ -347,7 +346,6 @@
     const valor = parseFloat(item.valor) || 0;
     const premio = parseFloat(item.premio) || 0;
     const faturada = (item.faturada || 'NÃO').trim().toUpperCase();
-    const pctCorretor = TABELA_CORRETORES[corretor] || 0;
 
     let comissao = parseFloat(item.comissao) || 0;
 
@@ -389,7 +387,6 @@
 
     return {
       ...item,
-      percentual_corretor: pctCorretor,
       comissao,
       premio_corretor: premioCorretor,
       imposto,
@@ -670,7 +667,7 @@
   }
 
   // ========================================================
-  // MAPA FINANCEIRO RIGOROSO
+  // MAPA FINANCEIRO RIGOROSO (CORRIGIDO PARA VALORES DO EXCEL)
   // ========================================================
   function montarSlicers() {
     const anos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean).sort((a,b) => b - a);
@@ -726,7 +723,7 @@
       `<tr><td>${c}</td><td style="text-align:right;">R$ ${fmt(vgvCorretor[c])}</td></tr>`
     ).join('') + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ${fmt(totalVGV)}</td></tr>`;
 
-    // 2. BLOCO A RECEBER (Todos os pendentes com Recebido == NÃO)
+    // 2. BLOCO A RECEBER (Filtro: Recebido = NÃO e Soma de Saldo = Comissao - Valor Recebido)
     const situacoesAReceber = ['VENDA', 'ALUGUEL', 'REGISTRO', 'CRÉDITO', 'ASS. DIGITAL', 'CONTRATO', 'LEILÃO'];
     const aReceberGlobal = dadosDB.filter(d => 
       String(d.recebido || '').toUpperCase() === 'NÃO' &&
@@ -737,8 +734,11 @@
     aReceberGlobal.forEach(d => {
       const sit = String(d.situacao || '').toUpperCase();
       const label = (sit === 'CRÉDITO') ? `${d.nome} (CRÉDITO)` : d.nome;
-      const valorComissao = (sit === 'CRÉDITO' && (parseFloat(d.comissao) || 0) === 0) ? 0 : (parseFloat(d.comissao) || 0);
-      mapaReceberClientes[label] = (mapaReceberClientes[label] || 0) + valorComissao;
+      const comissao = parseFloat(d.comissao) || 0;
+      const recebidoVal = parseFloat(d.valor_recebido) || 0;
+      let saldo = (sit === 'CRÉDITO' && comissao === 0) ? 0 : (comissao - recebidoVal);
+      if (saldo < 0) saldo = 0;
+      mapaReceberClientes[label] = (mapaReceberClientes[label] || 0) + saldo;
     });
 
     let totalAReceber = 0;
@@ -748,7 +748,7 @@
       return `<tr><td>${nome}</td><td style="text-align:right;">${fmt(saldo)}</td></tr>`;
     }).join('') + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalAReceber)}</td></tr>`;
 
-    // 3. BLOCO RESUMO VENDA (Situações: VENDA, REGISTRO, CRÉDITO)
+    // 3. BLOCO RESUMO VENDA (Período, Situações: VENDA, REGISTRO, CRÉDITO)
     const situacoesResumoVenda = ['VENDA', 'REGISTRO', 'CRÉDITO'];
     const baseVenda = basePeriodo.filter(d => situacoesResumoVenda.includes(String(d.situacao || '').toUpperCase()));
     let totalVenda = 0;
@@ -779,7 +779,7 @@
     });
     document.getElementById('mapa-venda-body').innerHTML = htmlVenda + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalVenda)}</td></tr>`;
 
-    // 4. BLOCO RESUMO ALUGUEL (Situação == ALUGUEL)
+    // 4. BLOCO RESUMO ALUGUEL (Período, Situação == ALUGUEL)
     const baseAluguel = basePeriodo.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL');
     let totalAluguel = 0;
     let htmlAluguel = '';
@@ -809,8 +809,12 @@
     });
     document.getElementById('mapa-aluguel-body').innerHTML = htmlAluguel + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalAluguel)}</td></tr>`;
 
-    // 5. BLOCO MENSAL OPÇÕES (Situação == ALUGUEL & Opção == SIM, Árvore Dupla por Ano e Mês)
-    const baseOpcoes = dadosDB.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM');
+    // 5. BLOCO MENSAL OPÇÕES (Filtrado pelo Ano selecionado no Slicer e Situação == ALUGUEL & Opção == SIM)
+    const baseOpcoes = dadosDB.filter(d => {
+      const matchAno = (mapaFiltroAno === 'TODOS') || (d.ano == mapaFiltroAno);
+      return matchAno && String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM';
+    });
+
     let totalOpcoes = 0;
     const treeOpcoes = {};
 
