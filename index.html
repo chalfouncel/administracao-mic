@@ -713,11 +713,11 @@
           return; 
       }
 
-      // --- BARREIRA DE APROVAÇÃO ---
-      const isMario = email.toLowerCase() === 'chalfouncorretor@gmail.com';
-      let isAprovado = isMario; 
+      // --- BARREIRA DE APROVAÇÃO MULTI-ADMINISTRADOR ---
+      const admins = ['chalfouncorretor@gmail.com', 'ivycarlat817@gmail.com'];
+      let isAprovado = admins.includes(email.toLowerCase());
 
-      if (!isMario) {
+      if (!isAprovado) {
           const resVerifica = await fetch(`${SUPABASE_BASE_URL}/rest/v1/usuarios_aprovados?email=eq.${encodeURIComponent(email)}`, {
               method: 'GET', headers: { 'apikey': SUPABASE_KEY }
           });
@@ -731,12 +731,12 @@
 
       if (!isAprovado) {
            status.className = 'auth-msg err'; 
-           status.innerHTML = '⚠️ Aguardando validação do acesso pelo administrador.';
+           status.innerHTML = '⚠️️ Aguardando validação do acesso pelo administrador.';
            btn.disabled = false; 
            setLocalSession(null); 
            return;
       }
-      // -----------------------------
+      // -------------------------------------------------
 
       status.className = 'auth-msg ok'; 
       status.innerText = '✓ Senha correta!'; 
