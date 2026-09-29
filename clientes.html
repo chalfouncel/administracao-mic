@@ -68,14 +68,13 @@
   .col-id { width: 34px; text-align: center; font-weight: bold; }
   .col-ano { width: 44px; text-align: center; }
   .col-mes { width: 50px; text-align: center; }
-  .col-nome { width: 130px; font-weight: 600; }
+  .col-nome { width: 135px; font-weight: 600; }
   .col-sit { width: 85px; text-align: center; }
   .col-un { width: 55px; }
   .col-val { width: 80px; text-align: right; }
   .col-cor { width: 75px; }
-  .col-pct { width: 38px; text-align: center; }
   .col-fat { width: 52px; text-align: center; }
-  .col-com { width: 75px; text-align: right; }
+  .col-com { width: 80px; text-align: right; }
   .col-prem { width: 60px; text-align: right; }
   .col-imp { width: 60px; text-align: right; }
   .col-rec { width: 54px; text-align: center; }
@@ -168,7 +167,7 @@
             </select>
           </div>
           <div><label>Prêmio (R$)</label><input type="number" step="0.01" id="inp-premio" value="0" oninput="recalcularForm()"></div>
-          <div><label>Comissão (Calc)</label><input type="number" step="0.01" id="inp-comissao"></div>
+          <div><label>Comissão</label><input type="number" step="0.01" id="inp-comissao" required oninput="recalcularForm()"></div>
           <div><label>Prêmio Corr.</label><input type="text" id="inp-premio-corr" class="read-only-field" readonly></div>
           <div><label>Imposto (15%)</label><input type="text" id="inp-imposto" class="read-only-field" readonly></div>
           <div>
@@ -208,7 +207,6 @@
               <th class="col-un">Unidade</th>
               <th class="col-val">Valor</th>
               <th class="col-cor">Corretor</th>
-              <th class="col-pct">%</th>
               <th class="col-fat">Fat.</th>
               <th class="col-com">Comissão</th>
               <th class="col-prem">Prêmio</th>
@@ -220,7 +218,7 @@
             </tr>
           </thead>
           <tbody id="tabela-corpo">
-            <tr><td colspan="18" style="text-align:center; padding:16px;">Carregando registros...</td></tr>
+            <tr><td colspan="17" style="text-align:center; padding:16px;">Carregando registros...</td></tr>
           </tbody>
         </table>
       </div>
@@ -319,7 +317,6 @@
   let mapaFiltroAno = '2026';
   let mapaFiltroMes = 'Setembro';
   
-  // Controle de expansão do bloco 5 (Ano e Mês)
   let anosExpandidos = { '2026': true };
   let mesesExpandidos = { '2026-Setembro': true };
 
@@ -336,7 +333,11 @@
     sSit.innerHTML = SITUACOES.map(s => `<option value="${s}">${s}</option>`).join('');
     const sCor = document.getElementById('inp-corretor');
     sCor.innerHTML = Object.keys(TABELA_CORRETORES).map(c => `<option value="${c}">${c}</option>`).join('');
-    document.getElementById('inp-ano').value = new Date().getFullYear();
+    
+    // Default para o Ano e Mês atual
+    const hoje = new Date();
+    document.getElementById('inp-ano').value = hoje.getFullYear();
+    document.getElementById('inp-mes').selectedIndex = hoje.getMonth();
   }
 
   function calcularFórmulas(item) {
@@ -348,21 +349,7 @@
     const faturada = (item.faturada || 'NÃO').trim().toUpperCase();
     const pctCorretor = TABELA_CORRETORES[corretor] || 0;
 
-    let comissao = parseFloat(item.comissao);
-    if (isNaN(comissao)) {
-      const nomesEsp = ['Recebimento das Administrações', 'Recebimento das Administrações M&IC'];
-      const sitEsp = ['ASS. DIGITAL', 'LEILÃO', 'CRÉDITO', 'REGISTRO'];
-
-      if (nomesEsp.includes(nome) || sitEsp.includes(situacao)) {
-        comissao = valor;
-      } else if (corretor === 'Parceria') {
-        comissao = valor * 0.35;
-      } else if (situacao === 'ALUGUEL') {
-        comissao = valor * 0.70;
-      } else {
-        comissao = valor * 0.06; // Comissão bruta total de 6% padrão da venda
-      }
-    }
+    let comissao = parseFloat(item.comissao) || 0;
 
     let premioCorretor = 'XXXXXX';
     if (situacao === 'ALUGUEL') {
@@ -425,10 +412,6 @@
     const c = calcularFórmulas(raw);
     const fmt = v => typeof v === 'number' ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : v;
 
-    if (!document.getElementById('inp-comissao').value) {
-      document.getElementById('inp-comissao').value = c.comissao;
-    }
-    
     const setCampoCondicional = (id, val) => {
       const el = document.getElementById(id);
       if (val === 'XXXXXX') {
@@ -468,7 +451,7 @@
     let vol = 0, com = 0, liq = 0;
 
     if (!dados || dados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="18" style="text-align:center; padding:16px;">Nenhum registro encontrado.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center; padding:16px;">Nenhum registro encontrado.</td></tr>';
       return;
     }
 
@@ -518,8 +501,6 @@
             ${Object.keys(TABELA_CORRETORES).map(c => `<option value="${c}" ${item.corretor === c ? 'selected' : ''}>${c}</option>`).join('')}
           </select>
         </td>
-
-        <td class="col-pct">${(parseFloat(item.percentual_corretor)*100).toFixed(1)}%</td>
 
         <td class="col-fat">
           <select class="cell-select" style="text-align:center;" onchange="atualizarItemDireto(${id}, 'faturada', this.value)">
@@ -601,7 +582,7 @@
       corretor: document.getElementById('inp-corretor').value,
       faturada: document.getElementById('inp-faturada').value,
       premio: parseFloat(document.getElementById('inp-premio').value) || 0,
-      comissao: parseFloat(document.getElementById('inp-comissao').value) || undefined,
+      comissao: parseFloat(document.getElementById('inp-comissao').value) || 0,
       recebido: document.getElementById('inp-recebido').value,
       valor_recebido: parseFloat(document.getElementById('inp-val-recebido').value) || 0,
       obs: document.getElementById('inp-obs').value
@@ -650,7 +631,6 @@
         const r = rows[i];
         if (!r || !r[3]) continue;
         
-        // Pega com precisão os valores brutos calculados da planilha
         const item = calcularFórmulas({
           ano: parseInt(r[1]) || new Date().getFullYear(),
           mes: r[2] || '',
@@ -661,7 +641,7 @@
           corretor: r[7] || 'Mario',
           faturada: r[9] || 'NÃO',
           premio: parseFloat(r[10]) || 0,
-          comissao: parseFloat(r[11]) || undefined, // Coluna L: Comissão exata da planilha
+          comissao: parseFloat(r[11]) || 0,
           recebido: r[14] || 'NÃO',
           valor_recebido: parseFloat(r[16]) || 0,
           obs: r[19] || ''
@@ -669,15 +649,22 @@
         lotes.push(item);
       }
 
-      if (lotes.length > 0 && confirm(`Importar ${lotes.length} linhas para o banco mantendo os valores originais da planilha?`)) {
+      if (lotes.length > 0 && confirm(`Deseja substituir a base atual por essas ${lotes.length} linhas da planilha? Os dados anteriores serão limpos para não duplicar.`)) {
+        await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao?id=gt.0`, {
+          method: 'DELETE',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+
         await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao`, {
           method: 'POST',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(lotes)
         });
-        alert('✅ Importação concluída com sucesso!');
+
+        alert('✅ Importação concluída com sucesso sem duplicidades!');
         carregarDados();
       }
+      evt.target.value = '';
     };
     reader.readAsArrayBuffer(file);
   }
