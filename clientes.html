@@ -79,7 +79,7 @@
   .col-imp { width: 60px; text-align: right; }
   .col-rec { width: 54px; text-align: center; }
   .col-liq { width: 80px; text-align: right; font-weight: bold; color: var(--success); }
-  .col-opc { width: 42px; text-align: center; }
+  .col-opc { width: 52px; text-align: center; }
   .col-tax { width: 65px; text-align: right; }
 
   /* MAPA */
@@ -178,7 +178,12 @@
           </div>
           <div><label>Líquido R$</label><input type="text" id="inp-liquido" class="read-only-field" readonly></div>
           <div><label>Valor Recebido</label><input type="number" step="0.01" id="inp-val-recebido" value="0"></div>
-          <div><label>Opção</label><input type="text" id="inp-opcao" class="read-only-field" readonly></div>
+          <div>
+            <label>Opção</label>
+            <select id="inp-opcao">
+              <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
+            </select>
+          </div>
           <div><label>Taxa Mensal</label><input type="text" id="inp-taxa" class="read-only-field" readonly></div>
           <div style="grid-column: span 2;"><label>Observações</label><input type="text" id="inp-obs"></div>
         </div>
@@ -337,6 +342,7 @@
     const hoje = new Date();
     document.getElementById('inp-ano').value = hoje.getFullYear();
     document.getElementById('inp-mes').selectedIndex = hoje.getMonth();
+    document.getElementById('inp-opcao').value = 'NÃO';
   }
 
   function calcularFórmulas(item) {
@@ -372,7 +378,11 @@
       valorLiquido = comissao;
     }
 
-    let opcao = (situacao === 'ALUGUEL' && corretor === 'Mario') ? 'SIM' : 'XXXXXX';
+    // A Opção agora respeita a escolha manual do formulário ou importação
+    let opcao = String(item.opcao || 'NÃO').trim().toUpperCase();
+    if (situacao !== 'ALUGUEL') {
+      opcao = 'XXXXXX';
+    }
 
     let taxaMensal = 'XXXXXX';
     if (situacao === 'ALUGUEL') {
@@ -404,7 +414,8 @@
       valor: document.getElementById('inp-valor').value,
       premio: document.getElementById('inp-premio').value,
       comissao: document.getElementById('inp-comissao').value,
-      faturada: document.getElementById('inp-faturada').value
+      faturada: document.getElementById('inp-faturada').value,
+      opcao: document.getElementById('inp-opcao').value
     };
     const c = calcularFórmulas(raw);
     const fmt = v => typeof v === 'number' ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : v;
@@ -422,7 +433,6 @@
 
     setCampoCondicional('inp-premio-corr', c.premio_corretor);
     setCampoCondicional('inp-imposto', c.imposto);
-    setCampoCondicional('inp-opcao', c.opcao);
     setCampoCondicional('inp-taxa', c.taxa_mensal);
 
     document.getElementById('inp-liquido').value = fmt(c.valor_liquido);
@@ -460,6 +470,7 @@
       const isX = val => String(val || '').trim() === 'XXXXXX';
       const id = item.id;
       const isRecSim = String(item.recebido || '').toUpperCase() === 'SIM';
+      const isOpcSim = String(item.opcao || '').toUpperCase() === 'SIM';
 
       return `<tr>
         <td class="col-del"><button class="btn btn-danger" onclick="excluirLinha(${id})">✕</button></td>
@@ -520,7 +531,17 @@
         </td>
 
         <td class="col-liq">${fmt(parseFloat(item.valor_liquido))}</td>
-        <td class="col-opc ${isX(item.opcao) ? 'celula-bloqueada' : ''}">${isX(item.opcao) ? '' : item.opcao}</td>
+
+        <!-- COLUNA OPÇÃO VIVA NA TABELA -->
+        <td class="col-opc">
+          ${isX(item.opcao) ? '<span style="color:#94a3b8">—</span>' : `
+            <select class="cell-select" style="font-weight:bold;" onchange="atualizarItemDireto(${id}, 'opcao', this.value)">
+              <option value="NÃO" ${!isOpcSim ? 'selected' : ''}>NÃO</option>
+              <option value="SIM" ${isOpcSim ? 'selected' : ''}>SIM</option>
+            </select>
+          `}
+        </td>
+
         <td class="col-tax ${isX(item.taxa_mensal) ? 'celula-bloqueada' : ''}">${isX(item.taxa_mensal) ? '' : fmt(item.taxa_mensal)}</td>
       </tr>`;
     }).join('');
@@ -582,6 +603,7 @@
       comissao: parseFloat(document.getElementById('inp-comissao').value) || 0,
       recebido: document.getElementById('inp-recebido').value,
       valor_recebido: parseFloat(document.getElementById('inp-val-recebido').value) || 0,
+      opcao: document.getElementById('inp-opcao').value,
       obs: document.getElementById('inp-obs').value
     };
 
@@ -628,6 +650,10 @@
         const r = rows[i];
         if (!r || !r[3]) continue;
         
+        // r[17] corresponde exatamente à Coluna R (Índice 17 em base 0) -> OPÇÃO
+        let valOpcaoExcel = r[17] ? String(r[17]).trim().toUpperCase() : 'NÃO';
+        if (valOpcaoExcel !== 'SIM') valOpcaoExcel = 'NÃO';
+
         const item = calcularFórmulas({
           ano: parseInt(r[1]) || new Date().getFullYear(),
           mes: r[2] || '',
@@ -641,12 +667,13 @@
           comissao: parseFloat(r[11]) || 0,
           recebido: r[14] || 'NÃO',
           valor_recebido: parseFloat(r[16]) || 0,
+          opcao: valOpcaoExcel, // Lê direto da coluna R do Excel
           obs: r[19] || ''
         });
         lotes.push(item);
       }
 
-      if (lotes.length > 0 && confirm(`Deseja substituir a base atual por essas ${lotes.length} linhas da planilha? Os dados anteriores serão limpos para não duplicar.`)) {
+      if (lotes.length > 0 && confirm(`Deseja substituir a base atual por essas ${lotes.length} linhas da planilha lendo a Coluna R (Opção)? Os dados anteriores serão limpos.`)) {
         await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao?id=gt.0`, {
           method: 'DELETE',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
@@ -658,7 +685,7 @@
           body: JSON.stringify(lotes)
         });
 
-        alert('✅ Importação concluída com sucesso sem duplicidades!');
+        alert('✅ Importação concluída com leitura correta da Coluna R (Opção)!');
         carregarDados();
       }
       evt.target.value = '';
@@ -667,7 +694,7 @@
   }
 
   // ========================================================
-  // MAPA FINANCEIRO RIGOROSO (CORRIGIDO PARA VALOR LÍQUIDO NO ALUGUEL)
+  // MAPA FINANCEIRO RIGOROSO
   // ========================================================
   function montarSlicers() {
     const anos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean).sort((a,b) => b - a);
@@ -709,7 +736,7 @@
       return matchAno && matchMes;
     });
 
-    // 1. BLOCO VGV CORRETOR (Filtrado por Situação == VENDA)
+    // 1. BLOCO VGV CORRETOR
     const baseVGV = basePeriodo.filter(d => String(d.situacao || '').toUpperCase() === 'VENDA');
     const vgvCorretor = {};
     let totalVGV = 0;
@@ -723,7 +750,7 @@
       `<tr><td>${c}</td><td style="text-align:right;">R$ ${fmt(vgvCorretor[c])}</td></tr>`
     ).join('') + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ${fmt(totalVGV)}</td></tr>`;
 
-    // 2. BLOCO A RECEBER (Filtro: Recebido = NÃO e Soma de Saldo = Comissão - Valor Recebido)
+    // 2. BLOCO A RECEBER
     const situacoesAReceber = ['VENDA', 'ALUGUEL', 'REGISTRO', 'CRÉDITO', 'ASS. DIGITAL', 'CONTRATO', 'LEILÃO'];
     const aReceberGlobal = dadosDB.filter(d => 
       String(d.recebido || '').toUpperCase() === 'NÃO' &&
@@ -748,7 +775,7 @@
       return `<tr><td>${nome}</td><td style="text-align:right;">${fmt(saldo)}</td></tr>`;
     }).join('') + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalAReceber)}</td></tr>`;
 
-    // 3. BLOCO RESUMO VENDA (Período, Situações: VENDA, REGISTRO, CRÉDITO)
+    // 3. BLOCO RESUMO VENDA
     const situacoesResumoVenda = ['VENDA', 'REGISTRO', 'CRÉDITO'];
     const baseVenda = basePeriodo.filter(d => situacoesResumoVenda.includes(String(d.situacao || '').toUpperCase()));
     let totalVenda = 0;
@@ -779,7 +806,7 @@
     });
     document.getElementById('mapa-venda-body').innerHTML = htmlVenda + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalVenda)}</td></tr>`;
 
-    // 4. BLOCO RESUMO ALUGUEL (Corrigido para usar VALOR LÍQUIDO exatamente como o Excel)
+    // 4. BLOCO RESUMO ALUGUEL
     const baseAluguel = basePeriodo.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL');
     let totalAluguel = 0;
     let htmlAluguel = '';
@@ -809,7 +836,7 @@
     });
     document.getElementById('mapa-aluguel-body').innerHTML = htmlAluguel + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalAluguel)}</td></tr>`;
 
-    // 5. BLOCO MENSAL OPÇÕES (Situação == ALUGUEL & Opção == SIM, Acumulado por Ano/Mês)
+    // 5. BLOCO MENSAL OPÇÕES (Lendo a coluna Opção SIM)
     const baseOpcoes = dadosDB.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM');
     let totalOpcoes = 0;
     const treeOpcoes = {};
