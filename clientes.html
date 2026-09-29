@@ -27,7 +27,7 @@
   .tab-page.active { display: block; }
 
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
-  .card-title { font-size: 0.95rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .card-title { font-size: 0.95rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 
   .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 10px; }
   label { display: block; font-size: 0.68rem; font-weight: 700; color: #475569; margin-bottom: 3px; text-transform: uppercase; }
@@ -193,10 +193,28 @@
       </form>
     </div>
 
+    <!-- BARRA DE FILTROS AVANÇADOS DO HISTÓRICO -->
     <div class="card">
       <div class="card-title">
         <span>Histórico de Lançamentos (Planilha Viva - Edição Direta)</span>
-        <input type="text" id="filtro-busca" placeholder="🔍 Filtrar registros..." style="width: 260px;" oninput="filtrarTabela()">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <select id="filtro-ano" style="width: 100px; padding: 4px; font-size: 0.78rem;" onchange="filtrarTabela()">
+            <option value="TODOS">Ano: Todos</option>
+          </select>
+          <select id="filtro-mes-hist" style="width: 110px; padding: 4px; font-size: 0.78rem;" onchange="filtrarTabela()">
+            <option value="TODOS">Mês: Todos</option>
+            <option value="Janeiro">Janeiro</option><option value="Fevereiro">Fevereiro</option><option value="Março">Março</option>
+            <option value="Abril">Abril</option><option value="Maio">Maio</option><option value="Junho">Junho</option>
+            <option value="Julho">Julho</option><option value="Agosto">Agosto</option><option value="Setembro">Setembro</option>
+            <option value="Outubro">Outubro</option><option value="Novembro">Novembro</option><option value="Dezembro">Dezembro</option>
+          </select>
+          <select id="filtro-rec" style="width: 110px; padding: 4px; font-size: 0.78rem;" onchange="filtrarTabela()">
+            <option value="TODOS">Rec.: Todos</option>
+            <option value="SIM">Rec: SIM</option>
+            <option value="NÃO">Rec: NÃO</option>
+          </select>
+          <input type="text" id="filtro-busca" placeholder="🔍 Pesquisar por nome..." style="width: 180px; padding: 4px 8px; font-size: 0.78rem;" oninput="filtrarTabela()">
+        </div>
       </div>
       
       <div class="table-container">
@@ -346,6 +364,13 @@
     document.getElementById('inp-taxa').value = '0';
   }
 
+  function popularFiltroAnosHist(anos) {
+    const sel = document.getElementById('filtro-ano');
+    const valAtual = sel.value;
+    sel.innerHTML = `<option value="TODOS">Ano: Todos</option>` + 
+      anos.map(a => `<option value="${a}" ${valAtual == a ? 'selected' : ''}>${a}</option>`).join('');
+  }
+
   function calcularFórmulas(item) {
     const nome = (item.nome || '').trim();
     const situacao = (item.situacao || '').trim();
@@ -384,7 +409,6 @@
       opcao = 'XXXXXX';
     }
 
-    // Taxa Mensal agora lê diretamente o valor fornecido (seja manual ou importado da coluna S do Excel)
     let taxaMensal = 'XXXXXX';
     if (situacao === 'ALUGUEL') {
       if (opcao === 'NÃO') {
@@ -443,7 +467,11 @@
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       dadosDB = await res.json();
-      renderizarTabela(dadosDB);
+      
+      const anos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean).sort((a,b) => b - a);
+      popularFiltroAnosHist(anos);
+
+      filtrarTabela();
       montarSlicers();
       if (document.getElementById('page-mapa').classList.contains('active')) renderizarMapa();
     } catch (e) {
@@ -457,7 +485,11 @@
     let vol = 0, com = 0, liq = 0;
 
     if (!dados || dados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center; padding:16px;">Nenhum registro encontrado.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center; padding:16px;">Nenhum registro encontrado com esses filtros.</td></tr>';
+      document.getElementById('stat-total').innerText = 0;
+      document.getElementById('stat-volume').innerText = fmt(0);
+      document.getElementById('stat-comissao').innerText = fmt(0);
+      document.getElementById('stat-liquido').innerText = fmt(0);
       return;
     }
 
@@ -562,7 +594,7 @@
     const recalculado = calcularFórmulas(dadosDB[idx]);
     dadosDB[idx] = recalculado;
 
-    renderizarTabela(dadosDB);
+    filtrarTabela();
     if (document.getElementById('page-mapa').classList.contains('active')) renderizarMapa();
 
     try {
@@ -577,13 +609,24 @@
   }
 
   function filtrarTabela() {
+    const fAno = document.getElementById('filtro-ano').value;
+    const fMes = document.getElementById('filtro-mes-hist').value;
+    const fRec = document.getElementById('filtro-rec').value;
     const q = document.getElementById('filtro-busca').value.toLowerCase();
-    const filtrados = dadosDB.filter(d => 
-      (d.nome && d.nome.toLowerCase().includes(q)) ||
-      (d.corretor && d.corretor.toLowerCase().includes(q)) ||
-      (d.unidade && d.unidade.toLowerCase().includes(q)) ||
-      (d.situacao && d.situacao.toLowerCase().includes(q))
-    );
+
+    const filtrados = dadosDB.filter(d => {
+      const matchAno = (fAno === 'TODOS') || (d.ano == fAno);
+      const matchMes = (fMes === 'TODOS') || (String(d.mes || '').toLowerCase() === String(fMes).toLowerCase());
+      const matchRec = (fRec === 'TODOS') || (String(d.recebido || '').toUpperCase() === fRec);
+      const matchTexto = !q || 
+        (d.nome && d.nome.toLowerCase().includes(q)) ||
+        (d.corretor && d.corretor.toLowerCase().includes(q)) ||
+        (d.unidade && d.unidade.toLowerCase().includes(q)) ||
+        (d.situacao && d.situacao.toLowerCase().includes(q));
+
+      return matchAno && matchMes && matchRec && matchTexto;
+    });
+
     renderizarTabela(filtrados);
   }
 
@@ -653,7 +696,6 @@
         const r = rows[i];
         if (!r || !r[3]) continue;
         
-        // r[17] -> Coluna R (Opção), r[18] -> Coluna S (Taxa mensal real do Excel)
         let valOpcaoExcel = r[17] ? String(r[17]).trim().toUpperCase() : 'NÃO';
         if (valOpcaoExcel !== 'SIM') valOpcaoExcel = 'NÃO';
         let valTaxaExcel = parseFloat(r[18]) || 0;
@@ -672,7 +714,7 @@
           recebido: r[14] || 'NÃO',
           valor_recebido: parseFloat(r[16]) || 0,
           opcao: valOpcaoExcel,
-          taxa_mensal: valTaxaExcel, // Lê o valor exato da coluna S do Excel
+          taxa_mensal: valTaxaExcel,
           obs: r[19] || ''
         });
         lotes.push(item);
@@ -690,7 +732,7 @@
           body: JSON.stringify(lotes)
         });
 
-        alert('✅ Importação concluída com sucesso e alinhada ao Excel!');
+        alert('✅ Importação concluída com sucesso!');
         carregarDados();
       }
       evt.target.value = '';
@@ -841,7 +883,7 @@
     });
     document.getElementById('mapa-aluguel-body').innerHTML = htmlAluguel + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalAluguel)}</td></tr>`;
 
-    // 5. BLOCO MENSAL OPÇÕES (Lendo exatamente a taxa mensal cadastrada/importada)
+    // 5. BLOCO MENSAL OPÇÕES
     const baseOpcoes = dadosDB.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM');
     let totalOpcoes = 0;
     const treeOpcoes = {};
@@ -849,7 +891,7 @@
     baseOpcoes.forEach(d => {
       const a = d.ano || 'Sem Ano';
       const m = d.mes || 'Sem Mês';
-      const v = parseFloat(d.taxa_mensal) || 0;
+      const v = typeof d.taxa_mensal === 'number' ? d.taxa_mensal : (parseFloat(d.taxa_mensal) || 0);
       if (!treeOpcoes[a]) treeOpcoes[a] = { total: 0, meses: {} };
       if (!treeOpcoes[a].meses[m]) treeOpcoes[a].meses[m] = { total: 0, itens: [] };
       treeOpcoes[a].total += v;
