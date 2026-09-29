@@ -28,6 +28,9 @@
   input:focus, select:focus { border-color: var(--accent); }
   .read-only-field { background-color: #f8fafc; font-weight: bold; color: #334155; }
 
+  /* FORMATAÇÃO CONDICIONAL NO FORMULÁRIO (CAMPO PRETO/BLOQUEADO) */
+  .input-bloqueado { background-color: #121315 !important; border-color: #000 !important; color: #121315 !important; cursor: not-allowed; }
+
   .btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; border: none; transition: 0.15s; font-size: 0.8rem; }
   .btn-gold { background: linear-gradient(135deg, #c59b27, #dfba48); color: #121315; }
   .btn-dark { background: var(--secondary); color: #fff; }
@@ -38,12 +41,16 @@
   .stat-card span { font-size: 0.68rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
   .stat-card h3 { font-size: 1.15rem; color: var(--primary); margin-top: 2px; }
 
-  /* TABELA COMPACTA HORIZONTAL TOTAL */
+  /* TABELA COMPACTA HORIZONTAL */
   .table-container { width: 100%; max-height: 72vh; overflow-y: auto; overflow-x: hidden; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
   table.table-compact { width: 100%; border-collapse: collapse; font-size: 0.73rem; table-layout: fixed; }
   table.table-compact th { background: #000; color: #fff; padding: 8px 3px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.69rem; letter-spacing: -0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   table.table-compact td { padding: 6px 3px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.72rem; }
   table.table-compact tr:hover { background: #f8fafc; }
+
+  /* FORMATAÇÃO CONDICIONAL NA TABELA (FUNDO PRETO) */
+  td.celula-bloqueada { background-color: #121315 !important; color: #121315 !important; border-color: #1e293b; user-select: none; text-align: center !important; }
+  td.celula-bloqueada::after { content: "—"; color: #334155; font-size: 0.7rem; }
 
   /* LARGURAS ESPECÍFICAS DAS COLUNAS */
   .col-del { width: 30px; text-align: center; }
@@ -300,11 +307,25 @@
     const fmt = v => typeof v === 'number' ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : v;
 
     document.getElementById('inp-comissao').value = fmt(c.comissao);
-    document.getElementById('inp-premio-corr').value = fmt(c.premio_corretor);
-    document.getElementById('inp-imposto').value = fmt(c.imposto);
+    
+    // Formatação condicional nos campos de entrada
+    const setCampoCondicional = (id, val) => {
+      const el = document.getElementById(id);
+      if (val === 'XXXXXX') {
+        el.value = '';
+        el.classList.add('input-bloqueado');
+      } else {
+        el.value = fmt(val);
+        el.classList.remove('input-bloqueado');
+      }
+    };
+
+    setCampoCondicional('inp-premio-corr', c.premio_corretor);
+    setCampoCondicional('inp-imposto', c.imposto);
+    setCampoCondicional('inp-opcao', c.opcao);
+    setCampoCondicional('inp-taxa', c.taxa_mensal);
+
     document.getElementById('inp-liquido').value = fmt(c.valor_liquido);
-    document.getElementById('inp-opcao').value = c.opcao;
-    document.getElementById('inp-taxa').value = fmt(c.taxa_mensal);
   }
 
   async function carregarDados() {
@@ -334,6 +355,8 @@
       com += parseFloat(item.comissao) || 0;
       liq += parseFloat(item.valor_liquido) || 0;
 
+      const isX = val => String(val || '').trim() === 'XXXXXX';
+
       return `<tr>
         <td class="col-del"><button class="btn btn-danger" onclick="excluirLinha(${item.id})">✕</button></td>
         <td class="col-id">#${item.id}</td>
@@ -347,12 +370,12 @@
         <td class="col-pct">${(parseFloat(item.percentual_corretor)*100).toFixed(1)}%</td>
         <td class="col-fat">${item.faturada}</td>
         <td class="col-com">${fmt(parseFloat(item.comissao))}</td>
-        <td class="col-prem">${fmt(item.premio_corretor)}</td>
-        <td class="col-imp">${fmt(item.imposto)}</td>
+        <td class="col-prem ${isX(item.premio_corretor) ? 'celula-bloqueada' : ''}">${isX(item.premio_corretor) ? '' : fmt(item.premio_corretor)}</td>
+        <td class="col-imp ${isX(item.imposto) ? 'celula-bloqueada' : ''}">${isX(item.imposto) ? '' : fmt(item.imposto)}</td>
         <td class="col-rec">${item.recebido}</td>
         <td class="col-liq">${fmt(parseFloat(item.valor_liquido))}</td>
-        <td class="col-opc">${item.opcao}</td>
-        <td class="col-tax">${fmt(item.taxa_mensal)}</td>
+        <td class="col-opc ${isX(item.opcao) ? 'celula-bloqueada' : ''}">${isX(item.opcao) ? '' : item.opcao}</td>
+        <td class="col-tax ${isX(item.taxa_mensal) ? 'celula-bloqueada' : ''}">${isX(item.taxa_mensal) ? '' : fmt(item.taxa_mensal)}</td>
       </tr>`;
     }).join('');
 
@@ -404,6 +427,7 @@
       if (res.ok) {
         document.getElementById('form-cliente').reset();
         initSelects();
+        recalcularForm();
         carregarDados();
       }
     } finally {
