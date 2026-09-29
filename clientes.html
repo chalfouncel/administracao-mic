@@ -47,35 +47,46 @@
   .stat-card span { font-size: 0.68rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
   .stat-card h3 { font-size: 1.15rem; color: var(--primary); margin-top: 2px; }
 
-  /* TABELA COMPACTA CLIENTES */
+  /* TABELA COMPACTA CLIENTES VIVA */
   .table-container { width: 100%; max-height: 72vh; overflow-y: auto; overflow-x: hidden; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
   table.table-compact { width: 100%; border-collapse: collapse; font-size: 0.73rem; table-layout: fixed; }
   table.table-compact th { background: #000; color: #fff; padding: 8px 3px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.69rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  table.table-compact td { padding: 6px 3px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.72rem; }
+  table.table-compact td { padding: 4px 2px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.72rem; }
   table.table-compact tr:hover { background: #f8fafc; }
+  
+  /* INPUTS E SELECTS DIRETOS DENTRO DA LINHA */
+  .cell-input { width: 100%; padding: 3px 4px; font-size: 0.72rem; border: 1px solid transparent; background: transparent; border-radius: 3px; }
+  .cell-input:hover { border-color: #cbd5e1; background: #fff; }
+  .cell-input:focus { border-color: var(--accent); background: #fff; outline: none; }
+  .cell-select { width: 100%; padding: 2px 0px; font-size: 0.71rem; border: 1px solid transparent; background: transparent; cursor: pointer; border-radius: 3px; }
+  .cell-select:hover { border-color: #cbd5e1; background: #fff; }
+  .cell-select:focus { border-color: var(--accent); background: #fff; outline: none; }
+  .status-rec-sim { background-color: #dcfce7 !important; color: #166534 !important; font-weight: 800; border-radius: 4px; }
+  .status-rec-nao { background-color: #fee2e2 !important; color: #b91c1c !important; font-weight: 800; border-radius: 4px; }
+
   td.celula-bloqueada { background-color: #121315 !important; color: #121315 !important; text-align: center !important; }
   td.celula-bloqueada::after { content: "—"; color: #334155; }
 
-  .col-del { width: 30px; text-align: center; }
+  .col-del { width: 28px; text-align: center; }
   .col-id { width: 34px; text-align: center; font-weight: bold; }
-  .col-ano { width: 40px; text-align: center; }
-  .col-mes { width: 44px; text-align: center; }
-  .col-nome { width: 140px; font-weight: 600; }
-  .col-sit { width: 75px; text-align: center; }
-  .col-un { width: 60px; }
-  .col-val { width: 85px; text-align: right; }
-  .col-cor { width: 65px; }
+  .col-ano { width: 44px; text-align: center; }
+  .col-mes { width: 50px; text-align: center; }
+  .col-nome { width: 130px; font-weight: 600; }
+  .col-sit { width: 85px; text-align: center; }
+  .col-un { width: 55px; }
+  .col-val { width: 80px; text-align: right; }
+  .col-cor { width: 75px; }
   .col-pct { width: 38px; text-align: center; }
-  .col-fat { width: 38px; text-align: center; }
-  .col-com { width: 80px; text-align: right; }
-  .col-prem { width: 65px; text-align: right; }
-  .col-imp { width: 65px; text-align: right; }
-  .col-rec { width: 38px; text-align: center; }
-  .col-liq { width: 85px; text-align: right; font-weight: bold; color: var(--success); }
+  .col-fat { width: 52px; text-align: center; }
+  .col-com { width: 75px; text-align: right; }
+  .col-prem { width: 60px; text-align: right; }
+  .col-imp { width: 60px; text-align: right; }
+  .col-rec { width: 54px; text-align: center; }
+  .col-liq { width: 80px; text-align: right; font-weight: bold; color: var(--success); }
   .col-opc { width: 42px; text-align: center; }
   .col-tax { width: 65px; text-align: right; }
 
-  /* ESTILOS EXCLUSIVOS DO MAPA FINANCEIRO */
+  /* ESTILOS MAPA */
   .mapa-layout { display: grid; grid-template-columns: 140px 1fr; gap: 14px; align-items: start; }
   .slicer-card { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; }
   .slicer-title { font-size: 0.72rem; font-weight: 800; color: #475569; margin-bottom: 6px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
@@ -112,15 +123,13 @@
 
 <div class="container">
   
-  <!-- NAVEGAÇÃO DE ABAS INTERNAS -->
+  <!-- ABAS SUPERIORES -->
   <div class="main-tabs">
     <button class="tab-nav-btn active" onclick="trocarAbaPrincipal('producao', this)">📋 Lançamentos e Produção</button>
     <button class="tab-nav-btn" onclick="trocarAbaPrincipal('mapa', this)">🗺️ MAPA Financeiro</button>
   </div>
 
-  <!-- ========================================== -->
-  <!-- ABA 1: LANÇAMENTOS E PRODUÇÃO               -->
-  <!-- ========================================== -->
+  <!-- ABA 1: LANÇAMENTOS E PRODUÇÃO -->
   <div id="page-producao" class="tab-page active">
     <div class="stat-grid">
       <div class="stat-card"><span>Total de Lançamentos</span><h3 id="stat-total">0</h3></div>
@@ -185,7 +194,7 @@
 
     <div class="card">
       <div class="card-title">
-        <span>Histórico de Lançamentos</span>
+        <span>Histórico de Lançamentos (Planilha Viva - Edição Direta)</span>
         <input type="text" id="filtro-busca" placeholder="🔍 Filtrar registros..." style="width: 260px;" oninput="filtrarTabela()">
       </div>
       
@@ -221,13 +230,10 @@
     </div>
   </div>
 
-  <!-- ========================================== -->
-  <!-- ABA 2: MAPA FINANCEIRO (COCKPIT EXCEL)     -->
-  <!-- ========================================== -->
+  <!-- ABA 2: MAPA FINANCEIRO -->
   <div id="page-mapa" class="tab-page">
     <div class="mapa-layout">
       
-      <!-- SEGMENTADORES (SLICERS LATERAIS) -->
       <aside>
         <div class="slicer-card" style="margin-bottom: 12px;">
           <div class="slicer-title">Ano</div>
@@ -239,10 +245,8 @@
         </div>
       </aside>
 
-      <!-- 5 BLOCOS DO MAPA -->
       <div class="mapa-grid-blocos">
         
-        <!-- BLOCO 1: CORRETOR / VGV -->
         <div class="pivot-box">
           <div class="pivot-header-yellow">VGV Corretor</div>
           <table class="pivot-table">
@@ -251,7 +255,6 @@
           </table>
         </div>
 
-        <!-- BLOCO 2: A RECEBER -->
         <div class="pivot-box">
           <div class="pivot-header-yellow">A Receber</div>
           <table class="pivot-table">
@@ -260,7 +263,6 @@
           </table>
         </div>
 
-        <!-- BLOCO 3: RESUMO VENDA -->
         <div class="pivot-box">
           <div class="pivot-header-green">Resumo Venda</div>
           <table class="pivot-table">
@@ -269,7 +271,6 @@
           </table>
         </div>
 
-        <!-- BLOCO 4: RESUMO ALUGUEL -->
         <div class="pivot-box">
           <div class="pivot-header-green">Resumo Aluguel</div>
           <table class="pivot-table">
@@ -278,7 +279,6 @@
           </table>
         </div>
 
-        <!-- BLOCO 5: MENSAL OPÇÕES -->
         <div class="pivot-box">
           <div class="pivot-header-yellow">Mensal Opções</div>
           <table class="pivot-table">
@@ -445,11 +445,15 @@
       dadosDB = await res.json();
       renderizarTabela(dadosDB);
       montarSlicers();
+      if (document.getElementById('page-mapa').classList.contains('active')) renderizarMapa();
     } catch (e) {
       console.error(e);
     }
   }
 
+  // ========================================================
+  // RENDERIZAÇÃO DA TABELA VIVA COM EDIÇÃO DIRETA
+  // ========================================================
   function renderizarTabela(dados) {
     const tbody = document.getElementById('tabela-corpo');
     const fmt = v => typeof v === 'number' ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : (v || '-');
@@ -466,23 +470,68 @@
       liq += parseFloat(item.valor_liquido) || 0;
 
       const isX = val => String(val || '').trim() === 'XXXXXX';
+      const id = item.id;
+      const isRecSim = String(item.recebido || '').toUpperCase() === 'SIM';
 
       return `<tr>
-        <td class="col-del"><button class="btn btn-danger" onclick="excluirLinha(${item.id})">✕</button></td>
-        <td class="col-id">#${item.id}</td>
-        <td class="col-ano">${item.ano}</td>
-        <td class="col-mes">${String(item.mes || '').slice(0,3)}</td>
-        <td class="col-nome" title="${item.nome}">${item.nome}</td>
-        <td class="col-sit" title="${item.situacao}">${item.situacao}</td>
-        <td class="col-un" title="${item.unidade || ''}">${item.unidade || ''}</td>
-        <td class="col-val">${fmt(parseFloat(item.valor))}</td>
-        <td class="col-cor" title="${item.corretor}">${item.corretor}</td>
+        <td class="col-del"><button class="btn btn-danger" onclick="excluirLinha(${id})">✕</button></td>
+        <td class="col-id">#${id}</td>
+        
+        <td class="col-ano">
+          <input type="number" class="cell-input" value="${item.ano}" onchange="atualizarItemDireto(${id}, 'ano', parseInt(this.value))">
+        </td>
+
+        <td class="col-mes">
+          <select class="cell-select" onchange="atualizarItemDireto(${id}, 'mes', this.value)">
+            ${MESES_LISTA.map(m => `<option value="${m}" ${item.mes === m ? 'selected' : ''}>${m.slice(0,3)}</option>`).join('')}
+          </select>
+        </td>
+
+        <td class="col-nome">
+          <input type="text" class="cell-input" value="${item.nome}" title="${item.nome}" onchange="atualizarItemDireto(${id}, 'nome', this.value)">
+        </td>
+
+        <td class="col-sit">
+          <select class="cell-select" onchange="atualizarItemDireto(${id}, 'situacao', this.value)">
+            ${SITUACOES.map(s => `<option value="${s}" ${item.situacao === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </td>
+
+        <td class="col-un">
+          <input type="text" class="cell-input" value="${item.unidade || ''}" onchange="atualizarItemDireto(${id}, 'unidade', this.value)">
+        </td>
+
+        <td class="col-val">
+          <input type="number" step="0.01" class="cell-input" style="text-align:right;" value="${parseFloat(item.valor) || 0}" onchange="atualizarItemDireto(${id}, 'valor', parseFloat(this.value))">
+        </td>
+
+        <td class="col-cor">
+          <select class="cell-select" onchange="atualizarItemDireto(${id}, 'corretor', this.value)">
+            ${Object.keys(TABELA_CORRETORES).map(c => `<option value="${c}" ${item.corretor === c ? 'selected' : ''}>${c}</option>`).join('')}
+          </select>
+        </td>
+
         <td class="col-pct">${(parseFloat(item.percentual_corretor)*100).toFixed(1)}%</td>
-        <td class="col-fat">${item.faturada}</td>
+
+        <td class="col-fat">
+          <select class="cell-select" style="text-align:center;" onchange="atualizarItemDireto(${id}, 'faturada', this.value)">
+            <option value="NÃO" ${item.faturada === 'NÃO' ? 'selected' : ''}>NÃO</option>
+            <option value="SIM" ${item.faturada === 'SIM' ? 'selected' : ''}>SIM</option>
+          </select>
+        </td>
+
         <td class="col-com">${fmt(parseFloat(item.comissao))}</td>
         <td class="col-prem ${isX(item.premio_corretor) ? 'celula-bloqueada' : ''}">${isX(item.premio_corretor) ? '' : fmt(item.premio_corretor)}</td>
         <td class="col-imp ${isX(item.imposto) ? 'celula-bloqueada' : ''}">${isX(item.imposto) ? '' : fmt(item.imposto)}</td>
-        <td class="col-rec">${item.recebido}</td>
+
+        <!-- CAMPO RECEBIDO VIVO (SIM / NÃO) -->
+        <td class="col-rec">
+          <select class="cell-select ${isRecSim ? 'status-rec-sim' : 'status-rec-nao'}" onchange="atualizarItemDireto(${id}, 'recebido', this.value)">
+            <option value="NÃO" ${!isRecSim ? 'selected' : ''}>NÃO</option>
+            <option value="SIM" ${isRecSim ? 'selected' : ''}>SIM</option>
+          </select>
+        </td>
+
         <td class="col-liq">${fmt(parseFloat(item.valor_liquido))}</td>
         <td class="col-opc ${isX(item.opcao) ? 'celula-bloqueada' : ''}">${isX(item.opcao) ? '' : item.opcao}</td>
         <td class="col-tax ${isX(item.taxa_mensal) ? 'celula-bloqueada' : ''}">${isX(item.taxa_mensal) ? '' : fmt(item.taxa_mensal)}</td>
@@ -493,6 +542,39 @@
     document.getElementById('stat-volume').innerText = fmt(vol);
     document.getElementById('stat-comissao').innerText = fmt(com);
     document.getElementById('stat-liquido').innerText = fmt(liq);
+  }
+
+  // ========================================================
+  // MOTOR DE ATUALIZAÇÃO DIRETA DA LINHA NO BANCO
+  // ========================================================
+  async function atualizarItemDireto(id, campo, valorNovo) {
+    const idx = dadosDB.findIndex(x => x.id === id);
+    if (idx === -1) return;
+
+    dadosDB[idx][campo] = valorNovo;
+    
+    // Recalcula fórmulas instantaneamente
+    const recalculado = calcularFórmulas(dadosDB[idx]);
+    dadosDB[idx] = recalculado;
+
+    // Atualiza a tabela e o mapa na hora
+    renderizarTabela(dadosDB);
+    if (document.getElementById('page-mapa').classList.contains('active')) renderizarMapa();
+
+    // Salva no Supabase via PATCH
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(recalculado)
+      });
+    } catch(err) {
+      console.error("Falha ao sincronizar alteração com o Supabase:", err);
+    }
   }
 
   function filtrarTabela() {
@@ -622,7 +704,6 @@
   function renderizarMapa() {
     const fmt = v => (parseFloat(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     
-    // Filtragem conforme os segmentadores
     const base = dadosDB.filter(d => {
       const matchAno = (mapaFiltroAno === 'TODOS') || (d.ano == mapaFiltroAno);
       const matchMes = (mapaFiltroMes === 'TODOS') || (String(d.mes || '').toLowerCase() === String(mapaFiltroMes).toLowerCase());
