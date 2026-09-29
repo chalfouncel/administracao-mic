@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal M&IC Corretores</title>
+<link rel="icon" type="image/png" href="/Loga%20marca%20nova.png">
+<style>
+  :root { --primary: #121315; --secondary: #1a1c20; --accent: #c59b27; --gold: #d4af37; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .hub-card { background: #1e293b; border: 2px solid var(--accent); border-radius: 16px; padding: 40px 30px; max-width: 520px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  .hub-logo { max-height: 70px; margin-bottom: 20px; border-radius: 8px; border: 1px solid var(--accent); padding: 4px; background: #000; }
+  h1 { font-size: 1.5rem; color: var(--gold); margin-bottom: 8px; }
+  p { font-size: 0.88rem; color: #94a3b8; margin-bottom: 28px; }
+  .btn-module { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 18px; margin-bottom: 16px; border-radius: 10px; font-size: 1rem; font-weight: 700; text-decoration: none; transition: 0.2s; }
+  .btn-locacao { background: linear-gradient(135deg, #c59b27, #dfba48); color: #121315; }
+  .btn-cliente { background: #334155; color: #fff; border: 1px solid #475569; }
+  .btn-module:hover { transform: translateY(-2px); opacity: 0.95; }
+</style>
+</head>
+<body>
+<div class="hub-card">
+  <img src="/Loga%20marca%20nova.png" class="hub-logo" onerror="this.src='/Loga marca nova.png'">
+  <h1>M&IC CORRETORES</h1>
+  <p>Selecione o módulo operacional que deseja acessar:</p>
+  <a href="/" class="btn-module btn-locacao">🏢 Administração de Imóvel (Locações)</a>
+  <a href="/clientes" class="btn-module btn-cliente">👥 Administração do Cliente (Produção)</a>
+</div>
+</body>
+</html>
