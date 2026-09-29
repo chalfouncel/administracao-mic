@@ -12,37 +12,58 @@
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   body { background: var(--bg); color: var(--text); padding-bottom: 40px; overflow-x: hidden; }
 
-  header { background: linear-gradient(135deg, #0d0e10 0%, #1a1c20 70%, #2b261b 100%); border-bottom: 3px solid var(--accent); color: #fff; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; }
+  header { background: linear-gradient(135deg, #0d0e10 0%, #1a1c20 70%, #2b261b 100%); border-bottom: 3px solid var(--accent); color: #fff; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; }
   .brand-area { display: flex; align-items: center; gap: 12px; }
-  .app-header-logo { max-height: 48px; border-radius: 6px; border: 1px solid var(--accent); padding: 2px; background: #000; }
-  header h1 { font-size: 1.15rem; color: var(--gold); font-weight: 700; }
-  header p { font-size: 0.76rem; color: #cfd4dc; }
+  .app-header-logo { max-height: 42px; border-radius: 6px; border: 1px solid var(--accent); padding: 2px; background: #000; }
+  header h1 { font-size: 1.1rem; color: var(--gold); font-weight: 700; }
+  header p { font-size: 0.74rem; color: #cfd4dc; }
   
-  .container { max-width: 98%; margin: 20px auto; padding: 0 16px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-  .card-title { font-size: 1rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+  .container { max-width: 99%; margin: 16px auto; padding: 0 10px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+  .card-title { font-size: 0.95rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
-  .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
-  label { display: block; font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 4px; text-transform: uppercase; }
-  input, select, textarea { width: 100%; padding: 8px 10px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem; outline: none; }
+  .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  label { display: block; font-size: 0.68rem; font-weight: 700; color: #475569; margin-bottom: 3px; text-transform: uppercase; }
+  input, select, textarea { width: 100%; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 0.82rem; outline: none; }
   input:focus, select:focus { border-color: var(--accent); }
   .read-only-field { background-color: #f8fafc; font-weight: bold; color: #334155; }
 
-  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; border: none; transition: 0.15s; font-size: 0.85rem; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; border: none; transition: 0.15s; font-size: 0.8rem; }
   .btn-gold { background: linear-gradient(135deg, #c59b27, #dfba48); color: #121315; }
   .btn-dark { background: var(--secondary); color: #fff; }
-  .btn-danger { background: var(--danger); color: #fff; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; }
+  .btn-danger { background: var(--danger); color: #fff; padding: 3px 6px; font-size: 0.7rem; border-radius: 4px; }
 
-  .table-container { width: 100%; max-height: 70vh; overflow: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; margin-top: 15px; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-  th { background: #000; color: #fff; padding: 10px 8px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: bold; white-space: nowrap; }
-  td { padding: 8px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; white-space: nowrap; }
-  tr:hover { background: #f8fafc; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .stat-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; border-left: 4px solid var(--accent); }
+  .stat-card span { font-size: 0.68rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
+  .stat-card h3 { font-size: 1.15rem; color: var(--primary); margin-top: 2px; }
 
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .stat-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px; border-left: 4px solid var(--accent); }
-  .stat-card span { font-size: 0.72rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
-  .stat-card h3 { font-size: 1.3rem; color: var(--primary); margin-top: 4px; }
+  /* TABELA COMPACTA HORIZONTAL TOTAL */
+  .table-container { width: 100%; max-height: 72vh; overflow-y: auto; overflow-x: hidden; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
+  table.table-compact { width: 100%; border-collapse: collapse; font-size: 0.73rem; table-layout: fixed; }
+  table.table-compact th { background: #000; color: #fff; padding: 8px 3px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.69rem; letter-spacing: -0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  table.table-compact td { padding: 6px 3px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.72rem; }
+  table.table-compact tr:hover { background: #f8fafc; }
+
+  /* LARGURAS ESPECÍFICAS DAS COLUNAS */
+  .col-del { width: 30px; text-align: center; }
+  .col-id { width: 34px; text-align: center; font-weight: bold; }
+  .col-ano { width: 40px; text-align: center; }
+  .col-mes { width: 44px; text-align: center; }
+  .col-nome { width: 140px; font-weight: 600; }
+  .col-sit { width: 75px; text-align: center; }
+  .col-un { width: 60px; }
+  .col-val { width: 85px; text-align: right; }
+  .col-cor { width: 65px; }
+  .col-pct { width: 38px; text-align: center; }
+  .col-fat { width: 38px; text-align: center; }
+  .col-com { width: 80px; text-align: right; }
+  .col-prem { width: 65px; text-align: right; }
+  .col-imp { width: 65px; text-align: right; }
+  .col-rec { width: 38px; text-align: center; }
+  .col-liq { width: 85px; text-align: right; font-weight: bold; color: var(--success); }
+  .col-opc { width: 42px; text-align: center; }
+  .col-tax { width: 65px; text-align: right; }
 </style>
 </head>
 <body>
@@ -56,7 +77,7 @@
     </div>
   </div>
   <div style="display:flex; gap:10px;">
-    <a href="/" class="btn btn-dark" style="text-decoration:none; font-size:0.78rem;">🏢 Ir para Imóveis</a>
+    <a href="/" class="btn btn-dark" style="text-decoration:none;">🏢 Ir para Imóveis</a>
   </div>
 </header>
 
@@ -73,7 +94,7 @@
     <div class="card-title">
       <span>Novo Lançamento</span>
       <div>
-        <input type="file" id="fileImport" accept=".xlsx, .xls, .csv" style="display:none;" onchange="importarExcel(event)">
+        <input type="file" id="fileImport" accept=".xlsx, .xls, .csv, .xlsm" style="display:none;" onchange="importarExcel(event)">
         <button class="btn btn-dark" onclick="document.getElementById('fileImport').click()">📥 Importar Linhas da Planilha</button>
       </div>
     </div>
@@ -123,7 +144,7 @@
         <div><label>Taxa Mensal</label><input type="text" id="inp-taxa" class="read-only-field" readonly></div>
         <div style="grid-column: span 2;"><label>Observações</label><input type="text" id="inp-obs"></div>
       </div>
-      <div style="margin-top: 14px; text-align: right;">
+      <div style="margin-top: 12px; text-align: right;">
         <button type="submit" class="btn btn-gold" id="btn-salvar">💾 Salvar Lançamento</button>
       </div>
     </form>
@@ -132,35 +153,35 @@
   <div class="card">
     <div class="card-title">
       <span>Histórico de Lançamentos</span>
-      <input type="text" id="filtro-busca" placeholder="🔍 Buscar por nome, unidade ou corretor..." style="width: 320px;" oninput="filtrarTabela()">
+      <input type="text" id="filtro-busca" placeholder="🔍 Filtrar registros..." style="width: 260px;" oninput="filtrarTabela()">
     </div>
     
     <div class="table-container">
-      <table>
+      <table class="table-compact">
         <thead>
           <tr>
-            <th>Ação</th>
-            <th>ID</th>
-            <th>Ano</th>
-            <th>Mês</th>
-            <th>Nome</th>
-            <th>Situação</th>
-            <th>Unidade</th>
-            <th>Valor</th>
-            <th>Corretor</th>
-            <th>%</th>
-            <th>Fat.</th>
-            <th>Comissão</th>
-            <th>Prêmio Corr.</th>
-            <th>Imposto</th>
-            <th>Rec.</th>
-            <th>Líquido</th>
-            <th>Opção</th>
-            <th>Taxa Mês</th>
+            <th class="col-del">Del</th>
+            <th class="col-id">ID</th>
+            <th class="col-ano">Ano</th>
+            <th class="col-mes">Mês</th>
+            <th class="col-nome">Nome / Operação</th>
+            <th class="col-sit">Situação</th>
+            <th class="col-un">Unidade</th>
+            <th class="col-val">Valor</th>
+            <th class="col-cor">Corretor</th>
+            <th class="col-pct">%</th>
+            <th class="col-fat">Fat.</th>
+            <th class="col-com">Comissão</th>
+            <th class="col-prem">Prêmio</th>
+            <th class="col-imp">Imposto</th>
+            <th class="col-rec">Rec.</th>
+            <th class="col-liq">Líquido</th>
+            <th class="col-opc">Opção</th>
+            <th class="col-tax">Taxa Mês</th>
           </tr>
         </thead>
         <tbody id="tabela-corpo">
-          <tr><td colspan="18" style="text-align:center; padding:20px;">Carregando registros...</td></tr>
+          <tr><td colspan="18" style="text-align:center; padding:16px;">Carregando registros...</td></tr>
         </tbody>
       </table>
     </div>
@@ -288,7 +309,7 @@
 
   async function carregarDados() {
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao?select=*&order=id.desc`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao?select=*&order=id.asc`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       dadosDB = await res.json();
@@ -304,7 +325,7 @@
     let vol = 0, com = 0, liq = 0;
 
     if (!dados || dados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="18" style="text-align:center; padding:20px;">Nenhum registro encontrado.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="18" style="text-align:center; padding:16px;">Nenhum registro encontrado.</td></tr>';
       return;
     }
 
@@ -314,24 +335,24 @@
       liq += parseFloat(item.valor_liquido) || 0;
 
       return `<tr>
-        <td><button class="btn btn-danger" onclick="excluirLinha(${item.id})">🗑️</button></td>
-        <td><strong>#${item.id}</strong></td>
-        <td>${item.ano}</td>
-        <td>${item.mes}</td>
-        <td>${item.nome}</td>
-        <td>${item.situacao}</td>
-        <td>${item.unidade || ''}</td>
-        <td>${fmt(parseFloat(item.valor))}</td>
-        <td>${item.corretor}</td>
-        <td>${(parseFloat(item.percentual_corretor)*100).toFixed(1)}%</td>
-        <td>${item.faturada}</td>
-        <td>${fmt(parseFloat(item.comissao))}</td>
-        <td>${fmt(item.premio_corretor)}</td>
-        <td>${fmt(item.imposto)}</td>
-        <td>${item.recebido}</td>
-        <td><strong>${fmt(parseFloat(item.valor_liquido))}</strong></td>
-        <td>${item.opcao}</td>
-        <td>${fmt(item.taxa_mensal)}</td>
+        <td class="col-del"><button class="btn btn-danger" onclick="excluirLinha(${item.id})">✕</button></td>
+        <td class="col-id">#${item.id}</td>
+        <td class="col-ano">${item.ano}</td>
+        <td class="col-mes">${String(item.mes || '').slice(0,3)}</td>
+        <td class="col-nome" title="${item.nome}">${item.nome}</td>
+        <td class="col-sit" title="${item.situacao}">${item.situacao}</td>
+        <td class="col-un" title="${item.unidade || ''}">${item.unidade || ''}</td>
+        <td class="col-val">${fmt(parseFloat(item.valor))}</td>
+        <td class="col-cor" title="${item.corretor}">${item.corretor}</td>
+        <td class="col-pct">${(parseFloat(item.percentual_corretor)*100).toFixed(1)}%</td>
+        <td class="col-fat">${item.faturada}</td>
+        <td class="col-com">${fmt(parseFloat(item.comissao))}</td>
+        <td class="col-prem">${fmt(item.premio_corretor)}</td>
+        <td class="col-imp">${fmt(item.imposto)}</td>
+        <td class="col-rec">${item.recebido}</td>
+        <td class="col-liq">${fmt(parseFloat(item.valor_liquido))}</td>
+        <td class="col-opc">${item.opcao}</td>
+        <td class="col-tax">${fmt(item.taxa_mensal)}</td>
       </tr>`;
     }).join('');
 
@@ -346,7 +367,8 @@
     const filtrados = dadosDB.filter(d => 
       (d.nome && d.nome.toLowerCase().includes(q)) ||
       (d.corretor && d.corretor.toLowerCase().includes(q)) ||
-      (d.unidade && d.unidade.toLowerCase().includes(q))
+      (d.unidade && d.unidade.toLowerCase().includes(q)) ||
+      (d.situacao && d.situacao.toLowerCase().includes(q))
     );
     renderizarTabela(filtrados);
   }
