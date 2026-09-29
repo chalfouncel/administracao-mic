@@ -20,7 +20,6 @@
   
   .container { max-width: 99%; margin: 14px auto; padding: 0 10px; }
 
-  /* ABAS SUPERIORES */
   .main-tabs { display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 2px solid var(--border); padding-bottom: 4px; }
   .tab-nav-btn { background: #fff; border: 1px solid var(--border); border-radius: 8px 8px 0 0; padding: 10px 18px; font-size: 0.88rem; font-weight: 700; color: #64748b; cursor: pointer; transition: 0.2s; }
   .tab-nav-btn.active { background: var(--secondary); color: var(--gold); border-color: var(--secondary); border-bottom: 2px solid var(--accent); }
@@ -47,14 +46,12 @@
   .stat-card span { font-size: 0.68rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
   .stat-card h3 { font-size: 1.15rem; color: var(--primary); margin-top: 2px; }
 
-  /* TABELA COMPACTA CLIENTES VIVA */
   .table-container { width: 100%; max-height: 72vh; overflow-y: auto; overflow-x: hidden; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
   table.table-compact { width: 100%; border-collapse: collapse; font-size: 0.73rem; table-layout: fixed; }
   table.table-compact th { background: #000; color: #fff; padding: 8px 3px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.69rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   table.table-compact td { padding: 4px 2px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.72rem; }
   table.table-compact tr:hover { background: #f8fafc; }
   
-  /* INPUTS E SELECTS DIRETOS DENTRO DA LINHA */
   .cell-input { width: 100%; padding: 3px 4px; font-size: 0.72rem; border: 1px solid transparent; background: transparent; border-radius: 3px; }
   .cell-input:hover { border-color: #cbd5e1; background: #fff; }
   .cell-input:focus { border-color: var(--accent); background: #fff; outline: none; }
@@ -102,7 +99,7 @@
   table.pivot-table th { background: #f1f5f9; color: #475569; padding: 6px 8px; font-size: 0.7rem; border-bottom: 1px solid #cbd5e1; }
   table.pivot-table td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
   table.pivot-table tr.total-row { background: #d9e1f2; font-weight: 800; border-top: 1px solid #8ea9db; }
-  .tree-node { font-weight: bold; background: #fafafa; }
+  .tree-node { font-weight: bold; background: #fafafa; cursor: pointer; user-select: none; }
   .tree-leaf { padding-left: 18px !important; color: #475569; }
 </style>
 </head>
@@ -123,13 +120,12 @@
 
 <div class="container">
   
-  <!-- ABAS SUPERIORES -->
   <div class="main-tabs">
     <button class="tab-nav-btn active" onclick="trocarAbaPrincipal('producao', this)">📋 Lançamentos e Produção</button>
     <button class="tab-nav-btn" onclick="trocarAbaPrincipal('mapa', this)">🗺️ MAPA Financeiro</button>
   </div>
 
-  <!-- ABA 1: LANÇAMENTOS E PRODUÇÃO -->
+  <!-- ABA 1: PRODUÇÃO -->
   <div id="page-producao" class="tab-page active">
     <div class="stat-grid">
       <div class="stat-card"><span>Total de Lançamentos</span><h3 id="stat-total">0</h3></div>
@@ -247,42 +243,47 @@
 
       <div class="mapa-grid-blocos">
         
+        <!-- BLOCO 1 -->
         <div class="pivot-box">
-          <div class="pivot-header-yellow">VGV Corretor</div>
+          <div class="pivot-header-yellow">Corretor VGV</div>
           <table class="pivot-table">
             <thead><tr><th>Corretor</th><th style="text-align:right;">VGV</th></tr></thead>
             <tbody id="mapa-vgv-body"></tbody>
           </table>
         </div>
 
+        <!-- BLOCO 2 -->
         <div class="pivot-box">
           <div class="pivot-header-yellow">A Receber</div>
           <table class="pivot-table">
-            <thead><tr><th>Nome</th><th style="text-align:right;">Saldo</th></tr></thead>
+            <thead><tr><th>Nome</th><th style="text-align:right;">Soma de Saldo</th></tr></thead>
             <tbody id="mapa-receber-body"></tbody>
           </table>
         </div>
 
+        <!-- BLOCO 3 -->
         <div class="pivot-box">
           <div class="pivot-header-green">Resumo Venda</div>
           <table class="pivot-table">
-            <thead><tr><th>Status / Corretor</th><th style="text-align:right;">R$</th></tr></thead>
+            <thead><tr><th>Status / Corretor</th><th style="text-align:right;">Soma de R$</th></tr></thead>
             <tbody id="mapa-venda-body"></tbody>
           </table>
         </div>
 
+        <!-- BLOCO 4 -->
         <div class="pivot-box">
           <div class="pivot-header-green">Resumo Aluguel</div>
           <table class="pivot-table">
-            <thead><tr><th>Status / Corretor</th><th style="text-align:right;">R$</th></tr></thead>
+            <thead><tr><th>Status / Corretor</th><th style="text-align:right;">Soma de R$</th></tr></thead>
             <tbody id="mapa-aluguel-body"></tbody>
           </table>
         </div>
 
+        <!-- BLOCO 5: RECOLHÍVEL -->
         <div class="pivot-box">
           <div class="pivot-header-yellow">Mensal Opções</div>
           <table class="pivot-table">
-            <thead><tr><th>Ano / Mês / Inquilino</th><th style="text-align:right;">Taxa</th></tr></thead>
+            <thead><tr><th>Ano / Mês / Inquilino</th><th style="text-align:right;">Soma</th></tr></thead>
             <tbody id="mapa-opcoes-body"></tbody>
           </table>
         </div>
@@ -314,8 +315,9 @@
   const ALIQUOTA_IMPOSTO = 0.15;
   let dadosDB = [];
 
-  let mapaFiltroAno = 'TODOS';
-  let mapaFiltroMes = 'TODOS';
+  let mapaFiltroAno = '2026';
+  let mapaFiltroMes = 'Setembro';
+  let anosExpandidos = { '2026': true }; // 2026 aberto por padrão, anos antigos fechados
 
   function trocarAbaPrincipal(qual, btn) {
     document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
@@ -451,9 +453,6 @@
     }
   }
 
-  // ========================================================
-  // RENDERIZAÇÃO DA TABELA VIVA COM EDIÇÃO DIRETA
-  // ========================================================
   function renderizarTabela(dados) {
     const tbody = document.getElementById('tabela-corpo');
     const fmt = v => typeof v === 'number' ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : (v || '-');
@@ -524,7 +523,6 @@
         <td class="col-prem ${isX(item.premio_corretor) ? 'celula-bloqueada' : ''}">${isX(item.premio_corretor) ? '' : fmt(item.premio_corretor)}</td>
         <td class="col-imp ${isX(item.imposto) ? 'celula-bloqueada' : ''}">${isX(item.imposto) ? '' : fmt(item.imposto)}</td>
 
-        <!-- CAMPO RECEBIDO VIVO (SIM / NÃO) -->
         <td class="col-rec">
           <select class="cell-select ${isRecSim ? 'status-rec-sim' : 'status-rec-nao'}" onchange="atualizarItemDireto(${id}, 'recebido', this.value)">
             <option value="NÃO" ${!isRecSim ? 'selected' : ''}>NÃO</option>
@@ -544,32 +542,21 @@
     document.getElementById('stat-liquido').innerText = fmt(liq);
   }
 
-  // ========================================================
-  // MOTOR DE ATUALIZAÇÃO DIRETA DA LINHA NO BANCO
-  // ========================================================
   async function atualizarItemDireto(id, campo, valorNovo) {
     const idx = dadosDB.findIndex(x => x.id === id);
     if (idx === -1) return;
 
     dadosDB[idx][campo] = valorNovo;
-    
-    // Recalcula fórmulas instantaneamente
     const recalculado = calcularFórmulas(dadosDB[idx]);
     dadosDB[idx] = recalculado;
 
-    // Atualiza a tabela e o mapa em tempo real
     renderizarTabela(dadosDB);
     if (document.getElementById('page-mapa').classList.contains('active')) renderizarMapa();
 
-    // Salva no Supabase via PATCH
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao?id=eq.${id}`, {
         method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(recalculado)
       });
     } catch(err) {
@@ -681,7 +668,7 @@
   }
 
   // ========================================================
-  // MOTOR DE CÁLCULO E RENDERIZAÇÃO DO MAPA FINANCEIRO
+  // MOTOR DO MAPA FINANCEIRO REVISADO
   // ========================================================
   function montarSlicers() {
     const anos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean).sort((a,b) => b - a);
@@ -691,28 +678,36 @@
 
     const divMeses = document.getElementById('slicer-meses');
     divMeses.innerHTML = `<button class="slicer-btn ${mapaFiltroMes === 'TODOS' ? 'active' : ''}" onclick="setFiltroMapa('mes', 'TODOS')">TODOS</button>` +
-      MESES_LISTA.map(m => `<button class="slicer-btn ${mapaFiltroMes === m ? 'active' : ''}" onclick="setFiltroMapa('mes', '${m}')">${m}</button>`).join('');
+      MESES_LISTA.map(m => `<button class="slicer-btn ${mapaFiltroMes.toLowerCase() === m.toLowerCase() ? 'active' : ''}" onclick="setFiltroMapa('mes', '${m}')">${m}</button>`).join('');
   }
 
   function setFiltroMapa(tipo, valor) {
-    if (tipo === 'ano') mapaFiltroAno = valor;
+    if (tipo === 'ano') {
+      mapaFiltroAno = valor;
+      if (valor !== 'TODOS') anosExpandidos[valor] = true;
+    }
     if (tipo === 'mes') mapaFiltroMes = valor;
     montarSlicers();
+    renderizarMapa();
+  }
+
+  function toggleExpandirAno(ano) {
+    anosExpandidos[ano] = !anosExpandidos[ano];
     renderizarMapa();
   }
 
   function renderizarMapa() {
     const fmt = v => (parseFloat(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     
-    // Filtro base pelos Segmentadores (Ano e Mês)
-    const base = dadosDB.filter(d => {
+    // Base filtrada pelo Mês e Ano selecionados nos Segmentadores
+    const basePeriodo = dadosDB.filter(d => {
       const matchAno = (mapaFiltroAno === 'TODOS') || (d.ano == mapaFiltroAno);
       const matchMes = (mapaFiltroMes === 'TODOS') || (String(d.mes || '').toLowerCase() === String(mapaFiltroMes).toLowerCase());
       return matchAno && matchMes;
     });
 
-    // 1. BLOCO VGV CORRETOR (Filtrado por Situação VENDA conforme topo da planilha)
-    const baseVGV = base.filter(d => String(d.situacao || '').toUpperCase() === 'VENDA');
+    // 1. BLOCO VGV CORRETOR (Filtrado por Situação == VENDA e período)
+    const baseVGV = basePeriodo.filter(d => String(d.situacao || '').toUpperCase() === 'VENDA');
     const vgvCorretor = {};
     let totalVGV = 0;
     baseVGV.forEach(d => {
@@ -725,71 +720,69 @@
       `<tr><td>${c}</td><td style="text-align:right;">R$ ${fmt(vgvCorretor[c])}</td></tr>`
     ).join('') + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ${fmt(totalVGV)}</td></tr>`;
 
-    // 2. BLOCO A RECEBER
-    // Filtro: Recebido = NÃO e Situações específicas (Venda, Aluguel, Registro, Crédito, Ass. Digital, Contrato, Leilão)
+    // 2. BLOCO A RECEBER (ACUMULADO GLOBAL: Todos os negócios com Recebido == NÃO)
     const situacoesAReceber = ['VENDA', 'ALUGUEL', 'REGISTRO', 'CRÉDITO', 'ASS. DIGITAL', 'CONTRATO', 'LEILÃO'];
-    const aReceber = base.filter(d => 
+    const aReceberGlobal = dadosDB.filter(d => 
       String(d.recebido || '').toUpperCase() === 'NÃO' &&
       situacoesAReceber.includes(String(d.situacao || '').toUpperCase())
     );
 
-    let totalAReceber = 0;
-    document.getElementById('mapa-receber-body').innerHTML = aReceber.map(d => {
-      const valLiq = parseFloat(d.valor_liquido) || 0;
-      const valRec = parseFloat(d.valor_recebido) || 0;
+    // Agrupa valores por Nome do Cliente
+    const mapaReceberClientes = {};
+    aReceberGlobal.forEach(d => {
       const sit = String(d.situacao || '').toUpperCase();
-      
-      // Se situação for CRÉDITO e comissão for zero, saldo = 0
-      let saldo = (sit === 'CRÉDITO' && valLiq === 0) ? 0 : (valLiq - valRec);
-      if (saldo < 0) saldo = 0;
-      totalAReceber += saldo;
+      const label = (sit === 'CRÉDITO') ? `${d.nome} (CRÉDITO)` : d.nome;
+      const valorComissao = (sit === 'CRÉDITO' && (parseFloat(d.comissao) || 0) === 0) ? 0 : (parseFloat(d.comissao) || 0);
+      mapaReceberClientes[label] = (mapaReceberClientes[label] || 0) + valorComissao;
+    });
 
-      const labelNome = (sit === 'CRÉDITO') ? `${d.nome} (CRÉDITO)` : d.nome;
-      return `<tr><td>${labelNome}</td><td style="text-align:right;">${fmt(saldo)}</td></tr>`;
+    let totalAReceber = 0;
+    document.getElementById('mapa-receber-body').innerHTML = Object.keys(mapaReceberClientes).map(nome => {
+      const saldo = mapaReceberClientes[nome];
+      totalAReceber += saldo;
+      return `<tr><td>${nome}</td><td style="text-align:right;">${fmt(saldo)}</td></tr>`;
     }).join('') + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalAReceber)}</td></tr>`;
 
-    // 3. BLOCO RESUMO VENDA
-    // Filtro estrito: Apenas VENDA, REGISTRO e CRÉDITO
+    // 3. BLOCO RESUMO VENDA (Período, Situações: VENDA, REGISTRO, CRÉDITO)
     const situacoesResumoVenda = ['VENDA', 'REGISTRO', 'CRÉDITO'];
-    const baseVenda = base.filter(d => situacoesResumoVenda.includes(String(d.situacao || '').toUpperCase()));
+    const baseVenda = basePeriodo.filter(d => situacoesResumoVenda.includes(String(d.situacao || '').toUpperCase()));
     let totalVenda = 0;
     let htmlVenda = '';
 
     ['NÃO', 'SIM'].forEach(st => {
       const sub = baseVenda.filter(d => String(d.recebido || '').toUpperCase() === st);
       if (sub.length > 0) {
-        const subTotal = sub.reduce((acc, x) => acc + (parseFloat(x.valor_liquido) || 0), 0);
+        const subTotal = sub.reduce((acc, x) => acc + (parseFloat(x.comissao) || 0), 0);
         totalVenda += subTotal;
         htmlVenda += `<tr class="tree-node"><td>📁 ${st}</td><td style="text-align:right;">${fmt(subTotal)}</td></tr>`;
         
-        // Agrupa por Corretor dentro do Status
         const porCorretor = {};
         sub.forEach(x => {
           const c = x.corretor || 'Outros';
           if (!porCorretor[c]) porCorretor[c] = { total: 0, itens: [] };
-          porCorretor[c].total += (parseFloat(x.valor_liquido) || 0);
+          porCorretor[c].total += (parseFloat(x.comissao) || 0);
           porCorretor[c].itens.push(x);
         });
 
         Object.keys(porCorretor).forEach(c => {
           htmlVenda += `<tr class="tree-leaf" style="font-weight:bold;"><td>↳ ${c}</td><td style="text-align:right;">${fmt(porCorretor[c].total)}</td></tr>`;
           porCorretor[c].itens.forEach(it => {
-            htmlVenda += `<tr style="font-size:0.7rem; color:#64748b;"><td style="padding-left:26px;">${it.nome}</td><td style="text-align:right;">${fmt(it.valor_liquido)}</td></tr>`;
+            htmlVenda += `<tr style="font-size:0.7rem; color:#64748b;"><td style="padding-left:26px;">${it.nome}</td><td style="text-align:right;">${fmt(it.comissao)}</td></tr>`;
           });
         });
       }
     });
     document.getElementById('mapa-venda-body').innerHTML = htmlVenda + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalVenda)}</td></tr>`;
 
-    // 4. BLOCO RESUMO ALUGUEL (Situação == ALUGUEL)
-    const baseAluguel = base.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL');
+    // 4. BLOCO RESUMO ALUGUEL (Período, Situação == ALUGUEL)
+    const baseAluguel = basePeriodo.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL');
     let totalAluguel = 0;
     let htmlAluguel = '';
 
     ['NÃO', 'SIM'].forEach(st => {
       const sub = baseAluguel.filter(d => String(d.recebido || '').toUpperCase() === st);
       if (sub.length > 0) {
-        const subTotal = sub.reduce((acc, x) => acc + (parseFloat(x.valor_liquido) || 0), 0);
+        const subTotal = sub.reduce((acc, x) => acc + (parseFloat(x.comissao) || 0), 0);
         totalAluguel += subTotal;
         htmlAluguel += `<tr class="tree-node"><td>📁 ${st}</td><td style="text-align:right;">${fmt(subTotal)}</td></tr>`;
         
@@ -797,24 +790,25 @@
         sub.forEach(x => {
           const c = x.corretor || 'Outros';
           if (!porCorretor[c]) porCorretor[c] = { total: 0, itens: [] };
-          porCorretor[c].total += (parseFloat(x.valor_liquido) || 0);
+          porCorretor[c].total += (parseFloat(x.comissao) || 0);
           porCorretor[c].itens.push(x);
         });
 
         Object.keys(porCorretor).forEach(c => {
           htmlAluguel += `<tr class="tree-leaf" style="font-weight:bold;"><td>↳ ${c}</td><td style="text-align:right;">${fmt(porCorretor[c].total)}</td></tr>`;
           porCorretor[c].itens.forEach(it => {
-            htmlAluguel += `<tr style="font-size:0.7rem; color:#64748b;"><td style="padding-left:26px;">${it.nome}</td><td style="text-align:right;">${fmt(it.valor_liquido)}</td></tr>`;
+            htmlAluguel += `<tr style="font-size:0.7rem; color:#64748b;"><td style="padding-left:26px;">${it.nome}</td><td style="text-align:right;">${fmt(it.comissao)}</td></tr>`;
           });
         });
       }
     });
     document.getElementById('mapa-aluguel-body').innerHTML = htmlAluguel + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalAluguel)}</td></tr>`;
 
-    // 5. BLOCO MENSAL OPÇÕES (Situação == ALUGUEL & Opção == SIM)
+    // 5. BLOCO MENSAL OPÇÕES (Situação == ALUGUEL & Opção == SIM, Árvore Recolhível)
     const baseOpcoes = dadosDB.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM');
     let totalOpcoes = 0;
     const treeOpcoes = {};
+
     baseOpcoes.forEach(d => {
       const a = d.ano || 'Sem Ano';
       const m = d.mes || 'Sem Mês';
@@ -829,13 +823,18 @@
 
     let htmlOpcoes = '';
     Object.keys(treeOpcoes).sort().forEach(ano => {
-      htmlOpcoes += `<tr class="tree-node"><td>📅 ${ano}</td><td style="text-align:right;">${fmt(treeOpcoes[ano].total)}</td></tr>`;
-      Object.keys(treeOpcoes[ano].meses).forEach(mes => {
-        htmlOpcoes += `<tr class="tree-leaf" style="font-weight:bold;"><td>↳ ${mes}</td><td style="text-align:right;">${fmt(treeOpcoes[ano].meses[mes].total)}</td></tr>`;
-        treeOpcoes[ano].meses[mes].itens.forEach(it => {
-          htmlOpcoes += `<tr style="font-size:0.7rem; color:#64748b;"><td style="padding-left:30px;">${it.nome}</td><td style="text-align:right;">${fmt(it.valor)}</td></tr>`;
+      const isExpandido = !!anosExpandidos[ano];
+      const sinal = isExpandido ? '[-] ' : '[+] ';
+      htmlOpcoes += `<tr class="tree-node" onclick="toggleExpandirAno('${ano}')"><td>${sinal}📅 ${ano}</td><td style="text-align:right;">${fmt(treeOpcoes[ano].total)}</td></tr>`;
+      
+      if (isExpandido) {
+        Object.keys(treeOpcoes[ano].meses).forEach(mes => {
+          htmlOpcoes += `<tr class="tree-leaf" style="font-weight:bold;"><td>↳ ${mes}</td><td style="text-align:right;">${fmt(treeOpcoes[ano].meses[mes].total)}</td></tr>`;
+          treeOpcoes[ano].meses[mes].itens.forEach(it => {
+            htmlOpcoes += `<tr style="font-size:0.7rem; color:#64748b;"><td style="padding-left:30px;">${it.nome}</td><td style="text-align:right;">${fmt(it.valor)}</td></tr>`;
+          });
         });
-      });
+      }
     });
     document.getElementById('mapa-opcoes-body').innerHTML = htmlOpcoes + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalOpcoes)}</td></tr>`;
   }
