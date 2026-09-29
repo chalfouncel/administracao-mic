@@ -278,7 +278,7 @@
           </table>
         </div>
 
-        <!-- BLOCO 5: MENSAL OPÇÕES (TOTALMENTE INDEPENDENTE DE ANO/MÊS) -->
+        <!-- BLOCO 5: MENSAL OPÇÕES -->
         <div class="pivot-box">
           <div class="pivot-header-yellow">Mensal Opções</div>
           <table class="pivot-table">
@@ -667,7 +667,7 @@
   }
 
   // ========================================================
-  // MAPA FINANCEIRO RIGOROSO
+  // MAPA FINANCEIRO RIGOROSO (CORRIGIDO PARA VALOR LÍQUIDO NO ALUGUEL)
   // ========================================================
   function montarSlicers() {
     const anos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean).sort((a,b) => b - a);
@@ -723,7 +723,7 @@
       `<tr><td>${c}</td><td style="text-align:right;">R$ ${fmt(vgvCorretor[c])}</td></tr>`
     ).join('') + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ${fmt(totalVGV)}</td></tr>`;
 
-    // 2. BLOCO A RECEBER (Filtro: Recebido = NÃO e Soma de Saldo = Comissao - Valor Recebido)
+    // 2. BLOCO A RECEBER (Filtro: Recebido = NÃO e Soma de Saldo = Comissão - Valor Recebido)
     const situacoesAReceber = ['VENDA', 'ALUGUEL', 'REGISTRO', 'CRÉDITO', 'ASS. DIGITAL', 'CONTRATO', 'LEILÃO'];
     const aReceberGlobal = dadosDB.filter(d => 
       String(d.recebido || '').toUpperCase() === 'NÃO' &&
@@ -779,7 +779,7 @@
     });
     document.getElementById('mapa-venda-body').innerHTML = htmlVenda + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalVenda)}</td></tr>`;
 
-    // 4. BLOCO RESUMO ALUGUEL (Período, Situação == ALUGUEL)
+    // 4. BLOCO RESUMO ALUGUEL (Corrigido para usar VALOR LÍQUIDO exatamente como o Excel)
     const baseAluguel = basePeriodo.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL');
     let totalAluguel = 0;
     let htmlAluguel = '';
@@ -787,7 +787,7 @@
     ['NÃO', 'SIM'].forEach(st => {
       const sub = baseAluguel.filter(d => String(d.recebido || '').toUpperCase() === st);
       if (sub.length > 0) {
-        const subTotal = sub.reduce((acc, x) => acc + (parseFloat(x.comissao) || 0), 0);
+        const subTotal = sub.reduce((acc, x) => acc + (parseFloat(x.valor_liquido) || 0), 0);
         totalAluguel += subTotal;
         htmlAluguel += `<tr class="tree-node"><td>📁 ${st}</td><td style="text-align:right;">${fmt(subTotal)}</td></tr>`;
         
@@ -795,21 +795,21 @@
         sub.forEach(x => {
           const c = x.corretor || 'Outros';
           if (!porCorretor[c]) porCorretor[c] = { total: 0, itens: [] };
-          porCorretor[c].total += (parseFloat(x.comissao) || 0);
+          porCorretor[c].total += (parseFloat(x.valor_liquido) || 0);
           porCorretor[c].itens.push(x);
         });
 
         Object.keys(porCorretor).forEach(c => {
           htmlAluguel += `<tr class="tree-subnode"><td>↳ ${c}</td><td style="text-align:right;">${fmt(porCorretor[c].total)}</td></tr>`;
           porCorretor[c].itens.forEach(it => {
-            htmlAluguel += `<tr class="tree-leaf"><td>${it.nome}</td><td style="text-align:right;">${fmt(it.comissao)}</td></tr>`;
+            htmlAluguel += `<tr class="tree-leaf"><td>${it.nome}</td><td style="text-align:right;">${fmt(it.valor_liquido)}</td></tr>`;
           });
         });
       }
     });
     document.getElementById('mapa-aluguel-body').innerHTML = htmlAluguel + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalAluguel)}</td></tr>`;
 
-    // 5. BLOCO MENSAL OPÇÕES (TOTALMENTE INDEPENDENTE DE ANO/MÊS DOS SLICERS LATERAIS, Exatamente como no Excel)
+    // 5. BLOCO MENSAL OPÇÕES (Situação == ALUGUEL & Opção == SIM, Acumulado por Ano/Mês)
     const baseOpcoes = dadosDB.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM');
     let totalOpcoes = 0;
     const treeOpcoes = {};
