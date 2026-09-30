@@ -397,9 +397,9 @@
         <div class="kpi-card-sub">Negócios fechados</div>
       </div>
       <div class="kpi-card" style="border-left-color: #70ad47;">
-        <div class="kpi-card-title">Carteira Mensal ADM Atual</div>
-        <div class="kpi-card-val" id="kpi-taxa-adm">R$ 1.022,20</div>
-        <div class="kpi-card-sub">Receita recorrente mensal</div>
+        <div class="kpi-card-title">Recebimento Administrações Atual</div>
+        <div class="kpi-card-val" id="kpi-taxa-adm">R$ 0,00</div>
+        <div class="kpi-card-sub">Coluna P (Mais recente)</div>
       </div>
     </div>
 
@@ -447,11 +447,11 @@
       </div>
     </div>
 
-    <!-- SEÇÃO 3: CURVA DE RECEBIMENTO EM ADMINISTRAÇÃO (TAXA ADM) -->
+    <!-- SEÇÃO 3: CURVA DE RECEBIMENTO EM ADMINISTRAÇÃO (COM 2 LINHAS PARALELAS - COLUNA P) -->
     <div class="card" style="margin-bottom: 14px;">
       <div class="card-title">
-        <span>Curva de Crescimento — Recebimento em Administração (Taxa ADM)</span>
-        <span style="font-size:0.75rem; color:#64748b;">Evolução contínua mês a mês (Set/2022 a Set/2026)</span>
+        <span>Curva de Crescimento — Recebimentos em Administração</span>
+        <span style="font-size:0.75rem; color:#64748b;">Evolução cronológica mês a mês (Coluna P)</span>
       </div>
       <div class="chart-container" style="height: 290px;">
         <canvas id="chart-taxa-adm-evolucao"></canvas>
@@ -1358,11 +1358,11 @@
   function renderizarGraficoMultianual() {
     const anos = [2022, 2023, 2024, 2025, 2026];
     const coresAno = {
-      2022: '#3b82f6', // azul
-      2023: '#ea580c', // laranja
-      2024: '#64748b', // cinza
-      2025: '#eab308', // amarelo
-      2026: '#0284c7'  // ciano escuro
+      2022: '#3b82f6',
+      2023: '#ea580c',
+      2024: '#64748b',
+      2025: '#eab308',
+      2026: '#0284c7'
     };
 
     const datasets = anos.map(ano => {
@@ -1412,30 +1412,52 @@
     });
   }
 
-  // --- SEÇÃO 3: CURVA CRONOLÓGICA DE ADMINISTRAÇÃO (TAXA ADM) ---
+  // --- SEÇÃO 3: CURVA DE RECEBIMENTO EM ADMINISTRAÇÃO (2 LINHAS PARALELAS COM BASE NA COLUNA P) ---
   function renderizarGraficoCurvaAdm() {
-    const dadosTaxaAdm = dadosDB.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM');
-    
-    // Agrupa soma de taxa por Ano e Mês
-    const timeline = {};
-    dadosTaxaAdm.forEach(d => {
-      const a = d.ano;
-      const m = d.mes;
-      const chave = `${a}-${String(ORDEM_MESES[m] || 0).padStart(2,'0')}-${m}`;
-      timeline[chave] = (timeline[chave] || 0) + (parseFloat(d.taxa_mensal) || 0);
+    // Coleta todas as chaves de ano/mês ordenadas cronologicamente
+    const timelineChaves = [];
+    dadosDB.forEach(d => {
+      if (d.ano && d.mes) {
+        const chave = `${d.ano}-${String(ORDEM_MESES[d.mes] || 0).padStart(2, '0')}-${d.mes}`;
+        if (!timelineChaves.includes(chave)) timelineChaves.push(chave);
+      }
     });
+    timelineChaves.sort();
 
     const labels = [];
-    const valores = [];
-    Object.keys(timeline).sort().forEach(k => {
+    const serieGeral = [];
+    const serieMic = [];
+
+    let ultimoValorValido = 0;
+
+    timelineChaves.forEach(k => {
       const partes = k.split('-');
-      labels.push(`${partes[2].slice(0,3)}/${partes[0].slice(2)}`);
-      valores.push(timeline[k]);
+      const anoNum = parseInt(partes[0]);
+      const mesNome = partes[2];
+
+      labels.push(`${mesNome.slice(0, 3)}/${String(anoNum).slice(2)}`);
+
+      // Soma da Coluna P (valor_liquido) para "Recebimento das administrações"
+      const somaGeral = dadosDB.filter(d => {
+        const n = String(d.nome || '').trim().toLowerCase();
+        return d.ano === anoNum && d.mes === mesNome && (n === 'recebimento das administrações' || n === 'recebimento das administracoes');
+      }).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
+
+      // Soma da Coluna P (valor_liquido) para "Recebimento das Administrações M&IC"
+      const somaMic = dadosDB.filter(d => {
+        const n = String(d.nome || '').trim().toLowerCase();
+        return d.ano === anoNum && d.mes === mesNome && (n.includes('administrações m&ic') || n.includes('administracoes m&ic'));
+      }).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
+
+      serieGeral.push(somaGeral);
+      serieMic.push(somaMic);
+
+      if (somaGeral > 0) ultimoValorValido = somaGeral;
+      else if (somaMic > 0) ultimoValorValido = somaMic;
     });
 
-    // Se houver valor final, atualiza KPI
-    if (valores.length > 0) {
-      document.getElementById('kpi-taxa-adm').innerText = 'R$ ' + formatarMoedaInput(valores[valores.length - 1]);
+    if (ultimoValorValido > 0) {
+      document.getElementById('kpi-taxa-adm').innerText = 'R$ ' + formatarMoedaInput(ultimoValorValido);
     }
 
     if (chartInstAdmEvolucao) chartInstAdmEvolucao.destroy();
@@ -1444,27 +1466,37 @@
       type: 'line',
       data: {
         labels: labels,
-        datasets: [{
-          label: 'Recebimento em Administração (R$)',
-          data: valores,
-          borderColor: '#001e60',
-          backgroundColor: 'rgba(0, 30, 96, 0.08)',
-          fill: true,
-          tension: 0.35,
-          pointRadius: 3,
-          pointBackgroundColor: '#c59b27',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 1.5
-        }]
+        datasets: [
+          {
+            label: 'Recebimento das Administrações (R$)',
+            data: serieGeral,
+            borderColor: '#001e60',
+            backgroundColor: 'rgba(0, 30, 96, 0.08)',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 2.5,
+            pointBackgroundColor: '#001e60'
+          },
+          {
+            label: 'Recebimento das Administrações M&IC (R$)',
+            data: serieMic,
+            borderColor: '#c59b27',
+            backgroundColor: 'rgba(197, 155, 39, 0.08)',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 2.5,
+            pointBackgroundColor: '#c59b27'
+          }
+        ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
+          legend: { position: 'top', labels: { boxWidth: 14, font: { size: 10, weight: 'bold' } } },
           tooltip: {
             callbacks: {
-              label: (ctx) => `Taxa ADM: R$ ${formatarMoedaInput(ctx.parsed.y)}`
+              label: (ctx) => `${ctx.dataset.label}: R$ ${formatarMoedaInput(ctx.parsed.y)}`
             }
           }
         },
@@ -1480,7 +1512,6 @@
   function renderizarGraficosFaturamentoVgv() {
     const anos = [2022, 2023, 2024, 2025, 2026];
 
-    // Faturamento e VGV anual
     const fatAnual = anos.map(ano => dadosDB.filter(d => d.ano === ano).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0));
     const vgvAnual = anos.map(ano => dadosDB.filter(d => d.ano === ano && String(d.situacao || '').toUpperCase() === 'VENDA').reduce((acc, curr) => acc + (parseFloat(curr.valor) || 0), 0));
 
@@ -1509,7 +1540,6 @@
       }
     });
 
-    // Quantidade de Contratos Anuais
     const qtdVendas = anos.map(ano => dadosDB.filter(d => d.ano === ano && String(d.situacao || '').toUpperCase() === 'VENDA').length);
     const qtdAlugueis = anos.map(ano => dadosDB.filter(d => d.ano === ano && String(d.situacao || '').toUpperCase() === 'ALUGUEL').length);
 
@@ -1521,7 +1551,7 @@
         labels: anos,
         datasets: [
           { label: 'Vendas', data: qtdVendas, backgroundColor: '#2563eb', borderRadius: 4 },
-          { label: 'Aluguéis', data: qtdAlugueis, backgroundColor: '#16a34a', borderRadius: 4 }
+          { label: 'Aluguéis', data: qtdAlugueis, backgroundColor: '#059669', borderRadius: 4 }
         ]
       },
       options: {
