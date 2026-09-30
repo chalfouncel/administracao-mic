@@ -1038,7 +1038,7 @@
 
     const divMeses = document.getElementById('slicer-meses');
     divMeses.innerHTML = '<button class="slicer-btn ' + (mapaFiltroMes === 'TODOS' ? 'active' : '') + '" onclick="setFiltroMapa(\'mes\', \'TODOS\')">TODOS</button>' +
-      MESES_LISTA.map(m => '<button class="slicer-btn ' + (mapaFiltroMes.toLowerCase() === m.toLowerCase() ? 'active' : '') + '" onclick="setFiltroMapa(\'mes\', \'' + m + \')">' + m + '</button>').join('');
+      MESES_LISTA.map(m => '<button class="slicer-btn ' + (mapaFiltroMes.toLowerCase() === m.toLowerCase() ? 'active' : '') + '" onclick="setFiltroMapa(\'mes\', \'' + m + '\')">' + m + '</button>').join('');
   }
 
   function setFiltroMapa(tipo, valor) {
@@ -1226,7 +1226,6 @@
   function renderizarAbaGraficos() {
     if (!dadosDB || dadosDB.length === 0) return;
 
-    // --- CARDS DE KPIS COM BREAKDOWN ANO A ANO (RECEBIDO = SIM) ---
     let totalFatHist = 0;
     let totalVgvHist = 0;
     let totalVendasQtd = 0;
@@ -1255,7 +1254,6 @@
         }
       }
 
-      // Coleta Administrações com recebido SIM por ano
       if (rec && ano) {
         const n = String(d.nome || '').trim().toLowerCase();
         if (n === 'recebimento das administrações' || n === 'recebimento das administracoes' || n.includes('administrações m&ic') || n.includes('administracoes m&ic')) {
@@ -1266,25 +1264,21 @@
 
     const anosOrdenados = Object.keys(fatPorAno).sort((a,b) => b - a);
 
-    // Preenche KPI 1: Faturamento
     document.getElementById('kpi-fat-total').innerText = 'R$ ' + formatarMoedaInput(totalFatHist);
     document.getElementById('kpi-fat-breakdown').innerHTML = anosOrdenados.map(a => `
       <div class="kpi-ano-item"><span>${a}:</span><span>R$ ${formatarMoedaInput(fatPorAno[a])}</span></div>
     `).join('');
 
-    // Preenche KPI 2: VGV
     document.getElementById('kpi-vgv-total').innerText = 'R$ ' + formatarMoedaInput(totalVgvHist);
     document.getElementById('kpi-vgv-breakdown').innerHTML = anosOrdenados.map(a => `
       <div class="kpi-ano-item"><span>${a}:</span><span>R$ ${formatarMoedaInput(vgvPorAno[a] || 0)}</span></div>
     `).join('');
 
-    // Preenche KPI 3: Contratos de Venda
     document.getElementById('kpi-qtd-vendas').innerText = totalVendasQtd;
     document.getElementById('kpi-vendas-breakdown').innerHTML = anosOrdenados.map(a => `
       <div class="kpi-ano-item"><span>${a}:</span><span>${qtdVendasPorAno[a] || 0} contratos</span></div>
     `).join('');
 
-    // --- SEÇÃO 1: ACOMPANHAMENTO DE METAS DO ANO ---
     const selAno = parseInt(document.getElementById('sel-ano-graficos').value) || 2026;
     const { metaMes, metaAno } = calcularMetaAno(selAno);
 
@@ -1353,7 +1347,6 @@
 
     document.getElementById('tabela-metas-corpo').innerHTML = htmlMetas;
 
-    // Gráfico de Metas Mensais
     if (chartInstMetas) chartInstMetas.destroy();
     const ctxMetas = document.getElementById('chart-metas-mensais').getContext('2d');
     chartInstMetas = new Chart(ctxMetas, {
@@ -1404,7 +1397,6 @@
     renderizarGraficosFaturamentoVgv();
   }
 
-  // 2. Gráfico Multianual
   function renderizarGraficoMultianual() {
     const anos = [2022, 2023, 2024, 2025, 2026];
     const coresAno = { 2022: '#3b82f6', 2023: '#ea580c', 2024: '#64748b', 2025: '#eab308', 2026: '#0284c7' };
@@ -1458,7 +1450,6 @@
     });
   }
 
-  // 3. Curva de Administração
   function renderizarGraficoCurvaAdm() {
     const timelineChaves = [];
     dadosDB.forEach(d => {
@@ -1506,7 +1497,6 @@
       document.getElementById('kpi-taxa-adm').innerText = 'R$ ' + formatarMoedaInput(ultimoValorValido);
     }
 
-    // Preenche o breakdown da caixinha de Administrações no KPI
     const admPorAno = {};
     dadosDB.forEach(d => {
       const ano = d.ano;
@@ -1582,7 +1572,6 @@
     });
   }
 
-  // 4. Gráficos Anuais
   function renderizarGraficosFaturamentoVgv() {
     const anos = [2022, 2023, 2024, 2025, 2026];
 
