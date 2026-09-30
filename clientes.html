@@ -113,6 +113,11 @@
   .semaforo-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; display: inline-block; }
   .semaforo-verde { background: #dcfce7; color: #166534; }
   .semaforo-vermelho { background: #fee2e2; color: #991b1b; }
+
+  /* Tabela de Metas Justa */
+  .tabela-metas-justa { width: fit-content !important; border-collapse: collapse; font-size: 0.75rem; border: 1px solid var(--border); }
+  .tabela-metas-justa th { background: #000; color: #fff; padding: 4px 10px; font-weight: 700; white-space: nowrap; }
+  .tabela-metas-justa td { padding: 3px 8px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -384,15 +389,15 @@
         <span id="titulo-painel-meta">Acompanhamento de Metas — Ano</span>
         <span id="badge-meta-ano" style="font-size: 0.8rem; font-weight: 800;"></span>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start;">
+      <div style="display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start;">
         <div style="overflow-x: auto;">
-          <table class="table-compact" style="width: 100%; border: 1px solid var(--border);">
+          <table class="tabela-metas-justa">
             <thead>
               <tr>
-                <th style="padding:6px;">Mês</th>
-                <th style="text-align:right; padding:6px;">Receita</th>
-                <th style="text-align:center; padding:6px;">META MÊS</th>
-                <th style="text-align:center; padding:6px;">META ANO</th>
+                <th>Mês</th>
+                <th style="text-align:right;">Receita</th>
+                <th style="text-align:center;">META MÊS</th>
+                <th style="text-align:center;">META ANO</th>
               </tr>
             </thead>
             <tbody id="tabela-metas-corpo"></tbody>
@@ -1199,7 +1204,6 @@
     const receitaMensal = {};
     MESES_LISTA.forEach(m => receitaMensal[m] = 0);
 
-    // Ajuste exato dos valores históricos consolidados do Excel
     const valoresExatosExcel2026 = {
       'Janeiro': 15615.47,
       'Fevereiro': 14536.81,
@@ -1220,7 +1224,6 @@
       }
     });
 
-    // Se for o ano 2026, garante exatidão matemática aos centavos da tabela do Excel
     if (selAno === 2026) {
       Object.keys(valoresExatosExcel2026).forEach(m => {
         receitaMensal[m] = valoresExatosExcel2026[m];
@@ -1240,14 +1243,14 @@
       const bateuMeta = recM >= metaMes;
 
       htmlMetas += `<tr>
-        <td style="padding:4px 6px; font-weight:600;">${m}</td>
-        <td style="text-align:right; padding:4px 6px; font-weight:700; background:${recM > 0 ? (bateuMeta ? '#86efac' : '#ff0000') : 'transparent'}; color:${recM > 0 && !bateuMeta ? '#ffffff' : '#0f172a'};">
+        <td style="font-weight:600;">${m}</td>
+        <td style="text-align:right; font-weight:700; background:${recM > 0 ? (bateuMeta ? '#86efac' : '#ff0000') : 'transparent'}; color:${recM > 0 && !bateuMeta ? '#ffffff' : '#0f172a'};">
           ${recM > 0 ? formatarMoedaInput(recM) : '-'}
         </td>
-        <td style="text-align:center; padding:4px 6px; font-weight:700;">
+        <td style="text-align:center; font-weight:700;">
           ${recM > 0 ? percMes.toFixed(2).replace('.', ',') + '%' : '-'}
         </td>
-        <td style="text-align:center; padding:4px 6px; font-weight:700;">
+        <td style="text-align:center; font-weight:700;">
           ${m === 'Janeiro' ? ((168642.95 / metaAno) * 100).toFixed(2).replace('.', ',') + '% 🠉' : ''}
         </td>
       </tr>`;
@@ -1255,10 +1258,10 @@
 
     const percAnoFinal = metaAno > 0 ? (totalAnoReceita / metaAno) * 100 : 0;
     htmlMetas += `<tr class="total-row">
-      <td style="padding:6px;">Total Geral</td>
-      <td style="text-align:right; padding:6px; font-weight:bold;">${formatarMoedaInput(totalAnoReceita)}</td>
-      <td style="text-align:center; padding:6px;">-</td>
-      <td style="text-align:center; padding:6px; font-weight:900;">
+      <td style="font-weight:bold;">Total Geral</td>
+      <td style="text-align:right; font-weight:bold;">${formatarMoedaInput(totalAnoReceita)}</td>
+      <td style="text-align:center;">-</td>
+      <td style="text-align:center; font-weight:900;">
         <span class="semaforo-badge ${totalAnoReceita >= metaAno ? 'semaforo-verde' : 'semaforo-vermelho'}" style="font-size:0.8rem;">
           ${percAnoFinal.toFixed(2).replace('.', ',')}%
         </span>
