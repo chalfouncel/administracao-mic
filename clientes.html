@@ -376,30 +376,30 @@
     </div>
   </div>
 
-  <!-- ABA 3: GRÁFICOS & METAS (BI AVANÇADO COM LABELS ATIVAS) -->
+  <!-- ABA 3: GRÁFICOS & METAS (BI AVANÇADO) -->
   <div id="page-graficos" class="tab-page">
     
-    <!-- CARDS DE KPIS HISTÓRICOS CONSOLIDADOS -->
+    <!-- CARDS DE KPIS CONSOLIDADOS (COM FILTRO RECEBIDO = SIM) -->
     <div class="kpi-row">
       <div class="kpi-card" style="border-left-color: #001e60;">
         <div class="kpi-card-title">Faturamento Histórico Total</div>
         <div class="kpi-card-val" id="kpi-fat-total">R$ 0,00</div>
-        <div class="kpi-card-sub" id="kpi-fat-sub">Líquido acumulado</div>
+        <div class="kpi-card-sub">Líquido recebido (SIM)</div>
       </div>
       <div class="kpi-card" style="border-left-color: #c59b27;">
         <div class="kpi-card-title">VGV Total Acumulado</div>
         <div class="kpi-card-val" id="kpi-vgv-total">R$ 0,00</div>
-        <div class="kpi-card-sub">Volume Geral de Vendas</div>
+        <div class="kpi-card-sub">Vendas com recebido (SIM)</div>
       </div>
       <div class="kpi-card" style="border-left-color: #2563eb;">
         <div class="kpi-card-title">Contratos de Venda</div>
         <div class="kpi-card-val" id="kpi-qtd-vendas">0</div>
-        <div class="kpi-card-sub">Negócios fechados</div>
+        <div class="kpi-card-sub">Vendas com recebido (SIM)</div>
       </div>
       <div class="kpi-card" style="border-left-color: #70ad47;">
         <div class="kpi-card-title">Recebimento Administrações Atual</div>
         <div class="kpi-card-val" id="kpi-taxa-adm">R$ 0,00</div>
-        <div class="kpi-card-sub">Coluna P (Mais recente)</div>
+        <div class="kpi-card-sub">Recebido (SIM) mais recente</div>
       </div>
     </div>
 
@@ -432,7 +432,7 @@
       </div>
     </div>
 
-    <!-- SEÇÃO 2: EVOLUÇÃO MULTIANUAL DOS RECEBÍVEIS (COM VALORES EXIBIDOS) -->
+    <!-- SEÇÃO 2: EVOLUÇÃO MULTIANUAL DOS RECEBÍVEIS -->
     <div class="card" style="margin-bottom: 14px;">
       <div class="card-title">
         <span>Evolução Mensal Comparativa (Multianual com Valores)</span>
@@ -447,18 +447,18 @@
       </div>
     </div>
 
-    <!-- SEÇÃO 3: CURVA DE RECEBIMENTO EM ADMINISTRAÇÃO (COM 2 LINHAS PARALELAS E VALORES) -->
+    <!-- SEÇÃO 3: CURVA DE RECEBIMENTO EM ADMINISTRAÇÃO -->
     <div class="card" style="margin-bottom: 14px;">
       <div class="card-title">
         <span>Curva de Crescimento — Recebimentos em Administração (com Valores)</span>
-        <span style="font-size:0.75rem; color:#64748b;">Evolução cronológica mês a mês (Coluna P)</span>
+        <span style="font-size:0.75rem; color:#64748b;">Evolução cronológica mês a mês (Coluna P com recebido SIM)</span>
       </div>
       <div class="chart-container" style="height: 300px;">
         <canvas id="chart-taxa-adm-evolucao"></canvas>
       </div>
     </div>
 
-    <!-- SEÇÃO 4: DUAS COLUNAS: FATURAMENTO & VGV / VOLUME ANUAL COM VALORES -->
+    <!-- SEÇÃO 4: DUAS COLUNAS: FATURAMENTO & VGV / VOLUME ANUAL -->
     <div class="graficos-grid-2col">
       <div class="chart-box">
         <div class="chart-title"><span>Faturamento vs VGV Anual (R$)</span></div>
@@ -475,7 +475,6 @@
 </div>
 
 <script>
-  // Registra globalmente o plugin de DataLabels
   Chart.register(ChartDataLabels);
 
   const SUPABASE_URL = 'https://uztsmkhlvoemjbbyebcr.supabase.co';
@@ -1205,7 +1204,7 @@
   }
 
   // ========================================================
-  // ABA 3: BI & GRÁFICOS COM VALORES NOS GRÁFICOS (DATALABELS)
+  // ABA 3: BI & GRÁFICOS COM KPIS FILTRADOS (RECEBIDO = SIM)
   // ========================================================
   function popularSeletorAnoGraficos() {
     const sel = document.getElementById('sel-ano-graficos');
@@ -1224,16 +1223,21 @@
   function renderizarAbaGraficos() {
     if (!dadosDB || dadosDB.length === 0) return;
 
+    // --- CARDS DE KPIS ATUALIZADOS (EXIGINDO RECEBIDO = SIM) ---
     let totalFatHist = 0;
     let totalVgvHist = 0;
     let totalVendasQtd = 0;
 
     dadosDB.forEach(d => {
       const sit = String(d.situacao || '').toUpperCase();
-      totalFatHist += (parseFloat(d.valor_liquido) || 0);
-      if (sit === 'VENDA') {
-        totalVgvHist += (parseFloat(d.valor) || 0);
-        totalVendasQtd++;
+      const rec = String(d.recebido || '').toUpperCase() === 'SIM';
+      
+      if (rec) {
+        totalFatHist += (parseFloat(d.valor_liquido) || 0);
+        if (sit === 'VENDA') {
+          totalVgvHist += (parseFloat(d.valor) || 0);
+          totalVendasQtd++;
+        }
       }
     });
 
@@ -1309,7 +1313,7 @@
 
     document.getElementById('tabela-metas-corpo').innerHTML = htmlMetas;
 
-    // 1. Gráfico Metas Mensais com DataLabels
+    // 1. Gráfico Metas Mensais
     if (chartInstMetas) chartInstMetas.destroy();
     const ctxMetas = document.getElementById('chart-metas-mensais').getContext('2d');
     chartInstMetas = new Chart(ctxMetas, {
@@ -1362,16 +1366,10 @@
     renderizarGraficosFaturamentoVgv();
   }
 
-  // 2. Gráfico Multianual com Valores Ativos nas Colunas
+  // 2. Gráfico Multianual
   function renderizarGraficoMultianual() {
     const anos = [2022, 2023, 2024, 2025, 2026];
-    const coresAno = {
-      2022: '#3b82f6',
-      2023: '#ea580c',
-      2024: '#64748b',
-      2025: '#eab308',
-      2026: '#0284c7'
-    };
+    const coresAno = { 2022: '#3b82f6', 2023: '#ea580c', 2024: '#64748b', 2025: '#eab308', 2026: '#0284c7' };
 
     const datasets = anos.map(ano => {
       const dataMeses = MESES_LISTA.map(mes => {
@@ -1406,20 +1404,13 @@
     const ctxMulti = document.getElementById('chart-recebiveis-multianual').getContext('2d');
     chartInstMultianual = new Chart(ctxMulti, {
       type: 'bar',
-      data: {
-        labels: MESES_LISTA,
-        datasets: datasets
-      },
+      data: { labels: MESES_LISTA, datasets: datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
           legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10, weight: 'bold' } } },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => `${ctx.dataset.label}: R$ ${formatarMoedaInput(ctx.parsed.y)}`
-            }
-          }
+          tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: R$ ${formatarMoedaInput(ctx.parsed.y)}` } }
         },
         scales: {
           y: { beginAtZero: true, ticks: { font: { size: 9 }, callback: v => 'R$ ' + (v >= 1000 ? (v/1000) + 'k' : v) } },
@@ -1429,7 +1420,7 @@
     });
   }
 
-  // 3. Curva Cronológica com Valores nos Pontos Notáveis
+  // 3. Curva de Administração (Exigindo Recebido = SIM)
   function renderizarGraficoCurvaAdm() {
     const timelineChaves = [];
     dadosDB.forEach(d => {
@@ -1453,21 +1444,27 @@
 
       labels.push(`${mesNome.slice(0, 3)}/${String(anoNum).slice(2)}`);
 
+      // Soma da Coluna P (valor_liquido) com recebido = SIM para "Recebimento das administrações"
       const somaGeral = dadosDB.filter(d => {
         const n = String(d.nome || '').trim().toLowerCase();
-        return d.ano === anoNum && d.mes === mesNome && (n === 'recebimento das administrações' || n === 'recebimento das administracoes');
+        const rec = String(d.recebido || '').toUpperCase() === 'SIM';
+        return d.ano === anoNum && d.mes === mesNome && rec && (n === 'recebimento das administrações' || n === 'recebimento das administracoes');
       }).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
 
+      // Soma da Coluna P (valor_liquido) com recebido = SIM para "Recebimento das Administrações M&IC"
       const somaMic = dadosDB.filter(d => {
         const n = String(d.nome || '').trim().toLowerCase();
-        return d.ano === anoNum && d.mes === mesNome && (n.includes('administrações m&ic') || n.includes('administracoes m&ic'));
+        const rec = String(d.recebido || '').toUpperCase() === 'SIM';
+        return d.ano === anoNum && d.mes === mesNome && rec && (n.includes('administrações m&ic') || n.includes('administracoes m&ic'));
       }).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
+
+      // Soma combinada para exibir no KPI do topo (mais recente com recebido SIM)
+      const somaTotalPeriodo = somaGeral + somaMic;
 
       serieGeral.push(somaGeral);
       serieMic.push(somaMic);
 
-      if (somaGeral > 0) ultimoValorValido = somaGeral;
-      else if (somaMic > 0) ultimoValorValido = somaMic;
+      if (somaTotalPeriodo > 0) ultimoValorValido = somaTotalPeriodo;
     });
 
     if (ultimoValorValido > 0) {
@@ -1524,11 +1521,7 @@
         maintainAspectRatio: false,
         plugins: {
           legend: { position: 'top', labels: { boxWidth: 14, font: { size: 10, weight: 'bold' } } },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => `${ctx.dataset.label}: R$ ${formatarMoedaInput(ctx.parsed.y)}`
-            }
-          }
+          tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: R$ ${formatarMoedaInput(ctx.parsed.y)}` } }
         },
         scales: {
           y: { beginAtZero: true, ticks: { font: { size: 9 }, callback: v => 'R$ ' + v } },
@@ -1538,7 +1531,7 @@
     });
   }
 
-  // 4. Gráficos Anuais com Valores Exatos em cima das Barras
+  // 4. Gráficos Anuais
   function renderizarGraficosFaturamentoVgv() {
     const anos = [2022, 2023, 2024, 2025, 2026];
 
@@ -1609,33 +1602,21 @@
             data: qtdVendas,
             backgroundColor: '#2563eb',
             borderRadius: 4,
-            datalabels: {
-              anchor: 'end',
-              align: 'top',
-              font: { size: 9, weight: 'bold' },
-              color: '#1e3a8a'
-            }
+            datalabels: { anchor: 'end', align: 'top', font: { size: 9, weight: 'bold' }, color: '#1e3a8a' }
           },
           {
             label: 'Aluguéis',
             data: qtdAlugueis,
             backgroundColor: '#059669',
             borderRadius: 4,
-            datalabels: {
-              anchor: 'end',
-              align: 'top',
-              font: { size: 9, weight: 'bold' },
-              color: '#064e3b'
-            }
+            datalabels: { anchor: 'end', align: 'top', font: { size: 9, weight: 'bold' }, color: '#064e3b' }
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } }
-        },
+        plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } },
         scales: {
           y: { beginAtZero: true, suggestedMax: Math.max(...qtdAlugueis, ...qtdVendas) * 1.18, ticks: { font: { size: 9 }, stepSize: 5 } },
           x: { ticks: { font: { size: 9 } } }
