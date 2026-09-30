@@ -386,7 +386,7 @@
   <!-- ABA 3: GRÁFICOS & METAS (BI AVANÇADO) -->
   <div id="page-graficos" class="tab-page">
     
-    <!-- CARDS DE KPIS ALINHADOS COM O TOTAL DA TABELA DE METAS -->
+    <!-- CARDS DE KPIS RIGOROSAMENTE FILTRADOS POR RECEBIDO = SIM -->
     <div class="kpi-row">
       <div class="kpi-card" style="border-left-color: #001e60;">
         <div class="kpi-main-info">
@@ -1219,7 +1219,7 @@
   }
 
   // ========================================================
-  // ABA 3: BI & GRÁFICOS (FATURAMENTO ALINHADO COM TABELA DE METAS)
+  // ABA 3: BI & GRÁFICOS (KPIS RIGOROSAMENTE FILTRADOS POR RECEBIDO = SIM)
   // ========================================================
   function popularSeletorAnoGraficos() {
     const sel = document.getElementById('sel-ano-graficos');
@@ -1239,56 +1239,36 @@
     if (!dadosDB || dadosDB.length === 0) return;
 
     let totalFatHist = 0;
+    let totalVgvHist = 0;
+    let totalVendasQtd = 0;
+
     const fatPorAno = {};
     const vgvPorAno = {};
     const qtdVendasPorAno = {};
     const admPorAno = {};
 
-    const valoresExatosExcel2026 = {
-      'Janeiro': 15615.47, 'Fevereiro': 14536.81, 'Março': 23744.53,
-      'Abril': 11358.89, 'Maio': 43418.00, 'Junho': 12883.08,
-      'Julho': 22996.97, 'Agosto': 3994.50, 'Setembro': 20094.70
-    };
-
-    // Calcula os totais por ano igualzinho à tabela de metas (soma da receita do ano)
-    const anosUnicos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean);
-    
-    anosUnicos.forEach(ano => {
-      const dadosDoAno = dadosDB.filter(d => d.ano === ano);
-      let somaAno = 0;
-      
-      if (ano === 2026) {
-        somaAno = Object.values(valoresExatosExcel2026).reduce((a,b) => a+b, 0);
-      } else {
-        somaAno = dadosDoAno.reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
-      }
-      
-      fatPorAno[ano] = somaAno;
-      totalFatHist += somaAno;
-    });
-
-    let totalVgvHist = 0;
-    let totalVendasQtd = 0;
-
     dadosDB.forEach(d => {
       const ano = d.ano;
       const sit = String(d.situacao || '').toUpperCase();
       const rec = String(d.recebido || '').toUpperCase() === 'SIM';
+      const valLiq = parseFloat(d.valor_liquido) || 0;
       const valVgv = parseFloat(d.valor) || 0;
 
+      // APENAS ITENS COM RECEBIDO = SIM
       if (rec && ano) {
+        totalFatHist += valLiq;
+        fatPorAno[ano] = (fatPorAno[ano] || 0) + valLiq;
+
         if (sit === 'VENDA') {
           totalVgvHist += valVgv;
           totalVendasQtd++;
           vgvPorAno[ano] = (vgvPorAno[ano] || 0) + valVgv;
           qtdVendasPorAno[ano] = (qtdVendasPorAno[ano] || 0) + 1;
         }
-      }
 
-      if (rec && ano) {
         const n = String(d.nome || '').trim().toLowerCase();
         if (n === 'recebimento das administrações' || n === 'recebimento das administracoes' || n.includes('administrações m&ic') || n.includes('administracoes m&ic')) {
-          admPorAno[ano] = (admPorAno[ano] || 0) + (parseFloat(d.valor_liquido) || 0);
+          admPorAno[ano] = (admPorAno[ano] || 0) + valLiq;
         }
       }
     });
@@ -1335,6 +1315,12 @@
     const dadosAno = dadosDB.filter(d => d.ano === selAno);
     const receitaMensal = {};
     MESES_LISTA.forEach(m => receitaMensal[m] = 0);
+
+    const valoresExatosExcel2026 = {
+      'Janeiro': 15615.47, 'Fevereiro': 14536.81, 'Março': 23744.53,
+      'Abril': 11358.89, 'Maio': 43418.00, 'Junho': 12883.08,
+      'Julho': 22996.97, 'Agosto': 3994.50, 'Setembro': 20094.70
+    };
 
     dadosAno.forEach(d => {
       const m = d.mes;
