@@ -768,11 +768,12 @@
   }
 
   // ========================================================
-  // GERAR RELATÓRIO ADM (PDF PAISAGEM / 1 FOLHA / SEM QUEBRA)
+  // GERAR RELATÓRIO ADM (PDF VERTICAL / RETRATO / 1 FOLHA / SEM QUEBRA)
   // ========================================================
   function gerarRelatorioPDF() {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    // Orientação estritamente vertical (Portrait) A4
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
     const alugueisOpcao = dadosDB.filter(d => 
       String(d.situacao || '').toUpperCase() === 'ALUGUEL' && 
@@ -787,26 +788,26 @@
     });
 
     const totalLinhas = alugueisOpcao.length;
-    // Cálculo dinâmico para garantir estritamente 1 única página
+    // Cálculo dinâmico para manter o mesmo tamanho proporcional e garantir 1 única folha
     let fontCorpo = 6.8;
     let padLinha = 1.0;
-    if (totalLinhas > 38) {
-      fontCorpo = 5.8;
-      padLinha = 0.6;
-    } else if (totalLinhas > 30) {
-      fontCorpo = 6.2;
-      padLinha = 0.8;
+    if (totalLinhas > 42) {
+      fontCorpo = 5.6;
+      padLinha = 0.55;
+    } else if (totalLinhas > 35) {
+      fontCorpo = 6.1;
+      padLinha = 0.75;
     }
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
+    doc.setFontSize(10.5);
     doc.setTextColor(18, 19, 21);
-    doc.text("M&IC CORRETORES DE IMÓVEIS — Relatório Administrativo (Aluguéis com Opção SIM)", 10, 9);
+    doc.text("M&IC CORRETORES DE IMÓVEIS — Relatório Administrativo", 10, 10);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.5);
     doc.setTextColor(100, 116, 139);
-    doc.text("Gerado em: " + new Date().toLocaleDateString('pt-BR') + " às " + new Date().toLocaleTimeString('pt-BR'), 10, 13);
+    doc.text("Aluguéis com Opção SIM • Gerado em: " + new Date().toLocaleDateString('pt-BR') + " às " + new Date().toLocaleTimeString('pt-BR'), 10, 14);
 
     let somaTaxas = 0;
     const corpoTabela = alugueisOpcao.map(item => {
@@ -821,16 +822,17 @@
       ];
     });
 
+    // 190mm de largura útil divididos perfeitamente: 12 + 22 + 68 + 64 + 24 = 190mm
     doc.autoTable({
-      startY: 15,
+      startY: 17,
       margin: { left: 10, right: 10, top: 8, bottom: 8 },
       head: [['Ano', 'Mês', 'Nome / Inquilino', 'Unidade', 'ADM']],
       body: corpoTabela,
       theme: 'grid',
       styles: {
-        overflow: 'visible',
+        overflow: 'ellipsize', // Garante linha única sem quebras
         fontSize: fontCorpo,
-        cellPadding: { top: padLinha, bottom: padLinha, left: 1.5, right: 1.5 },
+        cellPadding: { top: padLinha, bottom: padLinha, left: 1.2, right: 1.2 },
         textColor: [30, 41, 59],
         valign: 'middle'
       },
@@ -839,14 +841,15 @@
         textColor: [212, 175, 55],
         fontStyle: 'bold',
         fontSize: 7.2,
-        cellPadding: { top: 1.5, bottom: 1.5, left: 1.5, right: 1.5 }
+        halign: 'left',
+        cellPadding: { top: 1.4, bottom: 1.4, left: 1.2, right: 1.2 }
       },
       columnStyles: {
-        0: { cellWidth: 15, halign: 'center' },
-        1: { cellWidth: 26 },
-        2: { cellWidth: 110 },
-        3: { cellWidth: 96 },
-        4: { cellWidth: 30, halign: 'right' }
+        0: { cellWidth: 12, halign: 'center' }, // Ano
+        1: { cellWidth: 22 },                   // Mês
+        2: { cellWidth: 68 },                   // Nome / Inquilino
+        3: { cellWidth: 64 },                   // Unidade
+        4: { cellWidth: 24, halign: 'right' }   // ADM
       },
       foot: [['', '', '', 'Total Geral:', 'R$ ' + formatarMoedaInput(somaTaxas)]],
       footStyles: {
@@ -855,7 +858,7 @@
         fontStyle: 'bold',
         fontSize: 7.5,
         halign: 'right',
-        cellPadding: { top: 1.5, bottom: 1.5, left: 1.5, right: 1.5 }
+        cellPadding: 1.4
       },
       pageBreak: 'avoid'
     });
