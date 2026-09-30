@@ -104,7 +104,7 @@
   .tree-subnode { font-weight: bold; background: #ffffff; cursor: pointer; user-select: none; padding-left: 14px !important; color: #0f172a; }
   .tree-leaf { padding-left: 28px !important; color: #64748b; font-size: 0.7rem; }
 
-  /* ESTILOS DA ABA BI / KPIS LADO DIREITO */
+  /* ESTILOS DA ABA BI / KPIS LADO DIREITO COM DESTAQUE MELHOR RESULTADO */
   .graficos-header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; background: #fff; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); }
   .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 14px; }
   .kpi-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); border-left: 4px solid var(--accent); display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
@@ -113,8 +113,12 @@
   .kpi-card-val { font-size: 1.15rem; font-weight: 800; color: var(--primary); }
   
   .kpi-breakdown-right { border-left: 1px dashed #cbd5e1; padding-left: 10px; display: flex; flex-direction: column; gap: 1px; min-width: 95px; }
-  .kpi-ano-item { display: flex; justify-content: space-between; font-size: 0.65rem; color: #475569; gap: 6px; }
+  .kpi-ano-item { display: flex; justify-content: space-between; font-size: 0.65rem; color: #475569; gap: 6px; padding: 1px 3px; border-radius: 3px; }
   .kpi-ano-item span:last-child { font-weight: 700; color: #1e293b; }
+  
+  /* Tarja verde para o melhor resultado */
+  .kpi-ano-melhor { background-color: #dcfce7 !important; color: #166534 !important; font-weight: bold; }
+  .kpi-ano-melhor span { color: #166534 !important; }
 
   .graficos-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   .chart-box { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
@@ -383,7 +387,7 @@
   <!-- ABA 3: GRÁFICOS & METAS (BI AVANÇADO) -->
   <div id="page-graficos" class="tab-page">
     
-    <!-- CARDS DE KPIS COM BREAKDOWN À DIREITA -->
+    <!-- CARDS DE KPIS COM DESTAQUE VERDE NO MELHOR RESULTADO -->
     <div class="kpi-row">
       <div class="kpi-card" style="border-left-color: #001e60;">
         <div class="kpi-main-info">
@@ -1216,7 +1220,7 @@
   }
 
   // ========================================================
-  // ABA 3: BI & GRÁFICOS COM KPIS LADO DIREITO
+  // ABA 3: BI & GRÁFICOS COM DESTAQUE "MELHOR RESULTADO"
   // ========================================================
   function popularSeletorAnoGraficos() {
     const sel = document.getElementById('sel-ano-graficos');
@@ -1273,21 +1277,46 @@
 
     const anosOrdenados = Object.keys(fatPorAno).sort((a,b) => b - a);
 
+    // Função auxiliar para encontrar a chave com o maior valor numérico
+    const acharMelhorAno = (obj) => {
+      let melhor = null;
+      let maxVal = -1;
+      Object.keys(obj).forEach(a => {
+        if (obj[a] > maxVal) {
+          maxVal = obj[a];
+          melhor = a;
+        }
+      });
+      return melhor;
+    };
+
+    const melhorFatAno = acharMelhorAno(fatPorAno);
+    const melhorVgvAno = acharMelhorAno(vgvPorAno);
+    const melhorVendasAno = acharMelhorAno(qtdVendasPorAno);
+    const melhorAdmAno = acharMelhorAno(admPorAno);
+
+    // Preenche KPI 1: Faturamento
     document.getElementById('kpi-fat-total').innerText = 'R$ ' + formatarMoedaInput(totalFatHist);
-    document.getElementById('kpi-fat-breakdown').innerHTML = anosOrdenados.map(a => `
-      <div class="kpi-ano-item"><span>${a}:</span><span>R$ ${formatarMoedaInput(fatPorAno[a])}</span></div>
-    `).join('');
+    document.getElementById('kpi-fat-breakdown').innerHTML = anosOrdenados.map(a => {
+      const isMelhor = a === melhorFatAno;
+      return `<div class="kpi-ano-item ${isMelhor ? 'kpi-ano-melhor' : ''}"><span>${a}:</span><span>R$ ${formatarMoedaInput(fatPorAno[a])}</span></div>`;
+    }).join('');
 
+    // Preenche KPI 2: VGV
     document.getElementById('kpi-vgv-total').innerText = 'R$ ' + formatarMoedaInput(totalVgvHist);
-    document.getElementById('kpi-vgv-breakdown').innerHTML = anosOrdenados.map(a => `
-      <div class="kpi-ano-item"><span>${a}:</span><span>R$ ${formatarMoedaInput(vgvPorAno[a] || 0)}</span></div>
-    `).join('');
+    document.getElementById('kpi-vgv-breakdown').innerHTML = anosOrdenados.map(a => {
+      const isMelhor = a === melhorVgvAno;
+      return `<div class="kpi-ano-item ${isMelhor ? 'kpi-ano-melhor' : ''}"><span>${a}:</span><span>R$ ${formatarMoedaInput(vgvPorAno[a] || 0)}</span></div>`;
+    }).join('');
 
+    // Preenche KPI 3: Contratos de Venda
     document.getElementById('kpi-qtd-vendas').innerText = totalVendasQtd;
-    document.getElementById('kpi-vendas-breakdown').innerHTML = anosOrdenados.map(a => `
-      <div class="kpi-ano-item"><span>${a}:</span><span>${qtdVendasPorAno[a] || 0} unid.</span></div>
-    `).join('');
+    document.getElementById('kpi-vendas-breakdown').innerHTML = anosOrdenados.map(a => {
+      const isMelhor = a === melhorVendasAno;
+      return `<div class="kpi-ano-item ${isMelhor ? 'kpi-ano-melhor' : ''}"><span>${a}:</span><span>${qtdVendasPorAno[a] || 0} unid.</span></div>`;
+    }).join('');
 
+    // --- SEÇÃO 1: ACOMPANHAMENTO DE METAS DO ANO ---
     const selAno = parseInt(document.getElementById('sel-ano-graficos').value) || 2026;
     const { metaMes, metaAno } = calcularMetaAno(selAno);
 
@@ -1516,10 +1545,22 @@
         admPorAno[ano] = (admPorAno[ano] || 0) + val;
       }
     });
+
+    const acharMelhorAnoObj = (obj) => {
+      let melhor = null;
+      let maxVal = -1;
+      Object.keys(obj).forEach(a => {
+        if (obj[a] > maxVal) { maxVal = obj[a]; melhor = a; }
+      });
+      return melhor;
+    };
+    const melhorAdmAno = acharMelhorAnoObj(admPorAno);
+
     const anosAdmOrd = Object.keys(admPorAno).sort((a,b) => b - a);
-    document.getElementById('kpi-adm-breakdown').innerHTML = anosAdmOrd.map(a => `
-      <div class="kpi-ano-item"><span>${a}:</span><span>R$ ${formatarMoedaInput(admPorAno[a])}</span></div>
-    `).join('');
+    document.getElementById('kpi-adm-breakdown').innerHTML = anosAdmOrd.map(a => {
+      const isMelhor = a === melhorAdmAno;
+      return `<div class="kpi-ano-item ${isMelhor ? 'kpi-ano-melhor' : ''}"><span>${a}:</span><span>R$ ${formatarMoedaInput(admPorAno[a])}</span></div>`;
+    }).join('');
 
     if (chartInstAdmEvolucao) chartInstAdmEvolucao.destroy();
     const ctxAdm = document.getElementById('chart-taxa-adm-evolucao').getContext('2d');
