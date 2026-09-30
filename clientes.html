@@ -335,9 +335,9 @@
 
   function initSelects() {
     const sSit = document.getElementById('inp-situacao');
-    sSit.innerHTML = SITUACOES.map(s => `<option value="${s}">${s}</option>`).join('');
+    sSit.innerHTML = SITUACOES.map(s => '<option value="' + s + '">' + s + '</option>').join('');
     const sCor = document.getElementById('inp-corretor');
-    sCor.innerHTML = Object.keys(TABELA_CORRETORES).map(c => `<option value="${c}">${c}</option>`).join('');
+    sCor.innerHTML = Object.keys(TABELA_CORRETORES).map(c => '<option value="' + c + '">' + c + '</option>').join('');
     
     const hoje = new Date();
     document.getElementById('inp-ano').value = hoje.getFullYear();
@@ -432,14 +432,13 @@
 
     setCampoCondicional('inp-premio-corr', c.premio_corretor);
     setCampoCondicional('inp-imposto', c.imposto);
-
     document.getElementById('inp-liquido').value = fmt(c.valor_liquido);
   }
 
   async function carregarDados() {
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao?select=*&order=id.asc`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      const res = await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?select=*&order=id.asc', {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
       });
       dadosDB = await res.json();
       renderizarTabela(dadosDB);
@@ -474,81 +473,29 @@
       const isRecSim = String(item.recebido || '').toUpperCase() === 'SIM';
       const isOpcSim = String(item.opcao || '').toUpperCase() === 'SIM';
 
-      return `<tr>
-        <td class="col-del"><button class="btn btn-danger" onclick="excluirLinha(${id})">✕</button></td>
-        <td class="col-id">#${id}</td>
-        
-        <td class="col-ano">
-          <input type="number" class="cell-input" value="${item.ano}" onchange="atualizarItemDireto(${id}, 'ano', parseInt(this.value))">
-        </td>
+      let htmlMeses = MESES_LISTA.map(m => '<option value="' + m + '" ' + (item.mes === m ? 'selected' : '') + '>' + m.slice(0,3) + '</option>').join('');
+      let htmlSit = SITUACOES.map(s => '<option value="' + s + '" ' + (item.situacao === s ? 'selected' : '') + '>' + s + '</option>').join('');
+      let htmlCor = Object.keys(TABELA_CORRETORES).map(c => '<option value="' + c + '" ' + (item.corretor === c ? 'selected' : '') + '>' + c + '</option>').join('');
 
-        <td class="col-mes">
-          <select class="cell-select" onchange="atualizarItemDireto(${id}, 'mes', this.value)">
-            ${MESES_LISTA.map(m => `<option value="${m}" ${item.mes === m ? 'selected' : ''}>${m.slice(0,3)}</option>`).join('')}
-          </select>
-        </td>
-
-        <td class="col-nome">
-          <input type="text" class="cell-input" value="${item.nome}" title="${item.nome}" onchange="atualizarItemDireto(${id}, 'nome', this.value)">
-        </td>
-
-        <td class="col-sit">
-          <select class="cell-select" onchange="atualizarItemDireto(${id}, 'situacao', this.value)">
-            ${SITUACOES.map(s => `<option value="${s}" ${item.situacao === s ? 'selected' : ''}>${s}</option>`).join('')}
-          </select>
-        </td>
-
-        <td class="col-un">
-          <input type="text" class="cell-input" value="${item.unidade || ''}" onchange="atualizarItemDireto(${id}, 'unidade', this.value)">
-        </td>
-
-        <td class="col-val">
-          <input type="number" step="0.01" class="cell-input" style="text-align:right;" value="${parseFloat(item.valor) || 0}" onchange="atualizarItemDireto(${id}, 'valor', parseFloat(this.value))">
-        </td>
-
-        <td class="col-cor">
-          <select class="cell-select" onchange="atualizarItemDireto(${id}, 'corretor', this.value)">
-            ${Object.keys(TABELA_CORRETORES).map(c => `<option value="${c}" ${item.corretor === c ? 'selected' : ''}>${c}</option>`).join('')}
-          </select>
-        </td>
-
-        <td class="col-fat">
-          <select class="cell-select" style="text-align:center;" onchange="atualizarItemDireto(${id}, 'faturada', this.value)">
-            <option value="NÃO" ${item.faturada === 'NÃO' ? 'selected' : ''}>NÃO</option>
-            <option value="SIM" ${item.faturada === 'SIM' ? 'selected' : ''}>SIM</option>
-          </select>
-        </td>
-
-        <td class="col-com">
-          <input type="number" step="0.01" class="cell-input" style="text-align:right; font-weight:bold;" value="${parseFloat(item.comissao) || 0}" onchange="atualizarItemDireto(${id}, 'comissao', parseFloat(this.value))">
-        </td>
-        <td class="col-prem ${isX(item.premio_corretor) ? 'celula-bloqueada' : ''}">${isX(item.premio_corretor) ? '' : fmt(item.premio_corretor)}</td>
-        <td class="col-imp ${isX(item.imposto) ? 'celula-bloqueada' : ''}">${isX(item.imposto) ? '' : fmt(item.imposto)}</td>
-
-        <td class="col-rec">
-          <select class="cell-select ${isRecSim ? 'status-rec-sim' : 'status-rec-nao'}" onchange="atualizarItemDireto(${id}, 'recebido', this.value)">
-            <option value="NÃO" ${!isRecSim ? 'selected' : ''}>NÃO</option>
-            <option value="SIM" ${isRecSim ? 'selected' : ''}>SIM</option>
-          </select>
-        </td>
-
-        <td class="col-liq">${fmt(parseFloat(item.valor_liquido))}</td>
-
-        <td class="col-opc">
-          ${isX(item.opcao) ? '<span style="color:#94a3b8">—</span>' : `
-            <select class="cell-select" style="font-weight:bold;" onchange="atualizarItemDireto(${id}, 'opcao', this.value)">
-              <option value="NÃO" ${!isOpcSim ? 'selected' : ''}>NÃO</option>
-              <option value="SIM" ${isOpcSim ? 'selected' : ''}>SIM</option>
-            </select>
-          `}
-        </td>
-
-        <td class="col-tax ${isX(item.taxa_mensal) ? 'celula-bloqueada' : ''}">
-          ${isX(item.taxa_mensal) ? '' : `
-            <input type="number" step="0.01" class="cell-input" style="text-align:right;" value="${parseFloat(item.taxa_mensal) \vert{}\vert{} 0}" onchange="atualizarItemDireto(${id}, 'taxa_mensal', parseFloat(this.value))">
-          `}
-        </td>
-      </tr>`;
+      return '<tr>' +
+        '<td class="col-del"><button class="btn btn-danger" onclick="excluirLinha(' + id + ')">✕</button></td>' +
+        '<td class="col-id">#' + id + '</td>' +
+        '<td class="col-ano"><input type="number" class="cell-input" value="' + item.ano + '" onchange="atualizarItemDireto(' + id + ', \'ano\', parseInt(this.value))"></td>' +
+        '<td class="col-mes"><select class="cell-select" onchange="atualizarItemDireto(' + id + ', \'mes\', this.value)">' + htmlMeses + '</select></td>' +
+        '<td class="col-nome"><input type="text" class="cell-input" value="' + (item.nome || '') + '" onchange="atualizarItemDireto(' + id + ', \'nome\', this.value)"></td>' +
+        '<td class="col-sit"><select class="cell-select" onchange="atualizarItemDireto(' + id + ', \'situacao\', this.value)">' + htmlSit + '</select></td>' +
+        '<td class="col-un"><input type="text" class="cell-input" value="' + (item.unidade || '') + '" onchange="atualizarItemDireto(' + id + ', \'unidade\', this.value)"></td>' +
+        '<td class="col-val"><input type="number" step="0.01" class="cell-input" style="text-align:right;" value="' + (parseFloat(item.valor) || 0) + '" onchange="atualizarItemDireto(' + id + ', \'valor\', parseFloat(this.value))"></td>' +
+        '<td class="col-cor"><select class="cell-select" onchange="atualizarItemDireto(' + id + ', \'corretor\', this.value)">' + htmlCor + '</select></td>' +
+        '<td class="col-fat"><select class="cell-select" style="text-align:center;" onchange="atualizarItemDireto(' + id + ', \'faturada\', this.value)"><option value="NÃO" ' + (item.faturada === 'NÃO' ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (item.faturada === 'SIM' ? 'selected' : '') + '>SIM</option></select></td>' +
+        '<td class="col-com"><input type="number" step="0.01" class="cell-input" style="text-align:right; font-weight:bold;" value="' + (parseFloat(item.comissao) || 0) + '" onchange="atualizarItemDireto(' + id + ', \'comissao\', parseFloat(this.value))"></td>' +
+        '<td class="col-prem ' + (isX(item.premio_corretor) ? 'celula-bloqueada' : '') + '">' + (isX(item.premio_corretor) ? '' : fmt(item.premio_corretor)) + '</td>' +
+        '<td class="col-imp ' + (isX(item.imposto) ? 'celula-bloqueada' : '') + '">' + (isX(item.imposto) ? '' : fmt(item.imposto)) + '</td>' +
+        '<td class="col-rec"><select class="cell-select ' + (isRecSim ? 'status-rec-sim' : 'status-rec-nao') + '" onchange="atualizarItemDireto(' + id + ', \'recebido\', this.value)"><option value="NÃO" ' + (!isRecSim ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (isRecSim ? 'selected' : '') + '>SIM</option></select></td>' +
+        '<td class="col-liq">' + fmt(parseFloat(item.valor_liquido)) + '</td>' +
+        '<td class="col-opc">' + (isX(item.opcao) ? '<span style="color:#94a3b8">—</span>' : '<select class="cell-select" style="font-weight:bold;" onchange="atualizarItemDireto(' + id + ', \'opcao\', this.value)"><option value="NÃO" ' + (!isOpcSim ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (isOpcSim ? 'selected' : '') + '>SIM</option></select>') + '</td>' +
+        '<td class="col-tax ' + (isX(item.taxa_mensal) ? 'celula-bloqueada' : '') + '">' + (isX(item.taxa_mensal) ? '' : '<input type="number" step="0.01" class="cell-input" style="text-align:right;" value="' + (parseFloat(item.taxa_mensal) || 0) + '" onchange="atualizarItemDireto(' + id + ', \'taxa_mensal\', parseFloat(this.value))">') + '</td>' +
+      '</tr>';
     }).join('');
 
     document.getElementById('stat-total').innerText = dados.length;
@@ -580,13 +527,13 @@
     if (document.getElementById('page-mapa').classList.contains('active')) renderizarMapa();
 
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao?id=eq.${id}`, {
+      await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?id=eq.' + id, {
         method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify(recalculado)
       });
     } catch(err) {
-      console.error("Falha ao sincronizar alteração com o Supabase:", err);
+      console.error(err);
     }
   }
 
@@ -616,9 +563,9 @@
     const payload = calcularFórmulas(base);
 
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao`, {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/clientes_producao', {
         method: 'POST',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       if (res.ok) {
@@ -633,10 +580,10 @@
   }
 
   async function excluirLinha(id) {
-    if (!confirm(`Deseja excluir o registro #${id}?`)) return;
-    await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao?id=eq.${id}`, {
+    if (!confirm('Deseja excluir o registro #' + id + '?')) return;
+    await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?id=eq.' + id, {
       method: 'DELETE',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
     });
     carregarDados();
   }
@@ -682,15 +629,15 @@
           lotes.push(calcularFórmulas(itemBase));
         }
 
-        if (lotes.length > 0 && confirm(`Deseja substituir a base atual por essas ${lotes.length} linhas importadas do Excel?`)) {
-          await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao?id=gt.0`, {
+        if (lotes.length > 0 && confirm('Deseja substituir a base atual por essas ' + lotes.length + ' linhas importadas do Excel?')) {
+          await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?id=gt.0', {
             method: 'DELETE',
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
           });
 
-          await fetch(`${SUPABASE_URL}/rest/v1/clientes_producao`, {
+          await fetch(SUPABASE_URL + '/rest/v1/clientes_producao', {
             method: 'POST',
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify(lotes)
           });
 
@@ -711,12 +658,12 @@
   function montarSlicers() {
     const anos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean).sort((a,b) => b - a);
     const divAnos = document.getElementById('slicer-anos');
-    divAnos.innerHTML = `<button class="slicer-btn ${mapaFiltroAno === 'TODOS' ? 'active' : ''}" onclick="setFiltroMapa('ano', 'TODOS')">TODOS</button>` +
-      anos.map(a => `<button class="slicer-btn ${mapaFiltroAno == a ? 'active' : ''}" onclick="setFiltroMapa('ano', ${a})">${a}</button>`).join('');
+    divAnos.innerHTML = '<button class="slicer-btn ' + (mapaFiltroAno === 'TODOS' ? 'active' : '') + '" onclick="setFiltroMapa(\'ano\', \'TODOS\')">TODOS</button>' +
+      anos.map(a => '<button class="slicer-btn ' + (mapaFiltroAno == a ? 'active' : '') + '" onclick="setFiltroMapa(\'ano\', ' + a + ')">' + a + '</button>').join('');
 
     const divMeses = document.getElementById('slicer-meses');
-    divMeses.innerHTML = `<button class="slicer-btn ${mapaFiltroMes === 'TODOS' ? 'active' : ''}" onclick="setFiltroMapa('mes', 'TODOS')">TODOS</button>` +
-      MESES_LISTA.map(m => `<button class="slicer-btn ${mapaFiltroMes.toLowerCase() === m.toLowerCase() ? 'active' : ''}" onclick="setFiltroMapa('mes', '${m}')">${m}</button>`).join('');
+    divMeses.innerHTML = '<button class="slicer-btn ' + (mapaFiltroMes === 'TODOS' ? 'active' : '') + '" onclick="setFiltroMapa(\'mes\', \'TODOS\')">TODOS</button>' +
+      MESES_LISTA.map(m => '<button class="slicer-btn ' + (mapaFiltroMes.toLowerCase() === m.toLowerCase() ? 'active' : '') + '" onclick="setFiltroMapa(\'mes\', \'' + m + '\')">' + m + '</button>').join('');
   }
 
   function setFiltroMapa(tipo, valor) {
@@ -759,8 +706,8 @@
       totalVGV += v;
     });
     document.getElementById('mapa-vgv-body').innerHTML = Object.keys(vgvCorretor).map(c => 
-      `<tr><td>${c}</td><td style="text-align:right;">R$ ${fmt(vgvCorretor[c])}</td></tr>`
-    ).join('') + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ${fmt(totalVGV)}</td></tr>`;
+      '<tr><td>' + c + '</td><td style="text-align:right;">R$ ' + fmt(vgvCorretor[c]) + '</td></tr>'
+    ).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ' + fmt(totalVGV) + '</td></tr>';
 
     // 2. BLOCO A RECEBER
     const situacoesAReceber = ['VENDA', 'ALUGUEL', 'REGISTRO', 'CRÉDITO', 'ASS. DIGITAL', 'CONTRATO', 'LEILÃO'];
@@ -772,7 +719,7 @@
     const mapaReceberClientes = {};
     aReceberGlobal.forEach(d => {
       const sit = String(d.situacao || '').toUpperCase();
-      const label = (sit === 'CRÉDITO') ? `${d.nome} (CRÉDITO)` : d.nome;
+      const label = (sit === 'CRÉDITO') ? d.nome + ' (CRÉDITO)' : d.nome;
       const comissao = parseFloat(d.comissao) || 0;
       const recebidoVal = parseFloat(d.valor_recebido) || 0;
       let saldo = (sit === 'CRÉDITO' && comissao === 0) ? 0 : (comissao - recebidoVal);
@@ -784,8 +731,8 @@
     document.getElementById('mapa-receber-body').innerHTML = Object.keys(mapaReceberClientes).map(nome => {
       const saldo = mapaReceberClientes[nome];
       totalAReceber += saldo;
-      return `<tr><td>${nome}</td><td style="text-align:right;">${fmt(saldo)}</td></tr>`;
-    }).join('') + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalAReceber)}</td></tr>`;
+      return '<tr><td>' + nome + '</td><td style="text-align:right;">' + fmt(saldo) + '</td></tr>';
+    }).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalAReceber) + '</td></tr>';
 
     // 3. BLOCO RESUMO VENDA
     const situacoesResumoVenda = ['VENDA', 'REGISTRO', 'CRÉDITO'];
@@ -798,7 +745,7 @@
       if (sub.length > 0) {
         const subTotal = sub.reduce((acc, x) => acc + (parseFloat(x.comissao) || 0), 0);
         totalVenda += subTotal;
-        htmlVenda += `<tr class="tree-node"><td>📁 ${st}</td><td style="text-align:right;">${fmt(subTotal)}</td></tr>`;
+        htmlVenda += '<tr class="tree-node"><td>📁 ' + st + '</td><td style="text-align:right;">' + fmt(subTotal) + '</td></tr>';
         
         const porCorretor = {};
         sub.forEach(x => {
@@ -809,14 +756,14 @@
         });
 
         Object.keys(porCorretor).forEach(c => {
-          htmlVenda += `<tr class="tree-subnode"><td>↳ ${c}</td><td style="text-align:right;">${fmt(porCorretor[c].total)}</td></tr>`;
+          htmlVenda += '<tr class="tree-subnode"><td>↳ ' + c + '</td><td style="text-align:right;">' + fmt(porCorretor[c].total) + '</td></tr>';
           porCorretor[c].itens.forEach(it => {
-            htmlVenda += `<tr class="tree-leaf"><td>${it.nome}</td><td style="text-align:right;">${fmt(it.comissao)}</td></tr>`;
+            htmlVenda += '<tr class="tree-leaf"><td>' + it.nome + '</td><td style="text-align:right;">' + fmt(it.comissao) + '</td></tr>';
           });
         });
       }
     });
-    document.getElementById('mapa-venda-body').innerHTML = htmlVenda + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalVenda)}</td></tr>`;
+    document.getElementById('mapa-venda-body').innerHTML = htmlVenda + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalVenda) + '</td></tr>';
 
     // 4. BLOCO RESUMO ALUGUEL
     const baseAluguel = basePeriodo.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL');
@@ -828,7 +775,7 @@
       if (sub.length > 0) {
         const subTotal = sub.reduce((acc, x) => acc + (parseFloat(x.valor_liquido) || 0), 0);
         totalAluguel += subTotal;
-        htmlAluguel += `<tr class="tree-node"><td>📁 ${st}</td><td style="text-align:right;">${fmt(subTotal)}</td></tr>`;
+        htmlAluguel += '<tr class="tree-node"><td>📁 ' + st + '</td><td style="text-align:right;">' + fmt(subTotal) + '</td></tr>';
         
         const porCorretor = {};
         sub.forEach(x => {
@@ -839,14 +786,14 @@
         });
 
         Object.keys(porCorretor).forEach(c => {
-          htmlAluguel += `<tr class="tree-subnode"><td>↳ ${c}</td><td style="text-align:right;">${fmt(porCorretor[c].total)}</td></tr>`;
+          htmlAluguel += '<tr class="tree-subnode"><td>↳ ' + c + '</td><td style="text-align:right;">' + fmt(porCorretor[c].total) + '</td></tr>';
           porCorretor[c].itens.forEach(it => {
-            htmlAluguel += `<tr class="tree-leaf"><td>${it.nome}</td><td style="text-align:right;">${fmt(it.valor_liquido)}</td></tr>`;
+            htmlAluguel += '<tr class="tree-leaf"><td>' + it.nome + '</td><td style="text-align:right;">' + fmt(it.valor_liquido) + '</td></tr>';
           });
         });
       }
     });
-    document.getElementById('mapa-aluguel-body').innerHTML = htmlAluguel + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalAluguel)}</td></tr>`;
+    document.getElementById('mapa-aluguel-body').innerHTML = htmlAluguel + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalAluguel) + '</td></tr>';
 
     // 5. BLOCO MENSAL OPÇÕES
     const baseOpcoes = dadosDB.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM');
@@ -869,24 +816,24 @@
     Object.keys(treeOpcoes).sort().forEach(ano => {
       const isAnoExp = !!anosExpandidos[ano];
       const sinalAno = isAnoExp ? '[-] ' : '[+] ';
-      htmlOpcoes += `<tr class="tree-node" onclick="toggleExpandirAno('${ano}')"><td>${sinalAno}📅 ${ano}</td><td style="text-align:right;">${fmt(treeOpcoes[ano].total)}</td></tr>`;
+      htmlOpcoes += '<tr class="tree-node" onclick="toggleExpandirAno(\'' + ano + '\')"><td>' + sinalAno + '📅 ' + ano + '</td><td style="text-align:right;">' + fmt(treeOpcoes[ano].total) + '</td></tr>';
       
       if (isAnoExp) {
         Object.keys(treeOpcoes[ano].meses).forEach(mes => {
-          const chaveMes = `${ano}-${mes}`;
+          const chaveMes = ano + '-' + mes;
           const isMesExp = !!mesesExpandidos[chaveMes];
           const sinalMes = isMesExp ? '[-] ' : '[+] ';
-          htmlOpcoes += `<tr class="tree-subnode" onclick="toggleExpandirMes('${chaveMes}')"><td>${sinalMes}↳ ${mes}</td><td style="text-align:right;">${fmt(treeOpcoes[ano].meses[mes].total)}</td></tr>`;
+          htmlOpcoes += '<tr class="tree-subnode" onclick="toggleExpandirMes(\'' + chaveMes + '\')"><td>' + sinalMes + '↳ ' + mes + '</td><td style="text-align:right;">' + fmt(treeOpcoes[ano].meses[mes].total) + '</td></tr>';
           
           if (isMesExp) {
             treeOpcoes[ano].meses[mes].itens.forEach(it => {
-              htmlOpcoes += `<tr class="tree-leaf"><td>${it.nome}</td><td style="text-align:right;">${fmt(it.valor)}</td></tr>`;
+              htmlOpcoes += '<tr class="tree-leaf"><td>' + it.nome + '</td><td style="text-align:right;">' + fmt(it.valor) + '</td></tr>';
             });
           }
         });
       }
     });
-    document.getElementById('mapa-opcoes-body').innerHTML = htmlOpcoes + `<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">${fmt(totalOpcoes)}</td></tr>`;
+    document.getElementById('mapa-opcoes-body').innerHTML = htmlOpcoes + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalOpcoes) + '</td></tr>';
   }
 
   document.addEventListener('DOMContentLoaded', () => {
