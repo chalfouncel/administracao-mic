@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
-    // Mantém a sua proteção original de origem
+    // Mantém a sua proteção original de origem, agora incluindo seu domínio
     const origin = req.headers.origin || req.headers.referer || '';
-    if (!origin.includes("vercel.app") && !origin.includes("localhost")) {
+    if (!origin.includes("vercel.app") && !origin.includes("localhost") && !origin.includes("miccorretores.com.br")) {
         return res.status(403).json({ error: "Acesso bloqueado. Origem não autorizada." });
     }
 
