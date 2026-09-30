@@ -766,11 +766,11 @@
   }
 
   // ========================================================
-  // GERAR RELATÓRIO ADM (PDF OTIMIZADO)
+  // GERAR RELATÓRIO ADM (PDF VERTICAL / RETRATO)
   // ========================================================
   function gerarRelatorioPDF() {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
     const alugueisOpcao = dadosDB.filter(d => 
       String(d.situacao || '').toUpperCase() === 'ALUGUEL' && 
@@ -786,7 +786,7 @@
 
     // Cabeçalho
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
+    doc.setFontSize(14);
     doc.setTextColor(18, 19, 21);
     doc.text("M&IC CORRETORES DE IMÓVEIS", 14, 16);
 
@@ -812,23 +812,23 @@
       ];
     });
 
-    // Tabela otimizada com colunas redimensionadas para evitar qualquer quebra
+    // Tabela otimizada para formato vertical (retrato / portrait) com larguras customizadas e espaço expandido para Unidade
     doc.autoTable({
       startY: 31,
       head: [['Ano', 'Mês', 'Nome / Inquilino', 'Unidade', 'ADM']],
       body: corpoTabela,
       theme: 'grid',
-      headStyles: { fillColor: [18, 19, 21], textColor: [212, 175, 55], fontStyle: 'bold', fontSize: 9, cellPadding: 3.5 },
-      bodyStyles: { fontSize: 8.5, textColor: [30, 41, 59], cellPadding: 3 },
+      headStyles: { fillColor: [18, 19, 21], textColor: [212, 175, 55], fontStyle: 'bold', fontSize: 8.5, cellPadding: 3 },
+      bodyStyles: { fontSize: 8, textColor: [30, 41, 59], cellPadding: 2.5 },
       columnStyles: {
-        0: { cellWidth: 18, halign: 'center' }, // Ano reduzido
-        1: { cellWidth: 35 },                     // Mês reduzido
-        2: { cellWidth: 110 },                    // Nome / Inquilino otimizado
-        3: { cellWidth: 65, halign: 'center' },   // Unidade aumentada
-        4: { cellWidth: 50, halign: 'right' }     // ADM (Taxa) redimensionada
+        0: { cellWidth: 15, halign: 'center' }, // Ano compacto
+        1: { cellWidth: 26 },                     // Mês compacto
+        2: { cellWidth: 68 },                     // Nome / Inquilino
+        3: { cellWidth: 55, halign: 'center' },   // Unidade com espaço generoso para evitar quebra
+        4: { cellWidth: 38, halign: 'right' }     // ADM
       },
       foot: [['', '', '', 'Total Geral:', 'R$ ' + formatarMoedaInput(somaTaxas)]],
-      footStyles: { fillColor: [217, 225, 242], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 9, halign: 'right', cellPadding: 3.5 }
+      footStyles: { fillColor: [217, 225, 242], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 8.5, halign: 'right', cellPadding: 3 }
     });
 
     doc.save("Relatorio_ADM_Opcoes_SIM.pdf");
