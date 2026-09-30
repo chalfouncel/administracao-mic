@@ -9,6 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 
 <style>
   :root { --primary: #121315; --secondary: #1a1c20; --accent: #c59b27; --gold: #d4af37; --border: #cbd5e1; --bg: #f4f6f9; --card: #ffffff; --text: #1e293b; --success: #16a34a; --danger: #dc2626; }
@@ -114,7 +115,7 @@
   .graficos-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   .chart-box { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
   .chart-title { font-size: 0.85rem; font-weight: 800; color: var(--primary); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
-  .chart-container { position: relative; height: 260px; width: 100%; }
+  .chart-container { position: relative; height: 275px; width: 100%; }
 
   .tabela-metas-justa { width: fit-content !important; border-collapse: collapse; font-size: 0.75rem; border: 1px solid var(--border); }
   .tabela-metas-justa th { background: #000; color: #fff; padding: 4px 10px; font-weight: 700; white-space: nowrap; }
@@ -244,7 +245,6 @@
               <th class="col-opc">Opção</th>
               <th class="col-tax">Taxa Mês</th>
             </tr>
-            <!-- FILTROS INDIVIDUAIS POR COLUNA -->
             <tr style="background: #1a1c20;">
               <th class="th-filtro"></th>
               <th class="th-filtro"></th>
@@ -376,7 +376,7 @@
     </div>
   </div>
 
-  <!-- ABA 3: GRÁFICOS & METAS (BI AVANÇADO) -->
+  <!-- ABA 3: GRÁFICOS & METAS (BI AVANÇADO COM LABELS ATIVAS) -->
   <div id="page-graficos" class="tab-page">
     
     <!-- CARDS DE KPIS HISTÓRICOS CONSOLIDADOS -->
@@ -432,33 +432,33 @@
       </div>
     </div>
 
-    <!-- SEÇÃO 2: EVOLUÇÃO MULTIANUAL DOS RECEBÍVEIS (SUBSTITUI OS 3 GRÁFICOS DO EXCEL) -->
+    <!-- SEÇÃO 2: EVOLUÇÃO MULTIANUAL DOS RECEBÍVEIS (COM VALORES EXIBIDOS) -->
     <div class="card" style="margin-bottom: 14px;">
       <div class="card-title">
-        <span>Evolução Mensal Comparativa (Multianual)</span>
+        <span>Evolução Mensal Comparativa (Multianual com Valores)</span>
         <div style="display:flex; gap:6px;">
           <button class="filter-pill-btn active" onclick="trocarFiltroRecebiveis('TODOS', this)">Geral (Todos)</button>
           <button class="filter-pill-btn" onclick="trocarFiltroRecebiveis('VENDA', this)">Vendas</button>
           <button class="filter-pill-btn" onclick="trocarFiltroRecebiveis('ALUGUEL', this)">Aluguel</button>
         </div>
       </div>
-      <div class="chart-container" style="height: 320px;">
+      <div class="chart-container" style="height: 330px;">
         <canvas id="chart-recebiveis-multianual"></canvas>
       </div>
     </div>
 
-    <!-- SEÇÃO 3: CURVA DE RECEBIMENTO EM ADMINISTRAÇÃO (COM 2 LINHAS PARALELAS - COLUNA P) -->
+    <!-- SEÇÃO 3: CURVA DE RECEBIMENTO EM ADMINISTRAÇÃO (COM 2 LINHAS PARALELAS E VALORES) -->
     <div class="card" style="margin-bottom: 14px;">
       <div class="card-title">
-        <span>Curva de Crescimento — Recebimentos em Administração</span>
+        <span>Curva de Crescimento — Recebimentos em Administração (com Valores)</span>
         <span style="font-size:0.75rem; color:#64748b;">Evolução cronológica mês a mês (Coluna P)</span>
       </div>
-      <div class="chart-container" style="height: 290px;">
+      <div class="chart-container" style="height: 300px;">
         <canvas id="chart-taxa-adm-evolucao"></canvas>
       </div>
     </div>
 
-    <!-- SEÇÃO 4: DUAS COLUNAS: FATURAMENTO & VGV / VOLUME CONTRATUAL -->
+    <!-- SEÇÃO 4: DUAS COLUNAS: FATURAMENTO & VGV / VOLUME ANUAL COM VALORES -->
     <div class="graficos-grid-2col">
       <div class="chart-box">
         <div class="chart-title"><span>Faturamento vs VGV Anual (R$)</span></div>
@@ -475,6 +475,9 @@
 </div>
 
 <script>
+  // Registra globalmente o plugin de DataLabels
+  Chart.register(ChartDataLabels);
+
   const SUPABASE_URL = 'https://uztsmkhlvoemjbbyebcr.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_nmolEh_G5_hKcfdgy2Xpeg_s4T6ePAz';
 
@@ -504,7 +507,6 @@
 
   const IPCA_HISTORICO = { 2022: 0.0579, 2023: 0.0462, 2024: 0.0483, 2025: 0.0450, 2026: 0.0420 };
 
-  // Instâncias do Chart.js
   let chartInstMetas = null;
   let chartInstMultianual = null;
   let chartInstAdmEvolucao = null;
@@ -1066,7 +1068,6 @@
       return matchAno && matchMes;
     });
 
-    // 1. BLOCO VGV CORRETOR
     const baseVGV = basePeriodo.filter(d => String(d.situacao || '').toUpperCase() === 'VENDA');
     const vgvCorretor = {};
     let totalVGV = 0;
@@ -1080,7 +1081,6 @@
       '<tr><td>' + c + '</td><td style="text-align:right;">R$ ' + fmt(vgvCorretor[c]) + '</td></tr>'
     ).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ' + fmt(totalVGV) + '</td></tr>';
 
-    // 2. BLOCO A RECEBER
     const situacoesAReceber = ['VENDA', 'ALUGUEL', 'REGISTRO', 'CRÉDITO', 'ASS. DIGITAL', 'CONTRATO', 'LEILÃO'];
     const aReceberGlobal = dadosDB.filter(d => 
       String(d.recebido || '').toUpperCase() === 'NÃO' &&
@@ -1105,7 +1105,6 @@
       return '<tr><td>' + nome + '</td><td style="text-align:right;">' + fmt(saldo) + '</td></tr>';
     }).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalAReceber) + '</td></tr>';
 
-    // 3. BLOCO RESUMO VENDA
     const situacoesResumoVenda = ['VENDA', 'REGISTRO', 'CRÉDITO'];
     const baseVenda = basePeriodo.filter(d => situacoesResumoVenda.includes(String(d.situacao || '').toUpperCase()));
     let totalVenda = 0;
@@ -1136,7 +1135,6 @@
     });
     document.getElementById('mapa-venda-body').innerHTML = htmlVenda + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalVenda) + '</td></tr>';
 
-    // 4. BLOCO RESUMO ALUGUEL
     const baseAluguel = basePeriodo.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL');
     let totalAluguel = 0;
     let htmlAluguel = '';
@@ -1166,7 +1164,6 @@
     });
     document.getElementById('mapa-aluguel-body').innerHTML = htmlAluguel + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalAluguel) + '</td></tr>';
 
-    // 5. BLOCO MENSAL OPÇÕES
     const baseOpcoes = dadosDB.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM');
     let totalOpcoes = 0;
     const treeOpcoes = {};
@@ -1208,7 +1205,7 @@
   }
 
   // ========================================================
-  // ABA 3: BI & GRÁFICOS EVOLUTIVOS MODERNIZADOS
+  // ABA 3: BI & GRÁFICOS COM VALORES NOS GRÁFICOS (DATALABELS)
   // ========================================================
   function popularSeletorAnoGraficos() {
     const sel = document.getElementById('sel-ano-graficos');
@@ -1227,7 +1224,6 @@
   function renderizarAbaGraficos() {
     if (!dadosDB || dadosDB.length === 0) return;
 
-    // --- CARDS KPIS CONSOLIDADOS ---
     let totalFatHist = 0;
     let totalVgvHist = 0;
     let totalVendasQtd = 0;
@@ -1245,7 +1241,6 @@
     document.getElementById('kpi-vgv-total').innerText = 'R$ ' + formatarMoedaInput(totalVgvHist);
     document.getElementById('kpi-qtd-vendas').innerText = totalVendasQtd;
 
-    // --- SEÇÃO 1: TABELA E GRÁFICO DE METAS DO ANO SELECIONADO ---
     const selAno = parseInt(document.getElementById('sel-ano-graficos').value) || 2026;
     const { metaMes, metaAno } = calcularMetaAno(selAno);
 
@@ -1314,7 +1309,7 @@
 
     document.getElementById('tabela-metas-corpo').innerHTML = htmlMetas;
 
-    // Gráfico de Metas Mensais
+    // 1. Gráfico Metas Mensais com DataLabels
     if (chartInstMetas) chartInstMetas.destroy();
     const ctxMetas = document.getElementById('chart-metas-mensais').getContext('2d');
     chartInstMetas = new Chart(ctxMetas, {
@@ -1326,7 +1321,15 @@
             label: 'Receita Realizada (R$)',
             data: valoresGrafico,
             backgroundColor: valoresGrafico.map(v => v >= metaMes ? '#16a34a' : '#dc2626'),
-            borderRadius: 4
+            borderRadius: 4,
+            datalabels: {
+              anchor: 'end',
+              align: 'top',
+              offset: 2,
+              font: { size: 8, weight: 'bold' },
+              color: '#0f172a',
+              formatter: (v) => v > 0 ? 'R$' + (v >= 1000 ? (v/1000).toFixed(1) + 'k' : v) : ''
+            }
           },
           {
             type: 'line',
@@ -1336,25 +1339,30 @@
             borderWidth: 2,
             borderDash: [5, 5],
             pointRadius: 0,
-            fill: false
+            fill: false,
+            datalabels: { display: false }
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } },
-        scales: { y: { beginAtZero: true, ticks: { font: { size: 9 } } }, x: { ticks: { font: { size: 9 } } } }
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } }
+        },
+        scales: {
+          y: { beginAtZero: true, suggestedMax: Math.max(...valoresGrafico, metaMes) * 1.15, ticks: { font: { size: 9 } } },
+          x: { ticks: { font: { size: 9 } } }
+        }
       }
     });
 
-    // Renderiza os outros painéis avançados
     renderizarGraficoMultianual();
     renderizarGraficoCurvaAdm();
     renderizarGraficosFaturamentoVgv();
   }
 
-  // --- SEÇÃO 2: GRÁFICO EVOLUTIVO MULTIANUAL (TODOS / VENDA / ALUGUEL) ---
+  // 2. Gráfico Multianual com Valores Ativos nas Colunas
   function renderizarGraficoMultianual() {
     const anos = [2022, 2023, 2024, 2025, 2026];
     const coresAno = {
@@ -1381,7 +1389,16 @@
         label: String(ano),
         data: dataMeses,
         backgroundColor: coresAno[ano],
-        borderRadius: 3
+        borderRadius: 3,
+        datalabels: {
+          display: 'auto',
+          anchor: 'end',
+          align: 'top',
+          rotation: -45,
+          font: { size: 7.5, weight: 'bold' },
+          color: '#334155',
+          formatter: (v) => v > 0 ? (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v.toFixed(0)) : ''
+        }
       };
     });
 
@@ -1412,9 +1429,8 @@
     });
   }
 
-  // --- SEÇÃO 3: CURVA DE RECEBIMENTO EM ADMINISTRAÇÃO (2 LINHAS PARALELAS COM BASE NA COLUNA P) ---
+  // 3. Curva Cronológica com Valores nos Pontos Notáveis
   function renderizarGraficoCurvaAdm() {
-    // Coleta todas as chaves de ano/mês ordenadas cronologicamente
     const timelineChaves = [];
     dadosDB.forEach(d => {
       if (d.ano && d.mes) {
@@ -1437,13 +1453,11 @@
 
       labels.push(`${mesNome.slice(0, 3)}/${String(anoNum).slice(2)}`);
 
-      // Soma da Coluna P (valor_liquido) para "Recebimento das administrações"
       const somaGeral = dadosDB.filter(d => {
         const n = String(d.nome || '').trim().toLowerCase();
         return d.ano === anoNum && d.mes === mesNome && (n === 'recebimento das administrações' || n === 'recebimento das administracoes');
       }).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
 
-      // Soma da Coluna P (valor_liquido) para "Recebimento das Administrações M&IC"
       const somaMic = dadosDB.filter(d => {
         const n = String(d.nome || '').trim().toLowerCase();
         return d.ano === anoNum && d.mes === mesNome && (n.includes('administrações m&ic') || n.includes('administracoes m&ic'));
@@ -1474,8 +1488,16 @@
             backgroundColor: 'rgba(0, 30, 96, 0.08)',
             fill: false,
             tension: 0.3,
-            pointRadius: 2.5,
-            pointBackgroundColor: '#001e60'
+            pointRadius: 3,
+            pointBackgroundColor: '#001e60',
+            datalabels: {
+              display: 'auto',
+              align: 'top',
+              offset: 3,
+              font: { size: 7.5, weight: 'bold' },
+              color: '#001e60',
+              formatter: (v) => v > 0 ? 'R$' + formatarMoedaInput(v) : ''
+            }
           },
           {
             label: 'Recebimento das Administrações M&IC (R$)',
@@ -1484,8 +1506,16 @@
             backgroundColor: 'rgba(197, 155, 39, 0.08)',
             fill: false,
             tension: 0.3,
-            pointRadius: 2.5,
-            pointBackgroundColor: '#c59b27'
+            pointRadius: 3,
+            pointBackgroundColor: '#c59b27',
+            datalabels: {
+              display: 'auto',
+              align: 'bottom',
+              offset: 3,
+              font: { size: 7.5, weight: 'bold' },
+              color: '#c59b27',
+              formatter: (v) => v > 0 ? 'R$' + formatarMoedaInput(v) : ''
+            }
           }
         ]
       },
@@ -1508,7 +1538,7 @@
     });
   }
 
-  // --- SEÇÃO 4: FATURAMENTO & VGV / VOLUME ANUAL ---
+  // 4. Gráficos Anuais com Valores Exatos em cima das Barras
   function renderizarGraficosFaturamentoVgv() {
     const anos = [2022, 2023, 2024, 2025, 2026];
 
@@ -1522,8 +1552,32 @@
       data: {
         labels: anos,
         datasets: [
-          { label: 'Faturamento Líquido (R$)', data: fatAnual, backgroundColor: '#c59b27', borderRadius: 4 },
-          { label: 'VGV Vendas (R$)', data: vgvAnual, backgroundColor: '#001e60', borderRadius: 4 }
+          {
+            label: 'Faturamento Líquido (R$)',
+            data: fatAnual,
+            backgroundColor: '#c59b27',
+            borderRadius: 4,
+            datalabels: {
+              anchor: 'end',
+              align: 'top',
+              font: { size: 8, weight: 'bold' },
+              color: '#78350f',
+              formatter: (v) => 'R$ ' + (v >= 1000 ? (v/1000).toFixed(1) + 'k' : v)
+            }
+          },
+          {
+            label: 'VGV Vendas (R$)',
+            data: vgvAnual,
+            backgroundColor: '#001e60',
+            borderRadius: 4,
+            datalabels: {
+              anchor: 'end',
+              align: 'top',
+              font: { size: 8, weight: 'bold' },
+              color: '#001e60',
+              formatter: (v) => 'R$ ' + (v >= 1000000 ? (v/1000000).toFixed(2) + 'M' : (v/1000).toFixed(0) + 'k')
+            }
+          }
         ]
       },
       options: {
@@ -1534,7 +1588,7 @@
           tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: R$ ${formatarMoedaInput(ctx.parsed.y)}` } }
         },
         scales: {
-          y: { beginAtZero: true, ticks: { font: { size: 9 }, callback: v => 'R$ ' + (v >= 1000000 ? (v/1000000).toFixed(1) + 'M' : (v/1000) + 'k') } },
+          y: { beginAtZero: true, suggestedMax: Math.max(...vgvAnual) * 1.15, ticks: { font: { size: 9 }, callback: v => 'R$ ' + (v >= 1000000 ? (v/1000000).toFixed(1) + 'M' : (v/1000) + 'k') } },
           x: { ticks: { font: { size: 9 } } }
         }
       }
@@ -1550,8 +1604,30 @@
       data: {
         labels: anos,
         datasets: [
-          { label: 'Vendas', data: qtdVendas, backgroundColor: '#2563eb', borderRadius: 4 },
-          { label: 'Aluguéis', data: qtdAlugueis, backgroundColor: '#059669', borderRadius: 4 }
+          {
+            label: 'Vendas',
+            data: qtdVendas,
+            backgroundColor: '#2563eb',
+            borderRadius: 4,
+            datalabels: {
+              anchor: 'end',
+              align: 'top',
+              font: { size: 9, weight: 'bold' },
+              color: '#1e3a8a'
+            }
+          },
+          {
+            label: 'Aluguéis',
+            data: qtdAlugueis,
+            backgroundColor: '#059669',
+            borderRadius: 4,
+            datalabels: {
+              anchor: 'end',
+              align: 'top',
+              font: { size: 9, weight: 'bold' },
+              color: '#064e3b'
+            }
+          }
         ]
       },
       options: {
@@ -1561,7 +1637,7 @@
           legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } }
         },
         scales: {
-          y: { beginAtZero: true, ticks: { font: { size: 9 }, stepSize: 5 } },
+          y: { beginAtZero: true, suggestedMax: Math.max(...qtdAlugueis, ...qtdVendas) * 1.18, ticks: { font: { size: 9 }, stepSize: 5 } },
           x: { ticks: { font: { size: 9 } } }
         }
       }
