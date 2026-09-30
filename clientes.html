@@ -27,7 +27,7 @@
   .tab-page.active { display: block; }
 
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
-  .card-title { font-size: 0.95rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .card-title { font-size: 0.95rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
   .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 10px; }
   label { display: block; font-size: 0.68rem; font-weight: 700; color: #475569; margin-bottom: 3px; text-transform: uppercase; }
@@ -41,17 +41,9 @@
   .btn-dark { background: var(--secondary); color: #fff; }
   .btn-danger { background: var(--danger); color: #fff; padding: 3px 6px; font-size: 0.7rem; border-radius: 4px; }
 
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; }
-  .stat-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; border-left: 4px solid var(--accent); }
-  .stat-card span { font-size: 0.68rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
-  .stat-card h3 { font-size: 1.15rem; color: var(--primary); margin-top: 2px; }
-
   .table-container { width: 100%; max-height: 72vh; overflow-y: auto; overflow-x: hidden; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
   table.table-compact { width: 100%; border-collapse: collapse; font-size: 0.73rem; table-layout: fixed; }
-  table.table-compact th { background: #000; color: #fff; padding: 6px 3px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.69rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  table.table-compact th.th-filtro { background: #1a1c20; padding: 4px 2px; position: sticky; top: 28px; z-index: 10; }
-  table.table-compact th.th-filtro input, table.table-compact th.th-filtro select { width: 100%; padding: 2px 3px; font-size: 0.66rem; background: #fff; border: 1px solid #475569; border-radius: 3px; color: #1e293b; }
-  
+  table.table-compact th { background: #000; color: #fff; padding: 8px 3px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.69rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   table.table-compact td { padding: 4px 2px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.72rem; }
   table.table-compact tr:hover { background: #f8fafc; }
   
@@ -101,9 +93,7 @@
   table.pivot-table th { background: #f1f5f9; color: #475569; padding: 6px 8px; font-size: 0.7rem; border-bottom: 1px solid #cbd5e1; }
   table.pivot-table td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
   table.pivot-table tr.total-row { background: #d9e1f2; font-weight: 800; border-top: 1px solid #8ea9db; }
-  .tree-node { font-weight: bold; background: #f8fafc; cursor: pointer; user-select: none; }
-  .tree-subnode { font-weight: bold; background: #ffffff; cursor: pointer; user-select: none; padding-left: 14px !important; color: #0f172a; }
-  .tree-leaf { padding-left: 28px !important; color: #64748b; font-size: 0.7rem; }
+  .tree-node { font-weight: bold; background: #f8fafc; }
 </style>
 </head>
 <body>
@@ -130,13 +120,6 @@
 
   <!-- ABA 1: PRODUÇÃO -->
   <div id="page-producao" class="tab-page active">
-    <div class="stat-grid">
-      <div class="stat-card"><span>Total de Lançamentos</span><h3 id="stat-total">0</h3></div>
-      <div class="stat-card"><span>Volume Operacionado</span><h3 id="stat-volume">R$ 0,00</h3></div>
-      <div class="stat-card"><span>Comissão Total</span><h3 id="stat-comissao">R$ 0,00</h3></div>
-      <div class="stat-card"><span>Líquido a Receber</span><h3 id="stat-liquido" style="color:var(--success);">R$ 0,00</h3></div>
-    </div>
-
     <div class="card">
       <div class="card-title">
         <span>Novo Lançamento</span>
@@ -161,7 +144,7 @@
           <div style="grid-column: span 2;"><label>Nome / Operação</label><input type="text" id="inp-nome" required oninput="recalcularForm()"></div>
           <div><label>Situação</label><select id="inp-situacao" onchange="recalcularForm()"></select></div>
           <div><label>Unidade</label><input type="text" id="inp-unidade"></div>
-          <div><label>Valor (R$)</label><input type="number" step="0.01" id="inp-valor" required oninput="recalcularForm()"></div>
+          <div><label>Valor (R$)</label><input type="text" id="inp-valor" required placeholder="0,00" oninput="formatarMoedaInput(this); recalcularForm()"></div>
           <div><label>Corretor</label><select id="inp-corretor" onchange="recalcularForm()"></select></div>
           <div>
             <label>Faturada?</label>
@@ -169,8 +152,8 @@
               <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
             </select>
           </div>
-          <div><label>Prêmio (R$)</label><input type="number" step="0.01" id="inp-premio" value="0" oninput="recalcularForm()"></div>
-          <div><label>Comissão</label><input type="number" step="0.01" id="inp-comissao" required oninput="recalcularForm()"></div>
+          <div><label>Prêmio (R$)</label><input type="text" id="inp-premio" value="0,00" placeholder="0,00" oninput="formatarMoedaInput(this); recalcularForm()"></div>
+          <div><label>Comissão</label><input type="text" id="inp-comissao" required placeholder="0,00" oninput="formatarMoedaInput(this); recalcularForm()"></div>
           <div><label>Prêmio Corr.</label><input type="text" id="inp-premio-corr" class="read-only-field" readonly></div>
           <div><label>Imposto (15%)</label><input type="text" id="inp-imposto" class="read-only-field" readonly></div>
           <div>
@@ -180,14 +163,14 @@
             </select>
           </div>
           <div><label>Líquido R$</label><input type="text" id="inp-liquido" class="read-only-field" readonly></div>
-          <div><label>Valor Recebido</label><input type="number" step="0.01" id="inp-val-recebido" value="0"></div>
+          <div><label>Valor Recebido</label><input type="text" id="inp-val-recebido" value="0,00" placeholder="0,00" oninput="formatarMoedaInput(this)"></div>
           <div>
             <label>Opção</label>
             <select id="inp-opcao">
               <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
             </select>
           </div>
-          <div><label>Taxa Mensal (R$)</label><input type="number" step="0.01" id="inp-taxa" value="0"></div>
+          <div><label>Taxa Mensal (R$)</label><input type="text" id="inp-taxa" value="0,00" placeholder="0,00" oninput="formatarMoedaInput(this)"></div>
           <div style="grid-column: span 2;"><label>Observações</label><input type="text" id="inp-obs"></div>
         </div>
         <div style="margin-top: 12px; text-align: right;">
@@ -198,8 +181,8 @@
 
     <div class="card">
       <div class="card-title">
-        <span>Histórico de Lançamentos (Planilha Viva - Edição Direta)</span>
-        <button class="btn btn-dark" style="font-size:0.75rem; padding:4px 8px;" onclick="limparFiltrosTabela()">🔄 Limpar Filtros</button>
+        <span>Histórico de Lançamentos (Recebido = NÃO | Do mais novo para o mais antigo)</span>
+        <input type="text" id="filtro-busca" placeholder="🔍 Filtrar registros..." style="width: 260px;" oninput="filtrarTabela()">
       </div>
       
       <div class="table-container">
@@ -223,63 +206,6 @@
               <th class="col-liq">Líquido</th>
               <th class="col-opc">Opção</th>
               <th class="col-tax">Taxa Mês</th>
-            </tr>
-            <!-- LINHA DE FILTROS INDIVIDUAIS POR COLUNA -->
-            <tr style="background: #1a1c20;">
-              <th class="th-filtro"></th>
-              <th class="th-filtro"></th>
-              <th class="th-filtro"><input type="text" id="f-ano" placeholder="Ano" oninput="filtrarTabela()"></th>
-              <th class="th-filtro"><input type="text" id="f-mes" placeholder="Mês" oninput="filtrarTabela()"></th>
-              <th class="th-filtro"><input type="text" id="f-nome" placeholder="Nome..." oninput="filtrarTabela()"></th>
-              <th class="th-filtro">
-                <select id="f-sit" onchange="filtrarTabela()">
-                  <option value="">Todas</option>
-                  <option value="VENDA">Venda</option>
-                  <option value="ALUGUEL">Aluguel</option>
-                  <option value="CRÉDITO">Crédito</option>
-                  <option value="REGISTRO">Registro</option>
-                  <option value="LEILÃO">Leilão</option>
-                  <option value="CONTRATO">Contrato</option>
-                  <option value="ASS. DIGITAL">Ass. Digital</option>
-                </select>
-              </th>
-              <th class="th-filtro"><input type="text" id="f-un" placeholder="Unid." oninput="filtrarTabela()"></th>
-              <th class="th-filtro"><input type="text" id="f-val" placeholder="Valor" oninput="filtrarTabela()"></th>
-              <th class="th-filtro">
-                <select id="f-cor" onchange="filtrarTabela()">
-                  <option value="">Todos</option>
-                  <option value="Mario">Mario</option>
-                  <option value="Cris">Cris</option>
-                  <option value="Gerente">Gerente</option>
-                  <option value="Fábio">Fábio</option>
-                </select>
-              </th>
-              <th class="th-filtro">
-                <select id="f-fat" onchange="filtrarTabela()">
-                  <option value="">Todas</option>
-                  <option value="SIM">SIM</option>
-                  <option value="NÃO">NÃO</option>
-                </select>
-              </th>
-              <th class="th-filtro"><input type="text" id="f-com" placeholder="Comis." oninput="filtrarTabela()"></th>
-              <th class="th-filtro"><input type="text" id="f-prem" placeholder="Prêmio" oninput="filtrarTabela()"></th>
-              <th class="th-filtro"><input type="text" id="f-imp" placeholder="Imposto" oninput="filtrarTabela()"></th>
-              <th class="th-filtro">
-                <select id="f-rec" onchange="filtrarTabela()">
-                  <option value="">Todos</option>
-                  <option value="SIM">SIM</option>
-                  <option value="NÃO">NÃO</option>
-                </select>
-              </th>
-              <th class="th-filtro"><input type="text" id="f-liq" placeholder="Líquido" oninput="filtrarTabela()"></th>
-              <th class="th-filtro">
-                <select id="f-opc" onchange="filtrarTabela()">
-                  <option value="">Todas</option>
-                  <option value="SIM">SIM</option>
-                  <option value="NÃO">NÃO</option>
-                </select>
-              </th>
-              <th class="th-filtro"><input type="text" id="f-tax" placeholder="Taxa" oninput="filtrarTabela()"></th>
             </tr>
           </thead>
           <tbody id="tabela-corpo">
@@ -343,13 +269,16 @@
           </table>
         </div>
 
-        <!-- BLOCO 5: MENSAL OPÇÕES -->
+        <!-- BLOCO 5: MENSAL OPÇÕES + BOTÃO RELATÓRIO ADM -->
         <div class="pivot-box">
           <div class="pivot-header-yellow">Mensal Opções</div>
           <table class="pivot-table">
-            <thead><tr><th>Ano / Mês / Inquilino</th><th style="text-align:right;">Soma</th></tr></thead>
+            <thead><tr><th>Total Período</th><th style="text-align:right;">Soma</th></tr></thead>
             <tbody id="mapa-opcoes-body"></tbody>
           </table>
+          <div style="padding: 8px; text-align: center; background: #f8fafc; border-top: 1px solid #cbd5e1;">
+            <button class="btn btn-dark" style="width: 100%; font-size: 0.75rem; padding: 6px;" onclick="gerarRelatorioAdm()">📄 Gerar Relatório ADM</button>
+          </div>
         </div>
 
       </div>
@@ -376,19 +305,17 @@
   };
 
   const MESES_LISTA = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  const MESES_ORDEM = { "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4, "Maio": 5, "Junho": 6, "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12 };
   const ALIQUOTA_IMPOSTO = 0.15;
   let dadosDB = [];
 
   let mapaFiltroAno = '2026';
   let mapaFiltroMes = 'Setembro';
-  
-  let anosExpandidos = { '2026': true };
-  let mesesExpandidos = { '2026-Setembro': true };
 
   function trocarAbaPrincipal(qual, btn) {
     document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab-nav-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`page-${qual}`).classList.add('active');
+    document.getElementById('page-' + qual).classList.add('active');
     btn.classList.add('active');
     if (qual === 'mapa') renderizarMapa();
   }
@@ -403,18 +330,47 @@
     document.getElementById('inp-ano').value = hoje.getFullYear();
     document.getElementById('inp-mes').selectedIndex = hoje.getMonth();
     document.getElementById('inp-opcao').value = 'NÃO';
-    document.getElementById('inp-taxa').value = '0';
+    document.getElementById('inp-valor').value = '0,00';
+    document.getElementById('inp-premio').value = '0,00';
+    document.getElementById('inp-comissao').value = '0,00';
+    document.getElementById('inp-val-recebido').value = '0,00';
+    document.getElementById('inp-taxa').value = '0,00';
+  }
+
+  // Utilitário para formatação de moeda R$ #.##,##
+  function formatarMoedaInput(input) {
+    let valor = input.value.replace(/\D/g, '');
+    if (!valor) {
+      input.value = '0,00';
+      return;
+    }
+    valor = (parseInt(valor, 10) / 100).toFixed(2) + '';
+    valor = valor.replace('.', ',');
+    valor = valor.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+    input.value = valor;
+  }
+
+  function parseMoeda(str) {
+    if (typeof str === 'number') return str;
+    if (!str) return 0;
+    let limpo = String(str).replace('R$', '').trim();
+    limpo = limpo.replace(/\./g, '').replace(',', '.');
+    return parseFloat(limpo) || 0;
+  }
+
+  function formatarMoedaStr(num) {
+    return (parseFloat(num) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
   function calcularFórmulas(item) {
     const nome = (item.nome || '').trim();
     const situacao = (item.situacao || '').trim();
     const corretor = (item.corretor || '').trim();
-    const valor = parseFloat(item.valor) || 0;
-    const premio = parseFloat(item.premio) || 0;
+    const valor = parseMoeda(item.valor);
+    const premio = parseMoeda(item.premio);
     const faturada = (item.faturada || 'NÃO').trim().toUpperCase();
 
-    let comissao = parseFloat(item.comissao) || 0;
+    let comissao = parseMoeda(item.comissao);
 
     let premioCorretor = 'XXXXXX';
     if (situacao === 'ALUGUEL') {
@@ -449,13 +405,16 @@
       if (opcao === 'NÃO') {
         taxaMensal = 'XXXXXX';
       } else {
-        taxaMensal = parseFloat(item.taxa_mensal) || 0;
+        taxaMensal = parseMoeda(item.taxa_mensal);
       }
     }
 
     return {
       ...item,
+      valor,
+      premio,
       comissao,
+      valor_recebido: parseMoeda(item.valor_recebido),
       premio_corretor: premioCorretor,
       imposto,
       valor_liquido: valorLiquido,
@@ -477,7 +436,6 @@
       taxa_mensal: document.getElementById('inp-taxa').value
     };
     const c = calcularFórmulas(raw);
-    const fmt = v => typeof v === 'number' ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : v;
 
     const setCampoCondicional = (id, val) => {
       const el = document.getElementById(id);
@@ -485,14 +443,14 @@
         el.value = '';
         el.classList.add('input-bloqueado');
       } else {
-        el.value = fmt(val);
+        el.value = formatarMoedaStr(val);
         el.classList.remove('input-bloqueado');
       }
     };
 
     setCampoCondicional('inp-premio-corr', c.premio_corretor);
     setCampoCondicional('inp-imposto', c.imposto);
-    document.getElementById('inp-liquido').value = fmt(c.valor_liquido);
+    document.getElementById('inp-liquido').value = formatarMoedaStr(c.valor_liquido);
   }
 
   async function carregarDados() {
@@ -511,23 +469,13 @@
 
   function renderizarTabela(dados) {
     const tbody = document.getElementById('tabela-corpo');
-    const fmt = v => typeof v === 'number' ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : (v || '-');
-    let vol = 0, com = 0, liq = 0;
 
     if (!dados || dados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center; padding:16px;">Nenhum registro encontrado com estes filtros.</td></tr>';
-      document.getElementById('stat-total').innerText = 0;
-      document.getElementById('stat-volume').innerText = fmt(0);
-      document.getElementById('stat-comissao').innerText = fmt(0);
-      document.getElementById('stat-liquido').innerText = fmt(0);
+      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center; padding:16px;">Nenhum registro com Recebido = NÃO encontrado.</td></tr>';
       return;
     }
 
     tbody.innerHTML = dados.map(item => {
-      vol += parseFloat(item.valor) || 0;
-      com += parseFloat(item.comissao) || 0;
-      liq += parseFloat(item.valor_liquido) || 0;
-
       const isX = val => String(val || '').trim() === 'XXXXXX';
       const id = item.id;
       const isRecSim = String(item.recebido || '').toUpperCase() === 'SIM';
@@ -545,76 +493,57 @@
         '<td class="col-nome"><input type="text" class="cell-input" value="' + (item.nome || '') + '" onchange="atualizarItemDireto(' + id + ', \'nome\', this.value)"></td>' +
         '<td class="col-sit"><select class="cell-select" onchange="atualizarItemDireto(' + id + ', \'situacao\', this.value)">' + htmlSit + '</select></td>' +
         '<td class="col-un"><input type="text" class="cell-input" value="' + (item.unidade || '') + '" onchange="atualizarItemDireto(' + id + ', \'unidade\', this.value)"></td>' +
-        '<td class="col-val"><input type="number" step="0.01" class="cell-input" style="text-align:right;" value="' + (parseFloat(item.valor) || 0) + '" onchange="atualizarItemDireto(' + id + ', \'valor\', parseFloat(this.value))"></td>' +
+        '<td class="col-val"><input type="text" class="cell-input" style="text-align:right;" value="' + formatarMoedaStr(item.valor).replace('R$', '').trim() + '" onchange="atualizarItemDireto(' + id + ', \'valor\', this.value)"></td>' +
         '<td class="col-cor"><select class="cell-select" onchange="atualizarItemDireto(' + id + ', \'corretor\', this.value)">' + htmlCor + '</select></td>' +
         '<td class="col-fat"><select class="cell-select" style="text-align:center;" onchange="atualizarItemDireto(' + id + ', \'faturada\', this.value)"><option value="NÃO" ' + (item.faturada === 'NÃO' ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (item.faturada === 'SIM' ? 'selected' : '') + '>SIM</option></select></td>' +
-        '<td class="col-com"><input type="number" step="0.01" class="cell-input" style="text-align:right; font-weight:bold;" value="' + (parseFloat(item.comissao) || 0) + '" onchange="atualizarItemDireto(' + id + ', \'comissao\', parseFloat(this.value))"></td>' +
-        '<td class="col-prem ' + (isX(item.premio_corretor) ? 'celula-bloqueada' : '') + '">' + (isX(item.premio_corretor) ? '' : fmt(item.premio_corretor)) + '</td>' +
-        '<td class="col-imp ' + (isX(item.imposto) ? 'celula-bloqueada' : '') + '">' + (isX(item.imposto) ? '' : fmt(item.imposto)) + '</td>' +
-        '<td class="col-rec"><select class="cell-select ' + (isRecSim ? 'status-rec-sim' : 'status-rec-nao') + '" onchange="atualizarItemDireto(' + id + ', \'recebido\', this.value)"><option value="NÃO" ' + (!isRecSim ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (isRecSim ? 'selected' : '') + '>SIM</option></select></td>' +
-        '<td class="col-liq">' + fmt(parseFloat(item.valor_liquido)) + '</td>' +
+        '<td class="col-com"><input type="text" class="cell-input" style="text-align:right; font-weight:bold;" value="' + formatarMoedaStr(item.comissao).replace('R$', '').trim() + '" onchange="atualizarItemDireto(' + id + ', \'comissao\', this.value)"></td>' +
+        '<td class="col-prem ' + (isX(item.premio_corretor) ? 'celula-bloqueada' : '') + '">' + (isX(item.premio_corretor) ? '' : formatarMoedaStr(item.premio_corretor)) + '</td>' +
+        '<td class="col-imp ' + (isX(item.imposto) ? 'celula-bloqueada' : '') + '">' + (isX(item.imposto) ? '' : formatarMoedaStr(item.imposto)) + '</td>' +
+        '<td class="col-rec"><select class="cell-select status-rec-nao" onchange="atualizarItemDireto(' + id + ', \'recebido\', this.value)"><option value="NÃO" selected>NÃO</option><option value="SIM">SIM</option></select></td>' +
+        '<td class="col-liq">' + formatarMoedaStr(item.valor_liquido) + '</td>' +
         '<td class="col-opc">' + (isX(item.opcao) ? '<span style="color:#94a3b8">—</span>' : '<select class="cell-select" style="font-weight:bold;" onchange="atualizarItemDireto(' + id + ', \'opcao\', this.value)"><option value="NÃO" ' + (!isOpcSim ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (isOpcSim ? 'selected' : '') + '>SIM</option></select>') + '</td>' +
-        '<td class="col-tax ' + (isX(item.taxa_mensal) ? 'celula-bloqueada' : '') + '">' + (isX(item.taxa_mensal) ? '' : '<input type="number" step="0.01" class="cell-input" style="text-align:right;" value="' + (parseFloat(item.taxa_mensal) || 0) + '" onchange="atualizarItemDireto(' + id + ', \'taxa_mensal\', parseFloat(this.value))">') + '</td>' +
+        '<td class="col-tax ' + (isX(item.taxa_mensal) ? 'celula-bloqueada' : '') + '">' + (isX(item.taxa_mensal) ? '' : '<input type="text" class="cell-input" style="text-align:right;" value="' + formatarMoedaStr(item.taxa_mensal).replace('R$', '').trim() + '" onchange="atualizarItemDireto(' + id + ', \'taxa_mensal\', this.value)">') + '</td>' +
       '</tr>';
     }).join('');
-
-    document.getElementById('stat-total').innerText = dados.length;
-    document.getElementById('stat-volume').innerText = fmt(vol);
-    document.getElementById('stat-comissao').innerText = fmt(com);
-    document.getElementById('stat-liquido').innerText = fmt(liq);
   }
 
   function filtrarTabela() {
-    const fAno = document.getElementById('f-ano').value.trim().toLowerCase();
-    const fMes = document.getElementById('f-mes').value.trim().toLowerCase();
-    const fNome = document.getElementById('f-nome').value.trim().toLowerCase();
-    const fSit = document.getElementById('f-sit').value;
-    const fUn = document.getElementById('f-un').value.trim().toLowerCase();
-    const fVal = document.getElementById('f-val').value.trim().toLowerCase();
-    const fCor = document.getElementById('f-cor').value;
-    const fFat = document.getElementById('f-fat').value;
-    const fCom = document.getElementById('f-com').value.trim().toLowerCase();
-    const fPrem = document.getElementById('f-prem').value.trim().toLowerCase();
-    const fImp = document.getElementById('f-imp').value.trim().toLowerCase();
-    const fRec = document.getElementById('f-rec').value;
-    const fLiq = document.getElementById('f-liq').value.trim().toLowerCase();
-    const fOpc = document.getElementById('f-opc').value;
-    const fTax = document.getElementById('f-tax').value.trim().toLowerCase();
-
+    const q = document.getElementById('filtro-busca').value.toLowerCase();
+    
+    // Critério 1: Recebido = NÃO
+    // Critério 2: Do mais novo pro mais antigo (Ano desc, Mês desc, ID desc)
     const filtrados = dadosDB.filter(d => {
-      if (fAno && !String(d.ano).toLowerCase().includes(fAno)) return false;
-      if (fMes && !String(d.mes || '').toLowerCase().includes(fMes)) return false;
-      if (fNome && !String(d.nome || '').toLowerCase().includes(fNome)) return false;
-      if (fSit && String(d.situacao || '').toUpperCase() !== fSit) return false;
-      if (fUn && !String(d.unidade || '').toLowerCase().includes(fUn)) return false;
-      if (fVal && !String(d.valor || '').toLowerCase().includes(fVal)) return false;
-      if (fCor && String(d.corretor || '') !== fCor) return false;
-      if (fFat && String(d.faturada || '').toUpperCase() !== fFat) return false;
-      if (fCom && !String(d.comissao || '').toLowerCase().includes(fCom)) return false;
-      if (fPrem && !String(d.premio_corretor || '').toLowerCase().includes(fPrem)) return false;
-      if (fImp && !String(d.imposto || '').toLowerCase().includes(fImp)) return false;
-      if (fRec && String(d.recebido || '').toUpperCase() !== fRec) return false;
-      if (fLiq && !String(d.valor_liquido || '').toLowerCase().includes(fLiq)) return false;
-      if (fOpc && String(d.opcao || '').toUpperCase() !== fOpc) return false;
-      if (fTax && !String(d.taxa_mensal || '').toLowerCase().includes(fTax)) return false;
-      return true;
+      const rec = String(d.recebido || 'NÃO').toUpperCase();
+      if (rec !== 'NÃO') return false;
+
+      const matchTexto = !q || 
+        (d.nome && d.nome.toLowerCase().includes(q)) ||
+        (d.corretor && d.corretor.toLowerCase().includes(q)) ||
+        (d.unidade && d.unidade.toLowerCase().includes(q)) ||
+        (d.situacao && d.situacao.toLowerCase().includes(q));
+
+      return matchTexto;
+    }).sort((a, b) => {
+      if (b.ano !== a.ano) return b.ano - a.ano;
+      const mB = MESES_ORDEM[b.mes] || 0;
+      const mA = MESES_ORDEM[a.mes] || 0;
+      if (mB !== mA) return mB - mA;
+      return b.id - a.id;
     });
 
     renderizarTabela(filtrados);
-  }
-
-  function limparFiltrosTabela() {
-    ['f-ano', 'f-mes', 'f-nome', 'f-sit', 'f-un', 'f-val', 'f-cor', 'f-fat', 'f-com', 'f-prem', 'f-imp', 'f-rec', 'f-liq', 'f-opc', 'f-tax'].forEach(id => {
-      document.getElementById(id).value = '';
-    });
-    renderizarTabela(dadosDB);
   }
 
   async function atualizarItemDireto(id, campo, valorNovo) {
     const idx = dadosDB.findIndex(x => x.id === id);
     if (idx === -1) return;
 
-    dadosDB[idx][campo] = valorNovo;
+    if (['valor', 'premio', 'comissao', 'valor_recebido', 'taxa_mensal'].includes(campo)) {
+      dadosDB[idx][campo] = parseMoeda(valorNovo);
+    } else {
+      dadosDB[idx][campo] = valorNovo;
+    }
+
     const recalculado = calcularFórmulas(dadosDB[idx]);
     dadosDB[idx] = recalculado;
 
@@ -643,15 +572,15 @@
       nome: document.getElementById('inp-nome').value,
       situacao: document.getElementById('inp-situacao').value,
       unidade: document.getElementById('inp-unidade').value,
-      valor: parseFloat(document.getElementById('inp-valor').value) || 0,
+      valor: document.getElementById('inp-valor').value,
       corretor: document.getElementById('inp-corretor').value,
       faturada: document.getElementById('inp-faturada').value,
-      premio: parseFloat(document.getElementById('inp-premio').value) || 0,
-      comissao: parseFloat(document.getElementById('inp-comissao').value) || 0,
+      premio: document.getElementById('inp-premio').value,
+      comissao: document.getElementById('inp-comissao').value,
       recebido: document.getElementById('inp-recebido').value,
-      valor_recebido: parseFloat(document.getElementById('inp-val-recebido').value) || 0,
+      valor_recebido: document.getElementById('inp-val-recebido').value,
       opcao: document.getElementById('inp-opcao').value,
-      taxa_mensal: parseFloat(document.getElementById('inp-taxa').value) || 0,
+      taxa_mensal: document.getElementById('inp-taxa').value,
       obs: document.getElementById('inp-obs').value
     };
 
@@ -762,22 +691,9 @@
   }
 
   function setFiltroMapa(tipo, valor) {
-    if (tipo === 'ano') {
-      mapaFiltroAno = valor;
-      if (valor !== 'TODOS') anosExpandidos[valor] = true;
-    }
+    if (tipo === 'ano') mapaFiltroAno = valor;
     if (tipo === 'mes') mapaFiltroMes = valor;
     montarSlicers();
-    renderizarMapa();
-  }
-
-  function toggleExpandirAno(ano) {
-    anosExpandidos[ano] = !anosExpandidos[ano];
-    renderizarMapa();
-  }
-
-  function toggleExpandirMes(chave) {
-    mesesExpandidos[chave] = !mesesExpandidos[chave];
     renderizarMapa();
   }
 
@@ -890,45 +806,60 @@
     });
     document.getElementById('mapa-aluguel-body').innerHTML = htmlAluguel + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalAluguel) + '</td></tr>';
 
-    // 5. BLOCO MENSAL OPÇÕES
-    const baseOpcoes = dadosDB.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM');
+    // 5. BLOCO MENSAL OPÇÕES (SOMENTE TOTAL GERAL FILTRADO POR ANO)
+    const baseOpcoes = dadosDB.filter(d => {
+      const matchAno = (mapaFiltroAno === 'TODOS') || (d.ano == mapaFiltroAno);
+      return matchAno && String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM';
+    });
+
     let totalOpcoes = 0;
-    const treeOpcoes = {};
-
     baseOpcoes.forEach(d => {
-      const a = d.ano || 'Sem Ano';
-      const m = d.mes || 'Sem Mês';
-      const v = typeof d.taxa_mensal === 'number' ? d.taxa_mensal : (parseFloat(d.taxa_mensal) || 0);
-      if (!treeOpcoes[a]) treeOpcoes[a] = { total: 0, meses: {} };
-      if (!treeOpcoes[a].meses[m]) treeOpcoes[a].meses[m] = { total: 0, itens: [] };
-      treeOpcoes[a].total += v;
-      treeOpcoes[a].meses[m].total += v;
-      treeOpcoes[a].meses[m].itens.push({ nome: d.nome, valor: v });
-      totalOpcoes += v;
+      totalOpcoes += (parseFloat(d.taxa_mensal) || 0);
     });
 
-    let htmlOpcoes = '';
-    Object.keys(treeOpcoes).sort().forEach(ano => {
-      const isAnoExp = !!anosExpandidos[ano];
-      const sinalAno = isAnoExp ? '[-] ' : '[+] ';
-      htmlOpcoes += '<tr class="tree-node" onclick="toggleExpandirAno(\'' + ano + '\')"><td>' + sinalAno + '📅 ' + ano + '</td><td style="text-align:right;">' + fmt(treeOpcoes[ano].total) + '</td></tr>';
-      
-      if (isAnoExp) {
-        Object.keys(treeOpcoes[ano].meses).forEach(mes => {
-          const chaveMes = ano + '-' + mes;
-          const isMesExp = !!mesesExpandidos[chaveMes];
-          const sinalMes = isMesExp ? '[-] ' : '[+] ';
-          htmlOpcoes += '<tr class="tree-subnode" onclick="toggleExpandirMes(\'' + chaveMes + '\')"><td>' + sinalMes + '↳ ' + mes + '</td><td style="text-align:right;">' + fmt(treeOpcoes[ano].meses[mes].total) + '</td></tr>';
-          
-          if (isMesExp) {
-            treeOpcoes[ano].meses[mes].itens.forEach(it => {
-              htmlOpcoes += '<tr class="tree-leaf"><td>' + it.nome + '</td><td style="text-align:right;">' + fmt(it.valor) + '</td></tr>';
-            });
-          }
-        });
-      }
+    document.getElementById('mapa-opcoes-body').innerHTML = '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalOpcoes) + '</td></tr>';
+  }
+
+  // GERAR RELATÓRIO ADM (Aluguéis com Opção SIM, do mais antigo pro mais novo)
+  function gerarRelatorioAdm() {
+    const alugueisOpcaoSim = dadosDB.filter(d => 
+      String(d.situacao || '').toUpperCase() === 'ALUGUEL' && 
+      String(d.opcao || '').toUpperCase() === 'SIM'
+    ).sort((a, b) => {
+      if (a.ano !== b.ano) return a.ano - b.ano; // mais antigo para mais novo
+      const mA = MESES_ORDEM[a.mes] || 0;
+      const mB = MESES_ORDEM[b.mes] || 0;
+      if (mA !== mB) return mA - mB;
+      return a.id - b.id;
     });
-    document.getElementById('mapa-opcoes-body').innerHTML = htmlOpcoes + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalOpcoes) + '</td></tr>';
+
+    let janela = window.open('', '_blank');
+    let html = '<html><head><title>Relatório ADM - Aluguéis com Opção SIM</title>' +
+      '<style>body{font-family:sans-serif;padding:20px;color:#1e293b;} h2{color:#0f172a;margin-bottom:4px;} p{color:#64748b;font-size:0.85rem;margin-bottom:20px;}' +
+      'table{width:100%;border-collapse:collapse;font-size:0.85rem;} th,td{border:1px solid #cbd5e1;padding:8px 12px;text-align:left;} th{background:#1a1c20;color:#fff;}' +
+      'tr:nth-child(even){background:#f8fafc;} .total{font-weight:bold;background:#e2e8f0;}</style></head><body>' +
+      '<h2>Relatório ADM — Opções de Aluguel (SIM)</h2>' +
+      '<p>M&IC Corretores de Imóveis • Gerado em ' + new Date().toLocaleDateString('pt-BR') + '</p>' +
+      '<table><thead><tr><th>Ano</th><th>Mês</th><th>Nome</th><th>Unidade</th><th style="text-align:right;">Taxa Mensal Aluguel</th></tr></thead><tbody>';
+
+    let somaTotal = 0;
+    alugueisOpcaoSim.forEach(d => {
+      const taxa = parseFloat(d.taxa_mensal) || 0;
+      somaTotal += taxa;
+      html += '<tr>' +
+        '<td>' + d.ano + '</td>' +
+        '<td>' + (d.mes || '') + '</td>' +
+        '<td>' + (d.nome || '') + '</td>' +
+        '<td>' + (d.unidade || '') + '</td>' +
+        '<td style="text-align:right;">' + formatarMoedaStr(taxa) + '</td>' +
+      '</tr>';
+    });
+
+    html += '<tr class="total"><td colspan="4" style="text-align:right;">Total Geral:</td><td style="text-align:right;">' + formatarMoedaStr(somaTotal) + '</td></tr>';
+    html += '</tbody></table></body></html>';
+
+    janela.document.write(html);
+    janela.document.close();
   }
 
   document.addEventListener('DOMContentLoaded', () => {
