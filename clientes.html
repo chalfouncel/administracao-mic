@@ -104,13 +104,16 @@
   .tree-subnode { font-weight: bold; background: #ffffff; cursor: pointer; user-select: none; padding-left: 14px !important; color: #0f172a; }
   .tree-leaf { padding-left: 28px !important; color: #64748b; font-size: 0.7rem; }
 
-  /* ESTILOS DA ABA BI / GRÁFICOS */
+  /* ESTILOS DA ABA BI / GRÁFICOS E KPIS DETALHADOS */
   .graficos-header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; background: #fff; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); }
-  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 14px; }
   .kpi-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); border-left: 4px solid var(--accent); }
-  .kpi-card-title { font-size: 0.68rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
-  .kpi-card-val { font-size: 1.25rem; font-weight: 800; color: var(--primary); }
-  .kpi-card-sub { font-size: 0.7rem; color: #16a34a; font-weight: 600; margin-top: 2px; }
+  .kpi-card-title { font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
+  .kpi-card-val { font-size: 1.15rem; font-weight: 800; color: var(--primary); margin-bottom: 6px; }
+  
+  .kpi-breakdown { border-top: 1px solid #f1f5f9; padding-top: 5px; display: flex; flex-direction: column; gap: 2px; }
+  .kpi-ano-item { display: flex; justify-content: space-between; font-size: 0.68rem; color: #475569; }
+  .kpi-ano-item span:last-child { font-weight: 700; color: #1e293b; }
 
   .graficos-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   .chart-box { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
@@ -379,27 +382,27 @@
   <!-- ABA 3: GRÁFICOS & METAS (BI AVANÇADO) -->
   <div id="page-graficos" class="tab-page">
     
-    <!-- CARDS DE KPIS CONSOLIDADOS (COM FILTRO RECEBIDO = SIM) -->
+    <!-- CARDS DE KPIS COM BREAKDOWN ANO A ANO -->
     <div class="kpi-row">
       <div class="kpi-card" style="border-left-color: #001e60;">
         <div class="kpi-card-title">Faturamento Histórico Total</div>
         <div class="kpi-card-val" id="kpi-fat-total">R$ 0,00</div>
-        <div class="kpi-card-sub">Líquido recebido (SIM)</div>
+        <div class="kpi-breakdown" id="kpi-fat-breakdown"></div>
       </div>
       <div class="kpi-card" style="border-left-color: #c59b27;">
         <div class="kpi-card-title">VGV Total Acumulado</div>
         <div class="kpi-card-val" id="kpi-vgv-total">R$ 0,00</div>
-        <div class="kpi-card-sub">Vendas com recebido (SIM)</div>
+        <div class="kpi-breakdown" id="kpi-vgv-breakdown"></div>
       </div>
       <div class="kpi-card" style="border-left-color: #2563eb;">
         <div class="kpi-card-title">Contratos de Venda</div>
         <div class="kpi-card-val" id="kpi-qtd-vendas">0</div>
-        <div class="kpi-card-sub">Vendas com recebido (SIM)</div>
+        <div class="kpi-breakdown" id="kpi-vendas-breakdown"></div>
       </div>
       <div class="kpi-card" style="border-left-color: #70ad47;">
         <div class="kpi-card-title">Recebimento Administrações Atual</div>
         <div class="kpi-card-val" id="kpi-taxa-adm">R$ 0,00</div>
-        <div class="kpi-card-sub">Recebido (SIM) mais recente</div>
+        <div class="kpi-breakdown" id="kpi-adm-breakdown"></div>
       </div>
     </div>
 
@@ -1035,7 +1038,7 @@
 
     const divMeses = document.getElementById('slicer-meses');
     divMeses.innerHTML = '<button class="slicer-btn ' + (mapaFiltroMes === 'TODOS' ? 'active' : '') + '" onclick="setFiltroMapa(\'mes\', \'TODOS\')">TODOS</button>' +
-      MESES_LISTA.map(m => '<button class="slicer-btn ' + (mapaFiltroMes.toLowerCase() === m.toLowerCase() ? 'active' : '') + '" onclick="setFiltroMapa(\'mes\', \'' + m + '\')">' + m + '</button>').join('');
+      MESES_LISTA.map(m => '<button class="slicer-btn ' + (mapaFiltroMes.toLowerCase() === m.toLowerCase() ? 'active' : '') + '" onclick="setFiltroMapa(\'mes\', \'' + m + \')">' + m + '</button>').join('');
   }
 
   function setFiltroMapa(tipo, valor) {
@@ -1204,7 +1207,7 @@
   }
 
   // ========================================================
-  // ABA 3: BI & GRÁFICOS COM KPIS FILTRADOS (RECEBIDO = SIM)
+  // ABA 3: BI & GRÁFICOS COM KPIS DETALHADOS ANO A ANO
   // ========================================================
   function popularSeletorAnoGraficos() {
     const sel = document.getElementById('sel-ano-graficos');
@@ -1223,28 +1226,65 @@
   function renderizarAbaGraficos() {
     if (!dadosDB || dadosDB.length === 0) return;
 
-    // --- CARDS DE KPIS ATUALIZADOS (EXIGINDO RECEBIDO = SIM) ---
+    // --- CARDS DE KPIS COM BREAKDOWN ANO A ANO (RECEBIDO = SIM) ---
     let totalFatHist = 0;
     let totalVgvHist = 0;
     let totalVendasQtd = 0;
 
+    const fatPorAno = {};
+    const vgvPorAno = {};
+    const qtdVendasPorAno = {};
+    const admPorAno = {};
+
     dadosDB.forEach(d => {
+      const ano = d.ano;
       const sit = String(d.situacao || '').toUpperCase();
       const rec = String(d.recebido || '').toUpperCase() === 'SIM';
-      
-      if (rec) {
-        totalFatHist += (parseFloat(d.valor_liquido) || 0);
+      const valLiq = parseFloat(d.valor_liquido) || 0;
+      const valVgv = parseFloat(d.valor) || 0;
+
+      if (rec && ano) {
+        totalFatHist += valLiq;
+        fatPorAno[ano] = (fatPorAno[ano] || 0) + valLiq;
+
         if (sit === 'VENDA') {
-          totalVgvHist += (parseFloat(d.valor) || 0);
+          totalVgvHist += valVgv;
           totalVendasQtd++;
+          vgvPorAno[ano] = (vgvPorAno[ano] || 0) + valVgv;
+          qtdVendasPorAno[ano] = (qtdVendasPorAno[ano] || 0) + 1;
+        }
+      }
+
+      // Coleta Administrações com recebido SIM por ano
+      if (rec && ano) {
+        const n = String(d.nome || '').trim().toLowerCase();
+        if (n === 'recebimento das administrações' || n === 'recebimento das administracoes' || n.includes('administrações m&ic') || n.includes('administracoes m&ic')) {
+          admPorAno[ano] = (admPorAno[ano] || 0) + valLiq;
         }
       }
     });
 
-    document.getElementById('kpi-fat-total').innerText = 'R$ ' + formatarMoedaInput(totalFatHist);
-    document.getElementById('kpi-vgv-total').innerText = 'R$ ' + formatarMoedaInput(totalVgvHist);
-    document.getElementById('kpi-qtd-vendas').innerText = totalVendasQtd;
+    const anosOrdenados = Object.keys(fatPorAno).sort((a,b) => b - a);
 
+    // Preenche KPI 1: Faturamento
+    document.getElementById('kpi-fat-total').innerText = 'R$ ' + formatarMoedaInput(totalFatHist);
+    document.getElementById('kpi-fat-breakdown').innerHTML = anosOrdenados.map(a => `
+      <div class="kpi-ano-item"><span>${a}:</span><span>R$ ${formatarMoedaInput(fatPorAno[a])}</span></div>
+    `).join('');
+
+    // Preenche KPI 2: VGV
+    document.getElementById('kpi-vgv-total').innerText = 'R$ ' + formatarMoedaInput(totalVgvHist);
+    document.getElementById('kpi-vgv-breakdown').innerHTML = anosOrdenados.map(a => `
+      <div class="kpi-ano-item"><span>${a}:</span><span>R$ ${formatarMoedaInput(vgvPorAno[a] || 0)}</span></div>
+    `).join('');
+
+    // Preenche KPI 3: Contratos de Venda
+    document.getElementById('kpi-qtd-vendas').innerText = totalVendasQtd;
+    document.getElementById('kpi-vendas-breakdown').innerHTML = anosOrdenados.map(a => `
+      <div class="kpi-ano-item"><span>${a}:</span><span>${qtdVendasPorAno[a] || 0} contratos</span></div>
+    `).join('');
+
+    // --- SEÇÃO 1: ACOMPANHAMENTO DE METAS DO ANO ---
     const selAno = parseInt(document.getElementById('sel-ano-graficos').value) || 2026;
     const { metaMes, metaAno } = calcularMetaAno(selAno);
 
@@ -1294,7 +1334,7 @@
           ${recM > 0 ? percMes.toFixed(2).replace('.', ',') + '%' : '-'}
         </td>
         <td style="text-align:center; font-weight:700;">
-          ${m === 'Janeiro' ? ((168642.95 / metaAno) * 100).toFixed(2).replace('.', ',') + '% 🠉' : ''}
+          ${m === 'Janeiro' ? ((totalAnoReceita / metaAno) * 100).toFixed(2).replace('.', ',') + '% 🠉' : ''}
         </td>
       </tr>`;
     });
@@ -1313,7 +1353,7 @@
 
     document.getElementById('tabela-metas-corpo').innerHTML = htmlMetas;
 
-    // 1. Gráfico Metas Mensais
+    // Gráfico de Metas Mensais
     if (chartInstMetas) chartInstMetas.destroy();
     const ctxMetas = document.getElementById('chart-metas-mensais').getContext('2d');
     chartInstMetas = new Chart(ctxMetas, {
@@ -1351,9 +1391,7 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } }
-        },
+        plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } },
         scales: {
           y: { beginAtZero: true, suggestedMax: Math.max(...valoresGrafico, metaMes) * 1.15, ticks: { font: { size: 9 } } },
           x: { ticks: { font: { size: 9 } } }
@@ -1420,7 +1458,7 @@
     });
   }
 
-  // 3. Curva de Administração (Exigindo Recebido = SIM)
+  // 3. Curva de Administração
   function renderizarGraficoCurvaAdm() {
     const timelineChaves = [];
     dadosDB.forEach(d => {
@@ -1444,21 +1482,18 @@
 
       labels.push(`${mesNome.slice(0, 3)}/${String(anoNum).slice(2)}`);
 
-      // Soma da Coluna P (valor_liquido) com recebido = SIM para "Recebimento das administrações"
       const somaGeral = dadosDB.filter(d => {
         const n = String(d.nome || '').trim().toLowerCase();
         const rec = String(d.recebido || '').toUpperCase() === 'SIM';
         return d.ano === anoNum && d.mes === mesNome && rec && (n === 'recebimento das administrações' || n === 'recebimento das administracoes');
       }).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
 
-      // Soma da Coluna P (valor_liquido) com recebido = SIM para "Recebimento das Administrações M&IC"
       const somaMic = dadosDB.filter(d => {
         const n = String(d.nome || '').trim().toLowerCase();
         const rec = String(d.recebido || '').toUpperCase() === 'SIM';
         return d.ano === anoNum && d.mes === mesNome && rec && (n.includes('administrações m&ic') || n.includes('administracoes m&ic'));
       }).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
 
-      // Soma combinada para exibir no KPI do topo (mais recente com recebido SIM)
       const somaTotalPeriodo = somaGeral + somaMic;
 
       serieGeral.push(somaGeral);
@@ -1470,6 +1505,22 @@
     if (ultimoValorValido > 0) {
       document.getElementById('kpi-taxa-adm').innerText = 'R$ ' + formatarMoedaInput(ultimoValorValido);
     }
+
+    // Preenche o breakdown da caixinha de Administrações no KPI
+    const admPorAno = {};
+    dadosDB.forEach(d => {
+      const ano = d.ano;
+      const rec = String(d.recebido || '').toUpperCase() === 'SIM';
+      const val = parseFloat(d.valor_liquido) || 0;
+      const n = String(d.nome || '').trim().toLowerCase();
+      if (rec && ano && (n === 'recebimento das administrações' || n === 'recebimento das administracoes' || n.includes('administrações m&ic') || n.includes('administracoes m&ic'))) {
+        admPorAno[ano] = (admPorAno[ano] || 0) + val;
+      }
+    });
+    const anosAdmOrd = Object.keys(admPorAno).sort((a,b) => b - a);
+    document.getElementById('kpi-adm-breakdown').innerHTML = anosAdmOrd.map(a => `
+      <div class="kpi-ano-item"><span>${a}:</span><span>R$ ${formatarMoedaInput(admPorAno[a])}</span></div>
+    `).join('');
 
     if (chartInstAdmEvolucao) chartInstAdmEvolucao.destroy();
     const ctxAdm = document.getElementById('chart-taxa-adm-evolucao').getContext('2d');
