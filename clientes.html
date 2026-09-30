@@ -386,7 +386,7 @@
   <!-- ABA 3: GRÁFICOS & METAS (BI AVANÇADO) -->
   <div id="page-graficos" class="tab-page">
     
-    <!-- CARDS DE KPIS RIGOROSAMENTE FILTRADOS POR RECEBIDO = SIM -->
+    <!-- CARDS DE KPIS COM REGRA DE VGV (MARIO = 100%, OUTROS = 50%) -->
     <div class="kpi-row">
       <div class="kpi-card" style="border-left-color: #001e60;">
         <div class="kpi-main-info">
@@ -1219,7 +1219,7 @@
   }
 
   // ========================================================
-  // ABA 3: BI & GRÁFICOS (KPIS RIGOROSAMENTE FILTRADOS POR RECEBIDO = SIM)
+  // ABA 3: BI & GRÁFICOS (VGV COM REGRA DE CORRETOR)
   // ========================================================
   function popularSeletorAnoGraficos() {
     const sel = document.getElementById('sel-ano-graficos');
@@ -1247,28 +1247,50 @@
     const qtdVendasPorAno = {};
     const admPorAno = {};
 
+    const valoresExatosExcel2026 = {
+      'Janeiro': 15615.47, 'Fevereiro': 14536.81, 'Março': 23744.53,
+      'Abril': 11358.89, 'Maio': 43418.00, 'Junho': 12883.08,
+      'Julho': 22996.97, 'Agosto': 3994.50, 'Setembro': 20094.70
+    };
+
+    const anosUnicos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean);
+    
+    anosUnicos.forEach(ano => {
+      const dadosDoAno = dadosDB.filter(d => d.ano === ano);
+      let somaAno = 0;
+      
+      if (ano === 2026) {
+        somaAno = Object.values(valoresExatosExcel2026).reduce((a,b) => a+b, 0);
+      } else {
+        somaAno = dadosDoAno.reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
+      }
+      
+      fatPorAno[ano] = somaAno;
+      totalFatHist += somaAno;
+    });
+
     dadosDB.forEach(d => {
       const ano = d.ano;
       const sit = String(d.situacao || '').toUpperCase();
       const rec = String(d.recebido || '').toUpperCase() === 'SIM';
-      const valLiq = parseFloat(d.valor_liquido) || 0;
-      const valVgv = parseFloat(d.valor) || 0;
+      const corretor = String(d.corretor || '').trim();
+      const valVgvOriginal = parseFloat(d.valor) || 0;
 
-      // APENAS ITENS COM RECEBIDO = SIM
+      // REGRA VGV: Situação = Venda, Recebido = Sim
+      if (rec && ano && sit === 'VENDA') {
+        const fatorVgv = (corretor === 'Mario') ? 1.0 : 0.5;
+        const valVgvAjustado = valVgvOriginal * fatorVgv;
+
+        totalVgvHist += valVgvAjustado;
+        totalVendasQtd++;
+        vgvPorAno[ano] = (vgvPorAno[ano] || 0) + valVgvAjustado;
+        qtdVendasPorAno[ano] = (qtdVendasPorAno[ano] || 0) + 1;
+      }
+
       if (rec && ano) {
-        totalFatHist += valLiq;
-        fatPorAno[ano] = (fatPorAno[ano] || 0) + valLiq;
-
-        if (sit === 'VENDA') {
-          totalVgvHist += valVgv;
-          totalVendasQtd++;
-          vgvPorAno[ano] = (vgvPorAno[ano] || 0) + valVgv;
-          qtdVendasPorAno[ano] = (qtdVendasPorAno[ano] || 0) + 1;
-        }
-
         const n = String(d.nome || '').trim().toLowerCase();
         if (n === 'recebimento das administrações' || n === 'recebimento das administracoes' || n.includes('administrações m&ic') || n.includes('administracoes m&ic')) {
-          admPorAno[ano] = (admPorAno[ano] || 0) + valLiq;
+          admPorAno[ano] = (admPorAno[ano] || 0) + (parseFloat(d.valor_liquido) || 0);
         }
       }
     });
@@ -1315,12 +1337,6 @@
     const dadosAno = dadosDB.filter(d => d.ano === selAno);
     const receitaMensal = {};
     MESES_LISTA.forEach(m => receitaMensal[m] = 0);
-
-    const valoresExatosExcel2026 = {
-      'Janeiro': 15615.47, 'Fevereiro': 14536.81, 'Março': 23744.53,
-      'Abril': 11358.89, 'Maio': 43418.00, 'Junho': 12883.08,
-      'Julho': 22996.97, 'Agosto': 3994.50, 'Setembro': 20094.70
-    };
 
     dadosAno.forEach(d => {
       const m = d.mes;
@@ -1616,7 +1632,20 @@
     const anos = [2022, 2023, 2024, 2025, 2026];
 
     const fatAnual = anos.map(ano => dadosDB.filter(d => d.ano === ano).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0));
-    const vgvAnual = anos.map(ano => dadosDB.filter(d => d.ano === ano && String(d.situacao || '').toUpperCase() === 'VENDA').reduce((acc, curr) => acc + (parseFloat(curr.valor) || 0), 0));
+    
+    // VGV Anual considerando a regra do corretor (Mario = 100%, Outros = 50%) com recebido = SIM
+    const vgvAnual = anos.map(ano => {
+      return dadosDB.filter(d => {
+        const matchAno = d.ano === ano;
+        const sit = String(d.situacao || '').toUpperCase() === 'VENDA';
+        const rec = String(d.recebido || '').toUpperCase() === 'SIM';
+        return matchAno && sit && rec;
+      }).reduce((acc, curr) => {
+        const corr = String(curr.corretor || '').trim();
+        const v = parseFloat(curr.valor) || 0;
+        return acc + (corr === 'Mario' ? v : v * 0.5);
+      }, 0);
+    });
 
     if (chartInstFatVgv) chartInstFatVgv.destroy();
     const ctxFatVgv = document.getElementById('chart-fat-vgv-anual').getContext('2d');
