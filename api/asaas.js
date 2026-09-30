@@ -57,7 +57,7 @@ export default async function handler(req, res) {
 
         // 3. Gravar na nova tabela 'disparos_email' do Supabase
         if (reciboBase64 && emailInquilino) {
-             const supabaseUrl = `https://dgadztmmarvbjcouvrnp.supabase.co/rest/v1/disparos_email`;
+             const supabaseUrl = `https://uztsmkhlvoemjbbyebcr.supabase.co/rest/v1/disparos_email`;
              await fetch(supabaseUrl, {
                  method: 'POST',
                  headers: { 
