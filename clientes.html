@@ -766,11 +766,11 @@
   }
 
   // ========================================================
-  // GERAR RELATÓRIO ADM (PDF PAISAGEM SEM QUEBRAS)
+  // GERAR RELATÓRIO ADM (PDF PAISAGEM / 1 PÁGINA / SEM QUEBRAS)
   // ========================================================
   function gerarRelatorioPDF() {
     const { jsPDF } = window.jspdf;
-    // Orientação estritamente Paisagem (Landscape) e fontes otimizadas para caber perfeitamente sem cortes
+    // Orientação estritamente Paisagem (Landscape) para caber todas as colunas com folga em uma única folha
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
     const alugueisOpcao = dadosDB.filter(d => 
@@ -785,20 +785,16 @@
       return mNumA - mNumB;
     });
 
-    // Cabeçalho
+    // Cabeçalho compacto
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.setTextColor(18, 19, 21);
-    doc.text("M&IC CORRETORES DE IMÓVEIS", 14, 15);
-
-    doc.setFontSize(10);
-    doc.setTextColor(197, 155, 39);
-    doc.text("Relatório Administrativo — Aluguéis com Opção SIM", 14, 21);
+    doc.text("M&IC CORRETORES DE IMÓVEIS — Relatório Administrativo (Aluguéis com Opção SIM)", 14, 12);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(100, 116, 139);
-    doc.text("Gerado em: " + new Date().toLocaleDateString('pt-BR') + " às " + new Date().toLocaleTimeString('pt-BR'), 14, 26);
+    doc.text("Gerado em: " + new Date().toLocaleDateString('pt-BR') + " às " + new Date().toLocaleTimeString('pt-BR'), 14, 16.5);
 
     let somaTaxas = 0;
     const corpoTabela = alugueisOpcao.map(item => {
@@ -813,23 +809,23 @@
       ];
     });
 
-    // Tabela dimensionada milimetricamente para Paisagem A4 (sem quebras de linha nas colunas)
+    // Tabela perfeitamente dimensionada para Paisagem A4 com colunas ajustadas e sem quebras indesejadas
     doc.autoTable({
-      startY: 30,
+      startY: 19.5,
       head: [['Ano', 'Mês', 'Nome / Inquilino', 'Unidade', 'ADM']],
       body: corpoTabela,
       theme: 'grid',
-      headStyles: { fillColor: [18, 19, 21], textColor: [212, 175, 55], fontStyle: 'bold', fontSize: 9, cellPadding: 3 },
-      bodyStyles: { fontSize: 8.5, textColor: [30, 41, 59], cellPadding: 2.2 },
+      headStyles: { fillColor: [18, 19, 21], textColor: [212, 175, 55], fontStyle: 'bold', fontSize: 8.5, cellPadding: 2.2 },
+      bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59], cellPadding: 1.8 },
       columnStyles: {
-        0: { cellWidth: 20, halign: 'center' }, // Ano
-        1: { cellWidth: 35 },                     // Mês
-        2: { cellWidth: 100 },                    // Nome / Inquilino
-        3: { cellWidth: 85 },                     // Unidade
-        4: { cellWidth: 41, halign: 'right' }     // ADM
+        0: { cellWidth: 16, halign: 'center' }, // Ano
+        1: { cellWidth: 32 },                     // Mês
+        2: { cellWidth: 102 },                    // Nome / Inquilino
+        3: { cellWidth: 110 },                    // Unidade (espaço amplo para evitar quebra)
+        4: { cellWidth: 37, halign: 'right' }     // ADM
       },
       foot: [['', '', '', 'Total Geral:', 'R$ ' + formatarMoedaInput(somaTaxas)]],
-      footStyles: { fillColor: [217, 225, 242], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 9, halign: 'right', cellPadding: 3 }
+      footStyles: { fillColor: [217, 225, 242], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 8.5, halign: 'right', cellPadding: 2.2 }
     });
 
     doc.save("Relatorio_ADM_Opcoes_SIM.pdf");
