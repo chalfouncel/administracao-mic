@@ -1095,7 +1095,7 @@
       '<tr><td>' + c + '</td><td style="text-align:right;">R$ ' + fmt(vgvCorretor[c]) + '</td></tr>'
     ).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ' + fmt(totalVGV) + '</td></tr>';
 
-    // A RECEBER (CORRIGIDO PARA CONSIDERAR O "VALOR LÍQUIDO/RECEITA" E ABATER O "VALOR RECEBIDO")
+    // A RECEBER (Considerando "NÃO", mostrando mesmo zerados)
     const aReceberGlobal = dadosDB.filter(d => String(d.recebido || '').toUpperCase() === 'NÃO');
 
     const mapaReceberClientes = {};
@@ -1115,11 +1115,8 @@
     let totalAReceber = 0;
     document.getElementById('mapa-receber-body').innerHTML = Object.keys(mapaReceberClientes).map(nome => {
       const saldo = mapaReceberClientes[nome];
-      if (saldo > 0) { // Ocultar quem tá zerado
-        totalAReceber += saldo;
-        return '<tr><td>' + nome + '</td><td style="text-align:right;">' + fmt(saldo) + '</td></tr>';
-      }
-      return '';
+      totalAReceber += saldo;
+      return '<tr><td>' + nome + '</td><td style="text-align:right;">' + fmt(saldo) + '</td></tr>';
     }).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalAReceber) + '</td></tr>';
 
     const situacoesResumoVenda = ['VENDA', 'REGISTRO', 'CRÉDITO'];
@@ -1222,7 +1219,7 @@
   }
 
   // ========================================================
-  // ABA 3: BI & GRÁFICOS (FATURAMENTO COM FILTRAGEM RIGOROSA DE RECEBIDO = SIM)
+  // ABA 3: BI & GRÁFICOS
   // ========================================================
   function popularSeletorAnoGraficos() {
     const sel = document.getElementById('sel-ano-graficos');
@@ -1329,12 +1326,11 @@
     const receitaMensal = {};
     MESES_LISTA.forEach(m => receitaMensal[m] = 0);
 
-    // METAS: SOMA AS RECEITAS APENAS SE RECEBIDO = SIM
+    // METAS: SOMA TUDO O QUE FOI COMERCIALIZADO (INDEPENDENTE DE RECEBIDO)
     dadosAno.forEach(d => {
       const m = d.mes;
-      const isRecebido = String(d.recebido || '').toUpperCase() === 'SIM';
       
-      if (receitaMensal[m] !== undefined && isRecebido) {
+      if (receitaMensal[m] !== undefined) {
         receitaMensal[m] += (parseFloat(d.valor_liquido) || 0);
       }
     });
