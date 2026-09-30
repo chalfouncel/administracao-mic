@@ -104,15 +104,16 @@
   .tree-subnode { font-weight: bold; background: #ffffff; cursor: pointer; user-select: none; padding-left: 14px !important; color: #0f172a; }
   .tree-leaf { padding-left: 28px !important; color: #64748b; font-size: 0.7rem; }
 
-  /* ESTILOS DA ABA BI / GRÁFICOS E KPIS DETALHADOS */
+  /* ESTILOS DA ABA BI / KPIS LADO DIREITO */
   .graficos-header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; background: #fff; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); }
-  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 14px; }
-  .kpi-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); border-left: 4px solid var(--accent); }
-  .kpi-card-title { font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
-  .kpi-card-val { font-size: 1.15rem; font-weight: 800; color: var(--primary); margin-bottom: 6px; }
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .kpi-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); border-left: 4px solid var(--accent); display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+  .kpi-main-info { display: flex; flex-direction: column; }
+  .kpi-card-title { font-size: 0.62rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
+  .kpi-card-val { font-size: 1.15rem; font-weight: 800; color: var(--primary); }
   
-  .kpi-breakdown { border-top: 1px solid #f1f5f9; padding-top: 5px; display: flex; flex-direction: column; gap: 2px; }
-  .kpi-ano-item { display: flex; justify-content: space-between; font-size: 0.68rem; color: #475569; }
+  .kpi-breakdown-right { border-left: 1px dashed #cbd5e1; padding-left: 10px; display: flex; flex-direction: column; gap: 1px; min-width: 95px; }
+  .kpi-ano-item { display: flex; justify-content: space-between; font-size: 0.65rem; color: #475569; gap: 6px; }
   .kpi-ano-item span:last-child { font-weight: 700; color: #1e293b; }
 
   .graficos-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
@@ -382,27 +383,35 @@
   <!-- ABA 3: GRÁFICOS & METAS (BI AVANÇADO) -->
   <div id="page-graficos" class="tab-page">
     
-    <!-- CARDS DE KPIS COM BREAKDOWN ANO A ANO -->
+    <!-- CARDS DE KPIS COM BREAKDOWN À DIREITA -->
     <div class="kpi-row">
       <div class="kpi-card" style="border-left-color: #001e60;">
-        <div class="kpi-card-title">Faturamento Histórico Total</div>
-        <div class="kpi-card-val" id="kpi-fat-total">R$ 0,00</div>
-        <div class="kpi-breakdown" id="kpi-fat-breakdown"></div>
+        <div class="kpi-main-info">
+          <div class="kpi-card-title">Faturamento Histórico Total</div>
+          <div class="kpi-card-val" id="kpi-fat-total">R$ 0,00</div>
+        </div>
+        <div class="kpi-breakdown-right" id="kpi-fat-breakdown"></div>
       </div>
       <div class="kpi-card" style="border-left-color: #c59b27;">
-        <div class="kpi-card-title">VGV Total Acumulado</div>
-        <div class="kpi-card-val" id="kpi-vgv-total">R$ 0,00</div>
-        <div class="kpi-breakdown" id="kpi-vgv-breakdown"></div>
+        <div class="kpi-main-info">
+          <div class="kpi-card-title">VGV Total Acumulado</div>
+          <div class="kpi-card-val" id="kpi-vgv-total">R$ 0,00</div>
+        </div>
+        <div class="kpi-breakdown-right" id="kpi-vgv-breakdown"></div>
       </div>
       <div class="kpi-card" style="border-left-color: #2563eb;">
-        <div class="kpi-card-title">Contratos de Venda</div>
-        <div class="kpi-card-val" id="kpi-qtd-vendas">0</div>
-        <div class="kpi-breakdown" id="kpi-vendas-breakdown"></div>
+        <div class="kpi-main-info">
+          <div class="kpi-card-title">Contratos de Venda</div>
+          <div class="kpi-card-val" id="kpi-qtd-vendas">0</div>
+        </div>
+        <div class="kpi-breakdown-right" id="kpi-vendas-breakdown"></div>
       </div>
       <div class="kpi-card" style="border-left-color: #70ad47;">
-        <div class="kpi-card-title">Recebimento Administrações Atual</div>
-        <div class="kpi-card-val" id="kpi-taxa-adm">R$ 0,00</div>
-        <div class="kpi-breakdown" id="kpi-adm-breakdown"></div>
+        <div class="kpi-main-info">
+          <div class="kpi-card-title">Recebimento ADM Atual</div>
+          <div class="kpi-card-val" id="kpi-taxa-adm">R$ 0,00</div>
+        </div>
+        <div class="kpi-breakdown-right" id="kpi-adm-breakdown"></div>
       </div>
     </div>
 
@@ -1207,7 +1216,7 @@
   }
 
   // ========================================================
-  // ABA 3: BI & GRÁFICOS COM KPIS DETALHADOS ANO A ANO
+  // ABA 3: BI & GRÁFICOS COM KPIS LADO DIREITO
   // ========================================================
   function popularSeletorAnoGraficos() {
     const sel = document.getElementById('sel-ano-graficos');
@@ -1276,7 +1285,7 @@
 
     document.getElementById('kpi-qtd-vendas').innerText = totalVendasQtd;
     document.getElementById('kpi-vendas-breakdown').innerHTML = anosOrdenados.map(a => `
-      <div class="kpi-ano-item"><span>${a}:</span><span>${qtdVendasPorAno[a] || 0} contratos</span></div>
+      <div class="kpi-ano-item"><span>${a}:</span><span>${qtdVendasPorAno[a] || 0} unid.</span></div>
     `).join('');
 
     const selAno = parseInt(document.getElementById('sel-ano-graficos').value) || 2026;
