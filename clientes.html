@@ -1177,7 +1177,7 @@
   }
 
   // ========================================================
-  // ABA 3: GRÁFICOS & METAS DINÂMICAS
+  // ABA 3: GRÁFICOS & METAS DINÂMICAS (ALINHADO COM EXCEL)
   // ========================================================
   function popularSeletorAnoGraficos() {
     const sel = document.getElementById('sel-ano-graficos');
@@ -1202,9 +1202,9 @@
     dadosAno.forEach(d => {
       const m = d.mes;
       if (receitaMensal[m] !== undefined) {
-        // Receita considera o total de comissão registada no mês (igual ao Excel)
-        const com = parseFloat(d.comissao) || 0;
-        receitaMensal[m] += com;
+        // Coluna P do Excel: valor_liquido (Líquido R$)
+        const valLiq = parseFloat(d.valor_liquido) || 0;
+        receitaMensal[m] += valLiq;
       }
     });
 
@@ -1288,7 +1288,7 @@
     const fatRecebidoPorAno = anos.map(ano => {
       return dadosDB
         .filter(d => d.ano === ano)
-        .reduce((acc, curr) => acc + (parseFloat(curr.comissao) || 0), 0);
+        .reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
     });
 
     if (chartInstFatRec) chartInstFatRec.destroy();
@@ -1316,7 +1316,7 @@
     const fatVendaAno = anos.map(ano => {
       return dadosDB
         .filter(d => d.ano === ano && String(d.situacao || '').toUpperCase() === 'VENDA')
-        .reduce((acc, curr) => acc + (parseFloat(curr.comissao) || 0), 0);
+        .reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
     });
     const fatAluguelAno = anos.map(ano => {
       return dadosDB
