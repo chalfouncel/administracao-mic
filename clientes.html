@@ -1095,28 +1095,31 @@
       '<tr><td>' + c + '</td><td style="text-align:right;">R$ ' + fmt(vgvCorretor[c]) + '</td></tr>'
     ).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ' + fmt(totalVGV) + '</td></tr>';
 
-    const situacoesAReceber = ['VENDA', 'ALUGUEL', 'REGISTRO', 'CRÉDITO', 'ASS. DIGITAL', 'CONTRATO', 'LEILÃO'];
-    const aReceberGlobal = dadosDB.filter(d => 
-      String(d.recebido || '').toUpperCase() === 'NÃO' &&
-      situacoesAReceber.includes(String(d.situacao || '').toUpperCase())
-    );
+    // A RECEBER (CORRIGIDO PARA CONSIDERAR O "VALOR LÍQUIDO/RECEITA" E ABATER O "VALOR RECEBIDO")
+    const aReceberGlobal = dadosDB.filter(d => String(d.recebido || '').toUpperCase() === 'NÃO');
 
     const mapaReceberClientes = {};
     aReceberGlobal.forEach(d => {
       const sit = String(d.situacao || '').toUpperCase();
       const label = (sit === 'CRÉDITO') ? d.nome + ' (CRÉDITO)' : d.nome;
-      const comissao = parseFloat(d.comissao) || 0;
+      
+      const receitaLiq = parseFloat(d.valor_liquido) || 0;
       const recebidoVal = parseFloat(d.valor_recebido) || 0;
-      let saldo = (sit === 'CRÉDITO' && comissao === 0) ? 0 : (comissao - recebidoVal);
+      
+      let saldo = (sit === 'CRÉDITO' && receitaLiq === 0) ? 0 : (receitaLiq - recebidoVal);
       if (saldo < 0) saldo = 0;
+      
       mapaReceberClientes[label] = (mapaReceberClientes[label] || 0) + saldo;
     });
 
     let totalAReceber = 0;
     document.getElementById('mapa-receber-body').innerHTML = Object.keys(mapaReceberClientes).map(nome => {
       const saldo = mapaReceberClientes[nome];
-      totalAReceber += saldo;
-      return '<tr><td>' + nome + '</td><td style="text-align:right;">' + fmt(saldo) + '</td></tr>';
+      if (saldo > 0) { // Ocultar quem tá zerado
+        totalAReceber += saldo;
+        return '<tr><td>' + nome + '</td><td style="text-align:right;">' + fmt(saldo) + '</td></tr>';
+      }
+      return '';
     }).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalAReceber) + '</td></tr>';
 
     const situacoesResumoVenda = ['VENDA', 'REGISTRO', 'CRÉDITO'];
@@ -1244,24 +1247,12 @@
     const qtdVendasPorAno = {};
     const admPorAno = {};
 
-    const valoresExatosExcel2026 = {
-      'Janeiro': 15615.47, 'Fevereiro': 14536.81, 'Março': 23744.53,
-      'Abril': 11358.89, 'Maio': 43418.00, 'Junho': 12883.08,
-      'Julho': 22996.97, 'Agosto': 3994.50, 'Setembro': 20094.70
-    };
-
-    // FATURAMENTO HISTÓRICO: Exigindo RECEBIDO = SIM (alinhado com o Total Geral da Tabela de Metas)
+    // FATURAMENTO HISTÓRICO: Exigindo RECEBIDO = SIM
     const anosUnicos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean);
     
     anosUnicos.forEach(ano => {
       const dadosDoAno = dadosDB.filter(d => d.ano === ano && String(d.recebido || '').toUpperCase() === 'SIM');
-      let somaAno = 0;
-      
-      if (ano === 2026) {
-        somaAno = Object.values(valoresExatosExcel2026).reduce((a,b) => a+b, 0);
-      } else {
-        somaAno = dadosDoAno.reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
-      }
+      let somaAno = dadosDoAno.reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
       
       fatPorAno[ano] = somaAno;
       totalFatHist += somaAno;
@@ -1338,18 +1329,15 @@
     const receitaMensal = {};
     MESES_LISTA.forEach(m => receitaMensal[m] = 0);
 
+    // METAS: SOMA AS RECEITAS APENAS SE RECEBIDO = SIM
     dadosAno.forEach(d => {
       const m = d.mes;
-      if (receitaMensal[m] !== undefined) {
+      const isRecebido = String(d.recebido || '').toUpperCase() === 'SIM';
+      
+      if (receitaMensal[m] !== undefined && isRecebido) {
         receitaMensal[m] += (parseFloat(d.valor_liquido) || 0);
       }
     });
-
-    if (selAno === 2026) {
-      Object.keys(valoresExatosExcel2026).forEach(m => {
-        receitaMensal[m] = valoresExatosExcel2026[m];
-      });
-    }
 
     let totalAnoReceita = 0;
     let htmlMetas = '';
@@ -1631,7 +1619,7 @@
   function renderizarGraficosFaturamentoVgv() {
     const anos = [2022, 2023, 2024, 2025, 2026];
 
-    const fatAnual = anos.map(ano => dadosDB.filter(d => d.ano === ano).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0));
+    const fatAnual = anos.map(ano => dadosDB.filter(d => d.ano === ano && String(d.recebido || '').toUpperCase() === 'SIM').reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0));
     
     const vgvAnual = anos.map(ano => {
       return dadosDB.filter(d => {
