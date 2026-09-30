@@ -173,7 +173,7 @@
       <button class="tab-nav-btn active" onclick="trocarAbaPrincipal('producao', this)">📋 Lançamentos e Produção</button>
       <button class="tab-nav-btn" onclick="trocarAbaPrincipal('mapa', this)">🗺️ MAPA Financeiro</button>
       <button class="tab-nav-btn" onclick="trocarAbaPrincipal('graficos', this)">📊 Gráficos & Metas (BI)</button>
-      <button class="tab-nav-btn" onclick="trocarAbaPrincipal('registros', this)">📝 Registros</button> <!-- NOVO BOTÃO AQUI -->
+      <button class="tab-nav-btn" onclick="trocarAbaPrincipal('registros', this)">📝 Registros</button>
     </div>
     <div id="btn-relatorio-container" style="display: none;">
       <button class="btn btn-gold" onclick="gerarRelatorioPDF()">📄 Gerar Relatório ADM (PDF)</button>
@@ -416,7 +416,6 @@
               <tr>
                 <th style="width: 15%;">Campo</th>
                 <th style="width: 35%;">Dados</th>
-                <!-- Títulos renomeados conforme solicitado -->
                 <th style="width: 25%; text-align: center;">Certidão Civil</th>
                 <th style="width: 25%; text-align: center;">Certidão Fazendária</th>
               </tr>
@@ -662,7 +661,6 @@
       filtrarTabela();
       montarSlicers();
       
-      // Atualiza abas abertas
       if (document.getElementById('page-mapa').classList.contains('active')) renderizarMapa();
       if (document.getElementById('page-graficos').classList.contains('active')) renderizarAbaGraficos();
       if (document.getElementById('page-registros').classList.contains('active')) renderizarGridRegistros();
@@ -899,9 +897,6 @@
     reader.readAsArrayBuffer(file);
   }
 
-  // ========================================================
-  // GERAR RELATÓRIO ADM (PDF VERTICAL / RETRATO)
-  // ========================================================
   function gerarRelatorioPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -995,9 +990,6 @@
     doc.save("Relatorio_ADM_Opcoes_SIM.pdf");
   }
 
-  // ========================================================
-  // MAPA FINANCEIRO RIGOROSO
-  // ========================================================
   function montarSlicers() {
     const anos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean).sort((a,b) => b - a);
     const divAnos = document.getElementById('slicer-anos');
@@ -1183,9 +1175,6 @@
     document.getElementById('mapa-opcoes-body').innerHTML = htmlOpcoes + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalOpcoes) + '</td></tr>';
   }
 
-  // ========================================================
-  // ABA 3: BI & GRÁFICOS
-  // ========================================================
   function popularSeletorAnoGraficos() {
     const sel = document.getElementById('sel-ano-graficos');
     const anos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean).sort((a,b) => b - a);
@@ -1230,7 +1219,6 @@
       const isMario = corretor === 'mario' || corretor === 'mário';
       const valVgvOriginal = parseFloat(d.valor) || 0;
 
-      // 1. REGRA DO VGV (Recebido = SIM. Mário = 100%, Outros = 50%)
       if (rec && ano && sit === 'VENDA') {
         const fatorVgv = isMario ? 1.0 : 0.5;
         const valVgvAjustado = valVgvOriginal * fatorVgv;
@@ -1238,13 +1226,11 @@
         vgvPorAno[ano] = (vgvPorAno[ano] || 0) + valVgvAjustado;
       }
 
-      // 2. REGRA DOS CONTRATOS (Venda + Mario. Ignora a coluna Recebido)
       if (ano && sit === 'VENDA' && isMario) {
         totalVendasQtd++;
         qtdVendasPorAno[ano] = (qtdVendasPorAno[ano] || 0) + 1;
       }
 
-      // 3. REGRA DAS ADMS
       if (rec && ano) {
         const n = String(d.nome || '').trim().toLowerCase();
         if (n === 'recebimento das administrações' || n === 'recebimento das administracoes' || n.includes('administrações m&ic') || n.includes('administracoes m&ic')) {
@@ -1770,46 +1756,44 @@
       return '';
     };
 
-    // --- VENDEDORES (Com Rowspan para Certidões) ---
+    // --- VENDEDORES (Linha dedicada para certidões, campos estendidos no colspan) ---
     for(let i = 0; i < qtdVendAtual; i++) {
       html += `
         <tr><td colspan="4" class="titulo-secao-reg">VENDEDOR ${i+1}</td></tr>
-        <tr>
-          <td><strong>Nome</strong></td>
-          <td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="nome" value="${getVal('vend', i, 'nome')}"></td>
-          <td rowspan="5" style="vertical-align: middle; text-align: center; background-color: #fff9c4; padding: 10px;">
-            <input type="text" class="input-planilha-reg bg-certidao-reg reg-data" style="text-align: center; font-weight: bold; width: 100%;" data-grupo="vend" data-idx="${i}" data-campo="civil" placeholder="Certidão Civil" value="${getVal('vend', i, 'civil')}">
-          </td>
-          <td rowspan="5" style="vertical-align: middle; text-align: center; background-color: #fff9c4; padding: 10px;">
-            <input type="text" class="input-planilha-reg bg-certidao-reg reg-data" style="text-align: center; font-weight: bold; width: 100%;" data-grupo="vend" data-idx="${i}" data-campo="fazenda" placeholder="Certidão Fazendária" value="${getVal('vend', i, 'fazenda')}">
-          </td>
+        
+        <tr style="background:#f8fafc;">
+          <td colspan="2" style="text-align: right; font-size: 0.75rem; color: #64748b;"><em>Status das Certidões ➔</em></td>
+          <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-data" style="text-align: center;" data-grupo="vend" data-idx="${i}" data-campo="civil" placeholder="Certidão Civil" value="${getVal('vend', i, 'civil')}"></td>
+          <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-data" style="text-align: center;" data-grupo="vend" data-idx="${i}" data-campo="fazenda" placeholder="Certidão Fazendária" value="${getVal('vend', i, 'fazenda')}"></td>
         </tr>
-        <tr><td><strong>CPF</strong></td><td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="cpf" value="${getVal('vend', i, 'cpf')}"></td></tr>
-        <tr><td><strong>Nasc.</strong></td><td><input type="date" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="nasc" value="${getVal('vend', i, 'nasc')}"></td></tr>
-        <tr><td><strong>Pai</strong></td><td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="pai" value="${getVal('vend', i, 'pai')}"></td></tr>
-        <tr><td><strong>Mãe</strong></td><td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="mae" value="${getVal('vend', i, 'mae')}"></td></tr>
+
+        <tr><td><strong>Nome</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="nome" value="${getVal('vend', i, 'nome')}"></td></tr>
+        <tr><td><strong>CPF</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="cpf" value="${getVal('vend', i, 'cpf')}"></td></tr>
+        <tr><td><strong>Nasc.</strong></td><td colspan="3"><input type="date" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="nasc" value="${getVal('vend', i, 'nasc')}"></td></tr>
+        <tr><td><strong>Pai</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="pai" value="${getVal('vend', i, 'pai')}"></td></tr>
+        <tr><td><strong>Mãe</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="mae" value="${getVal('vend', i, 'mae')}"></td></tr>
       `;
     }
 
-    // --- IMÓVEL (Com Rowspan vazio no Civil, e Rowspan preenchido na Fazenda) ---
+    // --- IMÓVEL (Linha dedicada para certidão, campos estendidos no colspan) ---
     const imovelGet = campo => dadosPreenchidos && dadosPreenchidos.imovel ? (dadosPreenchidos.imovel[campo] || '') : '';
     html += `
         <tr><td colspan="4" class="titulo-secao-reg">DADOS DO IMÓVEL</td></tr>
-        <tr>
-          <td><strong>Endereço</strong></td>
-          <td><input type="text" class="input-planilha-reg reg-imovel" data-campo="end" value="${imovelGet('end')}"></td>
-          <td rowspan="8" style="background:#f1f5f9"></td>
-          <td rowspan="8" style="vertical-align: middle; text-align: center; background-color: #fff9c4; padding: 10px;">
-            <input type="text" class="input-planilha-reg bg-certidao-reg reg-imovel" style="text-align: center; font-weight: bold; width: 100%;" data-campo="fazenda" placeholder="Certidão Fazendária" value="${imovelGet('fazenda')}">
-          </td>
+
+        <tr style="background:#f8fafc;">
+          <td colspan="2" style="text-align: right; font-size: 0.75rem; color: #64748b;"><em>Status da Certidão ➔</em></td>
+          <td style="background:#f1f5f9"></td>
+          <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-imovel" style="text-align: center;" data-campo="fazenda" placeholder="Certidão Fazendária" value="${imovelGet('fazenda')}"></td>
         </tr>
-        <tr><td><strong>Número</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="num" value="${imovelGet('num')}"></td></tr>
-        <tr><td><strong>Compl 1</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="c1" value="${imovelGet('c1')}"></td></tr>
-        <tr><td><strong>Compl 2</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="c2" value="${imovelGet('c2')}"></td></tr>
-        <tr><td><strong>CEP</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="cep" value="${imovelGet('cep')}"></td></tr>
-        <tr><td><strong>Matrícula</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="matricula" value="${imovelGet('matricula')}"></td></tr>
-        <tr><td><strong>Cartório</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="cartorio" value="${imovelGet('cartorio')}"></td></tr>
-        <tr><td><strong>IPTU</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="iptu" value="${imovelGet('iptu')}"></td></tr>
+
+        <tr><td><strong>Endereço</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-imovel" data-campo="end" value="${imovelGet('end')}"></td></tr>
+        <tr><td><strong>Número</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-imovel" data-campo="num" value="${imovelGet('num')}"></td></tr>
+        <tr><td><strong>Compl 1</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-imovel" data-campo="c1" value="${imovelGet('c1')}"></td></tr>
+        <tr><td><strong>Compl 2</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-imovel" data-campo="c2" value="${imovelGet('c2')}"></td></tr>
+        <tr><td><strong>CEP</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-imovel" data-campo="cep" value="${imovelGet('cep')}"></td></tr>
+        <tr><td><strong>Matrícula</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-imovel" data-campo="matricula" value="${imovelGet('matricula')}"></td></tr>
+        <tr><td><strong>Cartório</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-imovel" data-campo="cartorio" value="${imovelGet('cartorio')}"></td></tr>
+        <tr><td><strong>IPTU</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-imovel" data-campo="iptu" value="${imovelGet('iptu')}"></td></tr>
     `;
 
     // --- COMPRADORES ---
