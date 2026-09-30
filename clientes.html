@@ -43,6 +43,7 @@
   .btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; border: none; transition: 0.15s; font-size: 0.8rem; }
   .btn-gold { background: linear-gradient(135deg, #c59b27, #dfba48); color: #121315; }
   .btn-dark { background: var(--secondary); color: #fff; }
+  .btn-light { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
   .btn-danger { background: var(--danger); color: #fff; padding: 3px 6px; font-size: 0.7rem; border-radius: 4px; }
 
   .table-container { width: 100%; max-height: 72vh; overflow-y: auto; overflow-x: hidden; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
@@ -133,6 +134,21 @@
 
   .filter-pill-btn { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 4px 12px; font-size: 0.72rem; font-weight: 700; color: #475569; cursor: pointer; transition: 0.15s; }
   .filter-pill-btn.active { background: var(--secondary); color: var(--gold); border-color: var(--secondary); }
+
+  /* ESTILOS EXCLUSIVOS DA NOVA ABA REGISTROS */
+  .grid-registros { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+  .card-registro-box { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s; min-height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+  .card-registro-box:hover { border-color: var(--accent); box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: translateY(-2px); }
+  .card-registro-nome { font-weight: 800; color: var(--primary); font-size: 0.9rem; margin-bottom: 5px; }
+  .card-registro-id { font-size: 0.7rem; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 10px; }
+  
+  .tabela-registro-form { width: 100%; border-collapse: collapse; background: #fff; }
+  .tabela-registro-form th, .tabela-registro-form td { border: 1px solid #cbd5e1; padding: 6px; vertical-align: middle; }
+  .tabela-registro-form th { background: #f8fafc; font-size: 0.8rem; }
+  .input-planilha-reg { width: 100%; border: 1px solid transparent; padding: 4px; font-size: 0.8rem; outline: none; }
+  .input-planilha-reg:focus { border-bottom: 2px solid var(--accent); }
+  .bg-certidao-reg { background-color: #fff9c4 !important; font-weight: bold; }
+  .titulo-secao-reg { background-color: #e2e8f0; font-weight: 900; text-transform: uppercase; font-size: 0.85rem; text-align: center; letter-spacing: 1px; }
 </style>
 </head>
 <body>
@@ -157,6 +173,7 @@
       <button class="tab-nav-btn active" onclick="trocarAbaPrincipal('producao', this)">📋 Lançamentos e Produção</button>
       <button class="tab-nav-btn" onclick="trocarAbaPrincipal('mapa', this)">🗺️ MAPA Financeiro</button>
       <button class="tab-nav-btn" onclick="trocarAbaPrincipal('graficos', this)">📊 Gráficos & Metas (BI)</button>
+      <button class="tab-nav-btn" onclick="trocarAbaPrincipal('registros', this)">📝 Registros</button> <!-- NOVO BOTÃO AQUI -->
     </div>
     <div id="btn-relatorio-container" style="display: none;">
       <button class="btn btn-gold" onclick="gerarRelatorioPDF()">📄 Gerar Relatório ADM (PDF)</button>
@@ -333,158 +350,83 @@
       </aside>
 
       <div class="mapa-grid-blocos">
-        
-        <!-- BLOCO 1 -->
-        <div class="pivot-box">
-          <div class="pivot-header-yellow">Corretor VGV</div>
-          <table class="pivot-table">
-            <thead><tr><th>Corretor</th><th style="text-align:right;">VGV</th></tr></thead>
-            <tbody id="mapa-vgv-body"></tbody>
-          </table>
-        </div>
-
-        <!-- BLOCO 2 -->
-        <div class="pivot-box">
-          <div class="pivot-header-yellow">A Receber</div>
-          <table class="pivot-table">
-            <thead><tr><th>Nome</th><th style="text-align:right;">Soma de Saldo</th></tr></thead>
-            <tbody id="mapa-receber-body"></tbody>
-          </table>
-        </div>
-
-        <!-- BLOCO 3 -->
-        <div class="pivot-box">
-          <div class="pivot-header-green">Resumo Venda</div>
-          <table class="pivot-table">
-            <thead><tr><th>Status / Corretor</th><th style="text-align:right;">Soma de R$</th></tr></thead>
-            <tbody id="mapa-venda-body"></tbody>
-          </table>
-        </div>
-
-        <!-- BLOCO 4 -->
-        <div class="pivot-box">
-          <div class="pivot-header-green">Resumo Aluguel</div>
-          <table class="pivot-table">
-            <thead><tr><th>Status / Corretor</th><th style="text-align:right;">Soma de R$</th></tr></thead>
-            <tbody id="mapa-aluguel-body"></tbody>
-          </table>
-        </div>
-
-        <!-- BLOCO 5: MENSAL OPÇÕES -->
-        <div class="pivot-box">
-          <div class="pivot-header-yellow">Mensal Opções</div>
-          <table class="pivot-table">
-            <thead><tr><th>Ano / Mês / Inquilino</th><th style="text-align:right;">Soma</th></tr></thead>
-            <tbody id="mapa-opcoes-body"></tbody>
-          </table>
-        </div>
-
+        <div class="pivot-box"><div class="pivot-header-yellow">Corretor VGV</div><table class="pivot-table"><thead><tr><th>Corretor</th><th style="text-align:right;">VGV</th></tr></thead><tbody id="mapa-vgv-body"></tbody></table></div>
+        <div class="pivot-box"><div class="pivot-header-yellow">A Receber</div><table class="pivot-table"><thead><tr><th>Nome</th><th style="text-align:right;">Soma de Saldo</th></tr></thead><tbody id="mapa-receber-body"></tbody></table></div>
+        <div class="pivot-box"><div class="pivot-header-green">Resumo Venda</div><table class="pivot-table"><thead><tr><th>Status / Corretor</th><th style="text-align:right;">Soma de R$</th></tr></thead><tbody id="mapa-venda-body"></tbody></table></div>
+        <div class="pivot-box"><div class="pivot-header-green">Resumo Aluguel</div><table class="pivot-table"><thead><tr><th>Status / Corretor</th><th style="text-align:right;">Soma de R$</th></tr></thead><tbody id="mapa-aluguel-body"></tbody></table></div>
+        <div class="pivot-box"><div class="pivot-header-yellow">Mensal Opções</div><table class="pivot-table"><thead><tr><th>Ano / Mês / Inquilino</th><th style="text-align:right;">Soma</th></tr></thead><tbody id="mapa-opcoes-body"></tbody></table></div>
       </div>
     </div>
   </div>
 
   <!-- ABA 3: GRÁFICOS & METAS (BI AVANÇADO) -->
   <div id="page-graficos" class="tab-page">
-    
-    <!-- CARDS DE KPIS COM FATURAMENTO ALINHADO EXATAMENTE À TABELA DE METAS (RECEBIDO = SIM) -->
     <div class="kpi-row">
-      <div class="kpi-card" style="border-left-color: #001e60;">
-        <div class="kpi-main-info">
-          <div class="kpi-card-title">Faturamento Histórico Total</div>
-          <div class="kpi-card-val" id="kpi-fat-total">R$ 0,00</div>
+      <div class="kpi-card" style="border-left-color: #001e60;"><div class="kpi-main-info"><div class="kpi-card-title">Faturamento Histórico Total</div><div class="kpi-card-val" id="kpi-fat-total">R$ 0,00</div></div><div class="kpi-breakdown-right" id="kpi-fat-breakdown"></div></div>
+      <div class="kpi-card" style="border-left-color: #c59b27;"><div class="kpi-main-info"><div class="kpi-card-title">VGV Total Acumulado</div><div class="kpi-card-val" id="kpi-vgv-total">R$ 0,00</div></div><div class="kpi-breakdown-right" id="kpi-vgv-breakdown"></div></div>
+      <div class="kpi-card" style="border-left-color: #2563eb;"><div class="kpi-main-info"><div class="kpi-card-title">Contratos de Venda</div><div class="kpi-card-val" id="kpi-qtd-vendas">0</div></div><div class="kpi-breakdown-right" id="kpi-vendas-breakdown"></div></div>
+      <div class="kpi-card" style="border-left-color: #70ad47;"><div class="kpi-main-info"><div class="kpi-card-title">Recebimento ADM Atual</div><div class="kpi-card-val" id="kpi-taxa-adm">R$ 0,00</div></div><div class="kpi-breakdown-right" id="kpi-adm-breakdown"></div></div>
+    </div>
+    <div class="card" style="margin-bottom: 14px;"><div class="card-title"><span id="titulo-painel-meta">Acompanhamento de Metas</span><div style="display: flex; align-items: center; gap: 8px;"><label style="font-size: 0.72rem; font-weight: 800;">Ano de Referência:</label><select id="sel-ano-graficos" onchange="renderizarAbaGraficos()" style="width: 95px; padding: 3px 6px;"></select></div></div><div style="display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start;"><div style="overflow-x: auto;"><table class="tabela-metas-justa"><thead><tr><th>Mês</th><th style="text-align:right;">Receita</th><th style="text-align:center;">META MÊS</th><th style="text-align:center;">META ANO</th></tr></thead><tbody id="tabela-metas-corpo"></tbody></table></div><div class="chart-container"><canvas id="chart-metas-mensais"></canvas></div></div></div>
+    <div class="card" style="margin-bottom: 14px;"><div class="card-title"><span>Evolução Mensal Comparativa (Multianual com Valores)</span><div style="display:flex; gap:6px;"><button class="filter-pill-btn active" onclick="trocarFiltroRecebiveis('TODOS', this)">Geral (Todos)</button><button class="filter-pill-btn" onclick="trocarFiltroRecebiveis('VENDA', this)">Vendas</button><button class="filter-pill-btn" onclick="trocarFiltroRecebiveis('ALUGUEL', this)">Aluguel</button></div></div><div class="chart-container" style="height: 330px;"><canvas id="chart-recebiveis-multianual"></canvas></div></div>
+    <div class="card" style="margin-bottom: 14px;"><div class="card-title"><span>Curva de Crescimento — Recebimentos em Administração (com Valores)</span><span style="font-size:0.75rem; color:#64748b;">Evolução cronológica mês a mês (Coluna P)</span></div><div class="chart-container" style="height: 300px;"><canvas id="chart-taxa-adm-evolucao"></canvas></div></div>
+    <div class="graficos-grid-2col"><div class="chart-box"><div class="chart-title"><span>Faturamento vs VGV Anual (R$)</span></div><div class="chart-container"><canvas id="chart-fat-vgv-anual"></canvas></div></div><div class="chart-box"><div class="chart-title"><span>Volume Anual de Negócios (Qtd Vendas vs Qtd Aluguéis)</span></div><div class="chart-container"><canvas id="chart-qtd-ops-anual"></canvas></div></div></div>
+  </div>
+
+  <!-- ABA 4: REGISTROS (NOVA) -->
+  <div id="page-registros" class="tab-page">
+    
+    <!-- TELA 1: GRID DE QUADRADINHOS -->
+    <div id="view-registros-grid">
+      <div class="card">
+        <div class="card-title">
+          <span>Módulo de Registros (Apenas Novas Entradas)</span>
         </div>
-        <div class="kpi-breakdown-right" id="kpi-fat-breakdown"></div>
-      </div>
-      <div class="kpi-card" style="border-left-color: #c59b27;">
-        <div class="kpi-main-info">
-          <div class="kpi-card-title">VGV Total Acumulado</div>
-          <div class="kpi-card-val" id="kpi-vgv-total">R$ 0,00</div>
+        <div id="container-grid-registros" class="grid-registros">
+          <!-- Os cards serão injetados aqui via JS -->
         </div>
-        <div class="kpi-breakdown-right" id="kpi-vgv-breakdown"></div>
-      </div>
-      <div class="kpi-card" style="border-left-color: #2563eb;">
-        <div class="kpi-main-info">
-          <div class="kpi-card-title">Contratos de Venda</div>
-          <div class="kpi-card-val" id="kpi-qtd-vendas">0</div>
-        </div>
-        <div class="kpi-breakdown-right" id="kpi-vendas-breakdown"></div>
-      </div>
-      <div class="kpi-card" style="border-left-color: #70ad47;">
-        <div class="kpi-main-info">
-          <div class="kpi-card-title">Recebimento ADM Atual</div>
-          <div class="kpi-card-val" id="kpi-taxa-adm">R$ 0,00</div>
-        </div>
-        <div class="kpi-breakdown-right" id="kpi-adm-breakdown"></div>
       </div>
     </div>
 
-    <!-- SEÇÃO 1: ACOMPANHAMENTO DE METAS DO ANO -->
-    <div class="card" style="margin-bottom: 14px;">
-      <div class="card-title">
-        <span id="titulo-painel-meta">Acompanhamento de Metas</span>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <label style="font-size: 0.72rem; font-weight: 800;">Ano de Referência:</label>
-          <select id="sel-ano-graficos" onchange="renderizarAbaGraficos()" style="width: 95px; padding: 3px 6px;"></select>
+    <!-- TELA 2: DETALHE DO REGISTRO (FORMULÁRIO) -->
+    <div id="view-registros-detalhe" style="display: none;">
+      <div class="card">
+        <div class="card-title">
+          <span id="titulo-detalhe-registro">Detalhes do Registro</span>
+          <button class="btn btn-light" onclick="voltarParaGridRegistros()">⬅ Voltar para Lista</button>
         </div>
-      </div>
-      <div style="display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start;">
-        <div style="overflow-x: auto;">
-          <table class="tabela-metas-justa">
+
+        <!-- SETUP INICIAL SE NÃO TIVER DADOS -->
+        <div id="setup-form-registro" style="max-width: 400px; margin: 20px auto; text-align: center;">
+          <p>Informe as quantidades para gerar a estrutura de campos:</p>
+          <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+            <div style="flex: 1;"><label>Vendedores</label><input type="number" id="qtdVendSetup" value="1" min="1"></div>
+            <div style="flex: 1;"><label>Compradores</label><input type="number" id="qtdCompSetup" value="1" min="1"></div>
+          </div>
+          <button class="btn btn-dark w-100" style="width: 100%;" onclick="gerarTabelaRegistroDinamicamente()">Gerar Formulário</button>
+        </div>
+
+        <!-- A TABELA DE PREENCHIMENTO -->
+        <div id="container-tabela-registro" style="display: none; overflow-x: auto;">
+          <div style="text-align: right; margin-bottom: 10px;">
+            <button class="btn btn-gold" onclick="salvarDadosDoRegistroDB()" id="btnSalvarRegistroAtual">💾 Salvar Dados do Registro</button>
+          </div>
+          <table class="tabela-registro-form">
             <thead>
               <tr>
-                <th>Mês</th>
-                <th style="text-align:right;">Receita</th>
-                <th style="text-align:center;">META MÊS</th>
-                <th style="text-align:center;">META ANO</th>
+                <th style="width: 15%;">Campo</th>
+                <th style="width: 35%;">Dados</th>
+                <th style="width: 25%; text-align: center;">Civil</th>
+                <th style="width: 25%; text-align: center;">Fazendária</th>
               </tr>
             </thead>
-            <tbody id="tabela-metas-corpo"></tbody>
+            <tbody id="tbody-tabela-registro">
+              <!-- JS Injeta as linhas aqui -->
+            </tbody>
           </table>
         </div>
-        <div class="chart-container">
-          <canvas id="chart-metas-mensais"></canvas>
-        </div>
       </div>
     </div>
-
-    <!-- SEÇÃO 2: EVOLUÇÃO MULTIANUAL DOS RECEBÍVEIS -->
-    <div class="card" style="margin-bottom: 14px;">
-      <div class="card-title">
-        <span>Evolução Mensal Comparativa (Multianual com Valores)</span>
-        <div style="display:flex; gap:6px;">
-          <button class="filter-pill-btn active" onclick="trocarFiltroRecebiveis('TODOS', this)">Geral (Todos)</button>
-          <button class="filter-pill-btn" onclick="trocarFiltroRecebiveis('VENDA', this)">Vendas</button>
-          <button class="filter-pill-btn" onclick="trocarFiltroRecebiveis('ALUGUEL', this)">Aluguel</button>
-        </div>
-      </div>
-      <div class="chart-container" style="height: 330px;">
-        <canvas id="chart-recebiveis-multianual"></canvas>
-      </div>
-    </div>
-
-    <!-- SEÇÃO 3: CURVA DE RECEBIMENTO EM ADMINISTRAÇÃO -->
-    <div class="card" style="margin-bottom: 14px;">
-      <div class="card-title">
-        <span>Curva de Crescimento — Recebimentos em Administração (com Valores)</span>
-        <span style="font-size:0.75rem; color:#64748b;">Evolução cronológica mês a mês (Coluna P)</span>
-      </div>
-      <div class="chart-container" style="height: 300px;">
-        <canvas id="chart-taxa-adm-evolucao"></canvas>
-      </div>
-    </div>
-
-    <!-- SEÇÃO 4: DUAS COLUNAS: FATURAMENTO & VGV / VOLUME ANUAL -->
-    <div class="graficos-grid-2col">
-      <div class="chart-box">
-        <div class="chart-title"><span>Faturamento vs VGV Anual (R$)</span></div>
-        <div class="chart-container"><canvas id="chart-fat-vgv-anual"></canvas></div>
-      </div>
-      <div class="chart-box">
-        <div class="chart-title"><span>Volume Anual de Negócios (Qtd Vendas vs Qtd Aluguéis)</span></div>
-        <div class="chart-container"><canvas id="chart-qtd-ops-anual"></canvas></div>
-      </div>
-    </div>
-
   </div>
 
 </div>
@@ -527,6 +469,11 @@
   let chartInstFatVgv = null;
   let chartInstQtdOps = null;
   let tipoRecebiveisAtual = 'TODOS';
+
+  // VARIÁVEIS DO NOVO MÓDULO DE REGISTRO
+  let idRegistroAberto = null;
+  let qtdVendAtual = 1;
+  let qtdCompAtual = 1;
 
   function formatarMoedaInput(val) {
     const num = parseFloat(val) || 0;
@@ -588,6 +535,10 @@
     if (qual === 'graficos') {
       popularSeletorAnoGraficos();
       renderizarAbaGraficos();
+    }
+    
+    if (qual === 'registros') {
+      renderizarGridRegistros();
     }
   }
 
@@ -709,8 +660,11 @@
       dadosDB = await res.json();
       filtrarTabela();
       montarSlicers();
+      
+      // Atualiza abas abertas
       if (document.getElementById('page-mapa').classList.contains('active')) renderizarMapa();
       if (document.getElementById('page-graficos').classList.contains('active')) renderizarAbaGraficos();
+      if (document.getElementById('page-registros').classList.contains('active')) renderizarGridRegistros();
     } catch (e) {
       console.error(e);
     }
@@ -816,6 +770,7 @@
     filtrarTabela();
     if (document.getElementById('page-mapa').classList.contains('active')) renderizarMapa();
     if (document.getElementById('page-graficos').classList.contains('active')) renderizarAbaGraficos();
+    if (document.getElementById('page-registros').classList.contains('active')) renderizarGridRegistros();
 
     try {
       await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?id=eq.' + id, {
@@ -1694,7 +1649,6 @@
       }
     });
 
-    // AQUI TAMBÉM CORRIGIDO: Aplicando a restrição de corretor para o gráfico de barras inferior também
     const qtdVendas = anos.map(ano => dadosDB.filter(d => {
       const sit = String(d.situacao || '').toUpperCase() === 'VENDA';
       const corr = String(d.corretor || '').trim().toLowerCase();
@@ -1737,6 +1691,195 @@
         }
       }
     });
+  }
+
+  // =================================================================================
+  // FUNÇÕES DA NOVA ABA "REGISTROS"
+  // =================================================================================
+
+  function renderizarGridRegistros() {
+    const container = document.getElementById('container-grid-registros');
+    
+    // ATENÇÃO MÁRIO: Coloque AQUI o número do último ID da sua tabela hoje!
+    // Se você deixar 0, ele vai mostrar todos os antigos. 
+    // Ex: Se hoje você tem 1250 lançamentos, coloque 1250.
+    const ULTIMO_ID_ANTIGO = #1730; 
+    
+    // Filtra apenas clientes com situação == REGISTRO e que sejam MAIORES que o id antigo
+    const registros = dadosDB.filter(d => 
+      String(d.situacao).toUpperCase() === 'REGISTRO' && 
+      d.id > ULTIMO_ID_ANTIGO
+    );
+
+    if (registros.length === 0) {
+      container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#64748b;">Nenhuma nova entrada com situação "REGISTRO" encontrada.</div>';
+      return;
+    }
+
+    container.innerHTML = registros.map(reg => `
+      <div class="card-registro-box" onclick="abrirDetalheRegistro(${reg.id})">
+        <div class="card-registro-nome">${reg.nome || 'Cliente sem nome'}</div>
+        <div class="card-registro-id">Lançamento #${reg.id}</div>
+        <div style="font-size:0.75rem; margin-top:5px; color:#64748b;">${reg.mes}/${reg.ano}</div>
+        ${reg.dados_registro ? '<div style="margin-top:8px; font-size:0.7rem; color:green; font-weight:bold;">✅ Dados Preenchidos</div>' : '<div style="margin-top:8px; font-size:0.7rem; color:orange; font-weight:bold;">⚠️ Pendente</div>'}
+      </div>
+    `).join('');
+  }
+
+  function abrirDetalheRegistro(id) {
+    idRegistroAberto = id;
+    const registro = dadosDB.find(d => d.id === id);
+    
+    document.getElementById('view-registros-grid').style.display = 'none';
+    document.getElementById('view-registros-detalhe').style.display = 'block';
+    document.getElementById('titulo-detalhe-registro').innerText = 'Registro: ' + (registro.nome || 'Sem Nome');
+
+    if (registro.dados_registro) {
+      document.getElementById('setup-form-registro').style.display = 'none';
+      let dados = registro.dados_registro;
+      if (typeof dados === 'string') {
+        try { dados = JSON.parse(dados); } catch(e) {}
+      }
+      qtdVendAtual = dados.qtdVend || 1;
+      qtdCompAtual = dados.qtdComp || 1;
+      gerarTabelaRegistroDinamicamente(dados);
+    } else {
+      document.getElementById('setup-form-registro').style.display = 'block';
+      document.getElementById('container-tabela-registro').style.display = 'none';
+      document.getElementById('qtdVendSetup').value = 1;
+      document.getElementById('qtdCompSetup').value = 1;
+    }
+  }
+
+  function voltarParaGridRegistros() {
+    document.getElementById('view-registros-detalhe').style.display = 'none';
+    document.getElementById('view-registros-grid').style.display = 'block';
+    idRegistroAberto = null;
+  }
+
+  function gerarTabelaRegistroDinamicamente(dadosPreenchidos = null) {
+    if (!dadosPreenchidos) {
+      qtdVendAtual = parseInt(document.getElementById('qtdVendSetup').value) || 1;
+      qtdCompAtual = parseInt(document.getElementById('qtdCompSetup').value) || 1;
+    }
+
+    let html = '';
+    const getVal = (array, idx, campo) => {
+      if (dadosPreenchidos && dadosPreenchidos[array] && dadosPreenchidos[array][idx]) {
+        return dadosPreenchidos[array][idx][campo] || '';
+      }
+      return '';
+    };
+
+    for(let i = 0; i < qtdVendAtual; i++) {
+      html += `
+        <tr><td colspan="4" class="titulo-secao-reg">VENDEDOR ${i+1}</td></tr>
+        <tr>
+          <td><strong>Nome</strong></td>
+          <td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="nome" value="${getVal('vend', i, 'nome')}"></td>
+          <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="civil" placeholder="Civil" value="${getVal('vend', i, 'civil')}"></td>
+          <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="fazenda" placeholder="Fazenda" value="${getVal('vend', i, 'fazenda')}"></td>
+        </tr>
+        <tr><td><strong>CPF</strong></td><td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="cpf" value="${getVal('vend', i, 'cpf')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
+        <tr><td><strong>Nasc.</strong></td><td><input type="date" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="nasc" value="${getVal('vend', i, 'nasc')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
+        <tr><td><strong>Pai</strong></td><td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="pai" value="${getVal('vend', i, 'pai')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
+        <tr><td><strong>Mãe</strong></td><td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="mae" value="${getVal('vend', i, 'mae')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
+      `;
+    }
+
+    const imovelGet = campo => dadosPreenchidos && dadosPreenchidos.imovel ? (dadosPreenchidos.imovel[campo] || '') : '';
+    html += `
+        <tr><td colspan="4" class="titulo-secao-reg">DADOS DO IMÓVEL</td></tr>
+        <tr>
+          <td><strong>Endereço</strong></td>
+          <td><input type="text" class="input-planilha-reg reg-imovel" data-campo="end" value="${imovelGet('end')}"></td>
+          <td style="background:#f1f5f9"></td>
+          <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-imovel" data-campo="fazenda" placeholder="Fazenda" value="${imovelGet('fazenda')}"></td>
+        </tr>
+        <tr><td><strong>Número</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="num" value="${imovelGet('num')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
+        <tr><td><strong>Compl 1</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="c1" value="${imovelGet('c1')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
+        <tr><td><strong>Compl 2</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="c2" value="${imovelGet('c2')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
+        <tr><td><strong>CEP</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="cep" value="${imovelGet('cep')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
+        <tr><td><strong>Matrícula</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="matricula" value="${imovelGet('matricula')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
+        <tr><td><strong>Cartório</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="cartorio" value="${imovelGet('cartorio')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
+        <tr><td><strong>IPTU</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="iptu" value="${imovelGet('iptu')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
+    `;
+
+    html += `<tr><td colspan="4" class="titulo-secao-reg">COMPRADORES</td></tr>`;
+    for(let i = 0; i < qtdCompAtual; i++) {
+      html += `
+        <tr>
+          <td><strong>Nome / CPF ${i+1}</strong></td>
+          <td><input type="text" class="input-planilha-reg reg-data" data-grupo="comp" data-idx="${i}" data-campo="nome" placeholder="Nome..." value="${getVal('comp', i, 'nome')}"></td>
+          <td colspan="2"><input type="text" class="input-planilha-reg reg-data" data-grupo="comp" data-idx="${i}" data-campo="cpf" placeholder="CPF..." value="${getVal('comp', i, 'cpf')}"></td>
+        </tr>
+      `;
+    }
+
+    const valItbi = dadosPreenchidos ? (dadosPreenchidos.itbi || '') : '';
+    html += `
+      <tr><td colspan="4" class="titulo-secao-reg">SITUAÇÃO DO REGISTRO</td></tr>
+      <tr>
+        <td><strong>POSIÇÃO ITBI</strong></td>
+        <td colspan="3"><input type="text" id="reg-itbi" class="input-planilha-reg" style="text-transform:uppercase; font-weight:bold;" value="${valItbi}"></td>
+      </tr>
+    `;
+
+    document.getElementById('tbody-tabela-registro').innerHTML = html;
+    document.getElementById('setup-form-registro').style.display = 'none';
+    document.getElementById('container-tabela-registro').style.display = 'block';
+  }
+
+  async function salvarDadosDoRegistroDB() {
+    if (!idRegistroAberto) return;
+    
+    document.getElementById('btnSalvarRegistroAtual').innerText = "Salvando...";
+    document.getElementById('btnSalvarRegistroAtual').disabled = true;
+
+    const jsonDados = {
+      qtdVend: qtdVendAtual,
+      qtdComp: qtdCompAtual,
+      vend: [],
+      comp: [],
+      imovel: {},
+      itbi: document.getElementById('reg-itbi').value
+    };
+
+    for(let i=0; i<qtdVendAtual; i++) jsonDados.vend.push({});
+    for(let i=0; i<qtdCompAtual; i++) jsonDados.comp.push({});
+
+    document.querySelectorAll('.reg-data').forEach(inp => {
+      const g = inp.getAttribute('data-grupo');
+      const idx = parseInt(inp.getAttribute('data-idx'));
+      const c = inp.getAttribute('data-campo');
+      jsonDados[g][idx][c] = inp.value;
+    });
+
+    document.querySelectorAll('.reg-imovel').forEach(inp => {
+      const c = inp.getAttribute('data-campo');
+      jsonDados.imovel[c] = inp.value;
+    });
+
+    try {
+      await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?id=eq.' + idRegistroAberto, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dados_registro: jsonDados })
+      });
+      
+      const idx = dadosDB.findIndex(x => x.id === idRegistroAberto);
+      if(idx !== -1) dadosDB[idx].dados_registro = jsonDados;
+      
+      alert("✅ Dados do registro salvos com sucesso!");
+      voltarParaGridRegistros();
+      renderizarGridRegistros();
+
+    } catch (err) {
+      alert("Erro ao salvar: " + err);
+    } finally {
+      document.getElementById('btnSalvarRegistroAtual').innerText = "💾 Salvar Dados do Registro";
+      document.getElementById('btnSalvarRegistroAtual').disabled = false;
+    }
   }
 
   document.addEventListener('DOMContentLoaded', () => {
