@@ -416,8 +416,9 @@
               <tr>
                 <th style="width: 15%;">Campo</th>
                 <th style="width: 35%;">Dados</th>
-                <th style="width: 25%; text-align: center;">Civil</th>
-                <th style="width: 25%; text-align: center;">Fazendária</th>
+                <!-- Títulos renomeados conforme solicitado -->
+                <th style="width: 25%; text-align: center;">Certidão Civil</th>
+                <th style="width: 25%; text-align: center;">Certidão Fazendária</th>
               </tr>
             </thead>
             <tbody id="tbody-tabela-registro">
@@ -1700,12 +1701,10 @@
   function renderizarGridRegistros() {
     const container = document.getElementById('container-grid-registros');
     
-    // ATENÇÃO MÁRIO: Coloque AQUI o número do último ID da sua tabela hoje!
-    // Se você deixar 0, ele vai mostrar todos os antigos. 
-    // Ex: Se hoje você tem 1250 lançamentos, coloque 1250.
-    const ULTIMO_ID_ANTIGO = 0; 
+    // ATENÇÃO MÁRIO: Filtra apenas a partir do ID 1717
+    const ULTIMO_ID_ANTIGO = 1716; 
     
-    // Filtra apenas clientes com situação == REGISTRO e que sejam MAIORES que o id antigo
+    // Filtra apenas clientes com situação == REGISTRO e que sejam MAIORES que o id antigo (ou seja, >= 1717)
     const registros = dadosDB.filter(d => 
       String(d.situacao).toUpperCase() === 'REGISTRO' && 
       d.id > ULTIMO_ID_ANTIGO
@@ -1771,40 +1770,49 @@
       return '';
     };
 
+    // --- VENDEDORES (Com Rowspan para Certidões) ---
     for(let i = 0; i < qtdVendAtual; i++) {
       html += `
         <tr><td colspan="4" class="titulo-secao-reg">VENDEDOR ${i+1}</td></tr>
         <tr>
           <td><strong>Nome</strong></td>
           <td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="nome" value="${getVal('vend', i, 'nome')}"></td>
-          <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="civil" placeholder="Civil" value="${getVal('vend', i, 'civil')}"></td>
-          <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="fazenda" placeholder="Fazenda" value="${getVal('vend', i, 'fazenda')}"></td>
+          <td rowspan="5" style="vertical-align: middle; text-align: center; background-color: #fff9c4; padding: 10px;">
+            <input type="text" class="input-planilha-reg bg-certidao-reg reg-data" style="text-align: center; font-weight: bold; width: 100%;" data-grupo="vend" data-idx="${i}" data-campo="civil" placeholder="Certidão Civil" value="${getVal('vend', i, 'civil')}">
+          </td>
+          <td rowspan="5" style="vertical-align: middle; text-align: center; background-color: #fff9c4; padding: 10px;">
+            <input type="text" class="input-planilha-reg bg-certidao-reg reg-data" style="text-align: center; font-weight: bold; width: 100%;" data-grupo="vend" data-idx="${i}" data-campo="fazenda" placeholder="Certidão Fazendária" value="${getVal('vend', i, 'fazenda')}">
+          </td>
         </tr>
-        <tr><td><strong>CPF</strong></td><td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="cpf" value="${getVal('vend', i, 'cpf')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
-        <tr><td><strong>Nasc.</strong></td><td><input type="date" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="nasc" value="${getVal('vend', i, 'nasc')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
-        <tr><td><strong>Pai</strong></td><td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="pai" value="${getVal('vend', i, 'pai')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
-        <tr><td><strong>Mãe</strong></td><td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="mae" value="${getVal('vend', i, 'mae')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
+        <tr><td><strong>CPF</strong></td><td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="cpf" value="${getVal('vend', i, 'cpf')}"></td></tr>
+        <tr><td><strong>Nasc.</strong></td><td><input type="date" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="nasc" value="${getVal('vend', i, 'nasc')}"></td></tr>
+        <tr><td><strong>Pai</strong></td><td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="pai" value="${getVal('vend', i, 'pai')}"></td></tr>
+        <tr><td><strong>Mãe</strong></td><td><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="mae" value="${getVal('vend', i, 'mae')}"></td></tr>
       `;
     }
 
+    // --- IMÓVEL (Com Rowspan vazio no Civil, e Rowspan preenchido na Fazenda) ---
     const imovelGet = campo => dadosPreenchidos && dadosPreenchidos.imovel ? (dadosPreenchidos.imovel[campo] || '') : '';
     html += `
         <tr><td colspan="4" class="titulo-secao-reg">DADOS DO IMÓVEL</td></tr>
         <tr>
           <td><strong>Endereço</strong></td>
           <td><input type="text" class="input-planilha-reg reg-imovel" data-campo="end" value="${imovelGet('end')}"></td>
-          <td style="background:#f1f5f9"></td>
-          <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-imovel" data-campo="fazenda" placeholder="Fazenda" value="${imovelGet('fazenda')}"></td>
+          <td rowspan="8" style="background:#f1f5f9"></td>
+          <td rowspan="8" style="vertical-align: middle; text-align: center; background-color: #fff9c4; padding: 10px;">
+            <input type="text" class="input-planilha-reg bg-certidao-reg reg-imovel" style="text-align: center; font-weight: bold; width: 100%;" data-campo="fazenda" placeholder="Certidão Fazendária" value="${imovelGet('fazenda')}">
+          </td>
         </tr>
-        <tr><td><strong>Número</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="num" value="${imovelGet('num')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
-        <tr><td><strong>Compl 1</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="c1" value="${imovelGet('c1')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
-        <tr><td><strong>Compl 2</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="c2" value="${imovelGet('c2')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
-        <tr><td><strong>CEP</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="cep" value="${imovelGet('cep')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
-        <tr><td><strong>Matrícula</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="matricula" value="${imovelGet('matricula')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
-        <tr><td><strong>Cartório</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="cartorio" value="${imovelGet('cartorio')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
-        <tr><td><strong>IPTU</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="iptu" value="${imovelGet('iptu')}"></td><td style="background:#f1f5f9"></td><td style="background:#f1f5f9"></td></tr>
+        <tr><td><strong>Número</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="num" value="${imovelGet('num')}"></td></tr>
+        <tr><td><strong>Compl 1</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="c1" value="${imovelGet('c1')}"></td></tr>
+        <tr><td><strong>Compl 2</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="c2" value="${imovelGet('c2')}"></td></tr>
+        <tr><td><strong>CEP</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="cep" value="${imovelGet('cep')}"></td></tr>
+        <tr><td><strong>Matrícula</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="matricula" value="${imovelGet('matricula')}"></td></tr>
+        <tr><td><strong>Cartório</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="cartorio" value="${imovelGet('cartorio')}"></td></tr>
+        <tr><td><strong>IPTU</strong></td><td><input type="text" class="input-planilha-reg reg-imovel" data-campo="iptu" value="${imovelGet('iptu')}"></td></tr>
     `;
 
+    // --- COMPRADORES ---
     html += `<tr><td colspan="4" class="titulo-secao-reg">COMPRADORES</td></tr>`;
     for(let i = 0; i < qtdCompAtual; i++) {
       html += `
