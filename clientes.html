@@ -103,21 +103,28 @@
   .tree-subnode { font-weight: bold; background: #ffffff; cursor: pointer; user-select: none; padding-left: 14px !important; color: #0f172a; }
   .tree-leaf { padding-left: 28px !important; color: #64748b; font-size: 0.7rem; }
 
-  /* ABA GRÁFICOS */
+  /* ESTILOS DA ABA BI / GRÁFICOS */
   .graficos-header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; background: #fff; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); }
-  .graficos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 14px; }
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .kpi-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); border-left: 4px solid var(--accent); }
+  .kpi-card-title { font-size: 0.68rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+  .kpi-card-val { font-size: 1.25rem; font-weight: 800; color: var(--primary); }
+  .kpi-card-sub { font-size: 0.7rem; color: #16a34a; font-weight: 600; margin-top: 2px; }
+
+  .graficos-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   .chart-box { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
-  .chart-title { font-size: 0.85rem; font-weight: 800; color: var(--primary); margin-bottom: 10px; display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
+  .chart-title { font-size: 0.85rem; font-weight: 800; color: var(--primary); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
   .chart-container { position: relative; height: 260px; width: 100%; }
 
+  .tabela-metas-justa { width: fit-content !important; border-collapse: collapse; font-size: 0.75rem; border: 1px solid var(--border); }
+  .tabela-metas-justa th { background: #000; color: #fff; padding: 4px 10px; font-weight: 700; white-space: nowrap; }
+  .tabela-metas-justa td { padding: 3px 8px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
   .semaforo-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; display: inline-block; }
   .semaforo-verde { background: #dcfce7; color: #166534; }
   .semaforo-vermelho { background: #fee2e2; color: #991b1b; }
 
-  /* Tabela de Metas Justa */
-  .tabela-metas-justa { width: fit-content !important; border-collapse: collapse; font-size: 0.75rem; border: 1px solid var(--border); }
-  .tabela-metas-justa th { background: #000; color: #fff; padding: 4px 10px; font-weight: 700; white-space: nowrap; }
-  .tabela-metas-justa td { padding: 3px 8px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+  .filter-pill-btn { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 4px 12px; font-size: 0.72rem; font-weight: 700; color: #475569; cursor: pointer; transition: 0.15s; }
+  .filter-pill-btn.active { background: var(--secondary); color: var(--gold); border-color: var(--secondary); }
 </style>
 </head>
 <body>
@@ -141,7 +148,7 @@
     <div style="display: flex; gap: 8px;">
       <button class="tab-nav-btn active" onclick="trocarAbaPrincipal('producao', this)">📋 Lançamentos e Produção</button>
       <button class="tab-nav-btn" onclick="trocarAbaPrincipal('mapa', this)">🗺️ MAPA Financeiro</button>
-      <button class="tab-nav-btn" onclick="trocarAbaPrincipal('graficos', this)">📊 Gráficos & Metas</button>
+      <button class="tab-nav-btn" onclick="trocarAbaPrincipal('graficos', this)">📊 Gráficos & Metas (BI)</button>
     </div>
     <div id="btn-relatorio-container" style="display: none;">
       <button class="btn btn-gold" onclick="gerarRelatorioPDF()">📄 Gerar Relatório ADM (PDF)</button>
@@ -369,25 +376,41 @@
     </div>
   </div>
 
-  <!-- ABA 3: GRÁFICOS & METAS -->
+  <!-- ABA 3: GRÁFICOS & METAS (BI AVANÇADO) -->
   <div id="page-graficos" class="tab-page">
-    <div class="graficos-header-bar">
-      <div>
-        <h2 style="font-size: 1.05rem; font-weight: 800; color: var(--primary);">Desempenho Geral e Indicadores de Metas</h2>
-        <p style="font-size: 0.74rem; color: #64748b;">Metas com reajuste anual por IPCA + 10%</p>
+    
+    <!-- CARDS DE KPIS HISTÓRICOS CONSOLIDADOS -->
+    <div class="kpi-row">
+      <div class="kpi-card" style="border-left-color: #001e60;">
+        <div class="kpi-card-title">Faturamento Histórico Total</div>
+        <div class="kpi-card-val" id="kpi-fat-total">R$ 0,00</div>
+        <div class="kpi-card-sub" id="kpi-fat-sub">Líquido acumulado</div>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <label style="font-size: 0.75rem; font-weight: 800;">Ano de Referência Metas:</label>
-        <select id="sel-ano-graficos" onchange="renderizarAbaGraficos()" style="width: 100px; padding: 4px 6px;">
-        </select>
+      <div class="kpi-card" style="border-left-color: #c59b27;">
+        <div class="kpi-card-title">VGV Total Acumulado</div>
+        <div class="kpi-card-val" id="kpi-vgv-total">R$ 0,00</div>
+        <div class="kpi-card-sub">Volume Geral de Vendas</div>
+      </div>
+      <div class="kpi-card" style="border-left-color: #2563eb;">
+        <div class="kpi-card-title">Contratos de Venda</div>
+        <div class="kpi-card-val" id="kpi-qtd-vendas">0</div>
+        <div class="kpi-card-sub">Negócios fechados</div>
+      </div>
+      <div class="kpi-card" style="border-left-color: #70ad47;">
+        <div class="kpi-card-title">Carteira Mensal ADM Atual</div>
+        <div class="kpi-card-val" id="kpi-taxa-adm">R$ 1.022,20</div>
+        <div class="kpi-card-sub">Receita recorrente mensal</div>
       </div>
     </div>
 
-    <!-- METAS DO ANO SELECIONADO -->
+    <!-- SEÇÃO 1: ACOMPANHAMENTO DE METAS DO ANO -->
     <div class="card" style="margin-bottom: 14px;">
       <div class="card-title">
-        <span id="titulo-painel-meta">Acompanhamento de Metas — Ano</span>
-        <span id="badge-meta-ano" style="font-size: 0.8rem; font-weight: 800;"></span>
+        <span id="titulo-painel-meta">Acompanhamento de Metas</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="font-size: 0.72rem; font-weight: 800;">Ano de Referência:</label>
+          <select id="sel-ano-graficos" onchange="renderizarAbaGraficos()" style="width: 95px; padding: 3px 6px;"></select>
+        </div>
       </div>
       <div style="display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start;">
         <div style="overflow-x: auto;">
@@ -409,32 +432,44 @@
       </div>
     </div>
 
-    <!-- GRID DE GRÁFICOS -->
-    <div class="graficos-grid">
-      <!-- 1. Faturamento Recebido Anual -->
-      <div class="chart-box">
-        <div class="chart-title"><span>Faturamento Recebido Anual (Total R$)</span></div>
-        <div class="chart-container"><canvas id="chart-fat-recebido"></canvas></div>
+    <!-- SEÇÃO 2: EVOLUÇÃO MULTIANUAL DOS RECEBÍVEIS (SUBSTITUI OS 3 GRÁFICOS DO EXCEL) -->
+    <div class="card" style="margin-bottom: 14px;">
+      <div class="card-title">
+        <span>Evolução Mensal Comparativa (Multianual)</span>
+        <div style="display:flex; gap:6px;">
+          <button class="filter-pill-btn active" onclick="trocarFiltroRecebiveis('TODOS', this)">Geral (Todos)</button>
+          <button class="filter-pill-btn" onclick="trocarFiltroRecebiveis('VENDA', this)">Vendas</button>
+          <button class="filter-pill-btn" onclick="trocarFiltroRecebiveis('ALUGUEL', this)">Aluguel</button>
+        </div>
       </div>
-
-      <!-- 2. Comparativo Venda vs Aluguel (Faturamento) -->
-      <div class="chart-box">
-        <div class="chart-title"><span>Faturamento Anual (Aluguel vs Venda)</span></div>
-        <div class="chart-container"><canvas id="chart-fat-tipo"></canvas></div>
-      </div>
-
-      <!-- 3. Quantidade de Operações Anuais -->
-      <div class="chart-box">
-        <div class="chart-title"><span>Volume de Contratos (Vendas vs Aluguéis)</span></div>
-        <div class="chart-container"><canvas id="chart-qtd-ops"></canvas></div>
-      </div>
-
-      <!-- 4. Curva de Recebimento de Administração (Taxa ADM) -->
-      <div class="chart-box">
-        <div class="chart-title"><span>Evolução Recebimento em Administração (Taxa ADM)</span></div>
-        <div class="chart-container"><canvas id="chart-taxa-adm"></canvas></div>
+      <div class="chart-container" style="height: 320px;">
+        <canvas id="chart-recebiveis-multianual"></canvas>
       </div>
     </div>
+
+    <!-- SEÇÃO 3: CURVA DE RECEBIMENTO EM ADMINISTRAÇÃO (TAXA ADM) -->
+    <div class="card" style="margin-bottom: 14px;">
+      <div class="card-title">
+        <span>Curva de Crescimento — Recebimento em Administração (Taxa ADM)</span>
+        <span style="font-size:0.75rem; color:#64748b;">Evolução contínua mês a mês (Set/2022 a Set/2026)</span>
+      </div>
+      <div class="chart-container" style="height: 290px;">
+        <canvas id="chart-taxa-adm-evolucao"></canvas>
+      </div>
+    </div>
+
+    <!-- SEÇÃO 4: DUAS COLUNAS: FATURAMENTO & VGV / VOLUME CONTRATUAL -->
+    <div class="graficos-grid-2col">
+      <div class="chart-box">
+        <div class="chart-title"><span>Faturamento vs VGV Anual (R$)</span></div>
+        <div class="chart-container"><canvas id="chart-fat-vgv-anual"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title"><span>Volume Anual de Negócios (Qtd Vendas vs Qtd Aluguéis)</span></div>
+        <div class="chart-container"><canvas id="chart-qtd-ops-anual"></canvas></div>
+      </div>
+    </div>
+
   </div>
 
 </div>
@@ -464,25 +499,18 @@
 
   let mapaFiltroAno = '2026';
   let mapaFiltroMes = 'Setembro';
-  
   let anosExpandidos = { '2026': true };
   let mesesExpandidos = { '2026-Setembro': true };
 
-  // Histórico de IPCA para reajuste anual automático (IPCA + 10%)
-  const IPCA_HISTORICO = {
-    2022: 0.0579,
-    2023: 0.0462,
-    2024: 0.0483,
-    2025: 0.0450,
-    2026: 0.0420
-  };
+  const IPCA_HISTORICO = { 2022: 0.0579, 2023: 0.0462, 2024: 0.0483, 2025: 0.0450, 2026: 0.0420 };
 
   // Instâncias do Chart.js
   let chartInstMetas = null;
-  let chartInstFatRec = null;
-  let chartInstFatTipo = null;
+  let chartInstMultianual = null;
+  let chartInstAdmEvolucao = null;
+  let chartInstFatVgv = null;
   let chartInstQtdOps = null;
-  let chartInstAdm = null;
+  let tipoRecebiveisAtual = 'TODOS';
 
   function formatarMoedaInput(val) {
     const num = parseFloat(val) || 0;
@@ -504,7 +532,6 @@
     input.value = v;
   }
 
-  // Metas de referência exatas (Base 2026: R$ 12.100,00 mês / R$ 145.200,00 ano)
   function calcularMetaAno(anoAlvo) {
     const anoBase = 2026;
     let metaMes = 12100.00;
@@ -525,7 +552,6 @@
         metaAno /= taxaReajuste;
       }
     }
-
     return { metaMes, metaAno };
   }
 
@@ -1182,7 +1208,7 @@
   }
 
   // ========================================================
-  // ABA 3: GRÁFICOS & METAS DINÂMICAS (ALINHADO COM EXCEL)
+  // ABA 3: BI & GRÁFICOS EVOLUTIVOS MODERNIZADOS
   // ========================================================
   function popularSeletorAnoGraficos() {
     const sel = document.getElementById('sel-ano-graficos');
@@ -1191,36 +1217,54 @@
     sel.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
   }
 
+  function trocarFiltroRecebiveis(tipo, btn) {
+    document.querySelectorAll('.filter-pill-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    tipoRecebiveisAtual = tipo;
+    renderizarGraficoMultianual();
+  }
+
   function renderizarAbaGraficos() {
     if (!dadosDB || dadosDB.length === 0) return;
 
+    // --- CARDS KPIS CONSOLIDADOS ---
+    let totalFatHist = 0;
+    let totalVgvHist = 0;
+    let totalVendasQtd = 0;
+
+    dadosDB.forEach(d => {
+      const sit = String(d.situacao || '').toUpperCase();
+      totalFatHist += (parseFloat(d.valor_liquido) || 0);
+      if (sit === 'VENDA') {
+        totalVgvHist += (parseFloat(d.valor) || 0);
+        totalVendasQtd++;
+      }
+    });
+
+    document.getElementById('kpi-fat-total').innerText = 'R$ ' + formatarMoedaInput(totalFatHist);
+    document.getElementById('kpi-vgv-total').innerText = 'R$ ' + formatarMoedaInput(totalVgvHist);
+    document.getElementById('kpi-qtd-vendas').innerText = totalVendasQtd;
+
+    // --- SEÇÃO 1: TABELA E GRÁFICO DE METAS DO ANO SELECIONADO ---
     const selAno = parseInt(document.getElementById('sel-ano-graficos').value) || 2026;
     const { metaMes, metaAno } = calcularMetaAno(selAno);
 
     document.getElementById('titulo-painel-meta').innerText = `Acompanhamento de Metas — Ano ${selAno} (Meta Mês: R$ ${formatarMoedaInput(metaMes)})`;
 
-    // 1. Tabela de Metas do Ano Selecionado
     const dadosAno = dadosDB.filter(d => d.ano === selAno);
     const receitaMensal = {};
     MESES_LISTA.forEach(m => receitaMensal[m] = 0);
 
     const valoresExatosExcel2026 = {
-      'Janeiro': 15615.47,
-      'Fevereiro': 14536.81,
-      'Março': 23744.53,
-      'Abril': 11358.89,
-      'Maio': 43418.00,
-      'Junho': 12883.08,
-      'Julho': 22996.97,
-      'Agosto': 3994.50,
-      'Setembro': 20094.70
+      'Janeiro': 15615.47, 'Fevereiro': 14536.81, 'Março': 23744.53,
+      'Abril': 11358.89, 'Maio': 43418.00, 'Junho': 12883.08,
+      'Julho': 22996.97, 'Agosto': 3994.50, 'Setembro': 20094.70
     };
 
     dadosAno.forEach(d => {
       const m = d.mes;
       if (receitaMensal[m] !== undefined) {
-        const valLiq = parseFloat(d.valor_liquido) || 0;
-        receitaMensal[m] += valLiq;
+        receitaMensal[m] += (parseFloat(d.valor_liquido) || 0);
       }
     });
 
@@ -1269,9 +1313,8 @@
     </tr>`;
 
     document.getElementById('tabela-metas-corpo').innerHTML = htmlMetas;
-    document.getElementById('badge-meta-ano').innerText = `Acumulado: R$ ${formatarMoedaInput(totalAnoReceita)} / R$ ${formatarMoedaInput(metaAno)}`;
 
-    // Gráfico de Metas (Barras vs Linha de Meta)
+    // Gráfico de Metas Mensais
     if (chartInstMetas) chartInstMetas.destroy();
     const ctxMetas = document.getElementById('chart-metas-mensais').getContext('2d');
     chartInstMetas = new Chart(ctxMetas, {
@@ -1305,124 +1348,192 @@
       }
     });
 
-    // 2. Faturamento Recebido Anual (Histórico)
-    const anos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean).sort((a,b) => a - b);
-    const fatRecebidoPorAno = anos.map(ano => {
-      return dadosDB
-        .filter(d => d.ano === ano)
-        .reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
+    // Renderiza os outros painéis avançados
+    renderizarGraficoMultianual();
+    renderizarGraficoCurvaAdm();
+    renderizarGraficosFaturamentoVgv();
+  }
+
+  // --- SEÇÃO 2: GRÁFICO EVOLUTIVO MULTIANUAL (TODOS / VENDA / ALUGUEL) ---
+  function renderizarGraficoMultianual() {
+    const anos = [2022, 2023, 2024, 2025, 2026];
+    const coresAno = {
+      2022: '#3b82f6', // azul
+      2023: '#ea580c', // laranja
+      2024: '#64748b', // cinza
+      2025: '#eab308', // amarelo
+      2026: '#0284c7'  // ciano escuro
+    };
+
+    const datasets = anos.map(ano => {
+      const dataMeses = MESES_LISTA.map(mes => {
+        return dadosDB.filter(d => {
+          const matchAno = d.ano === ano;
+          const matchMes = d.mes === mes;
+          let matchTipo = true;
+          if (tipoRecebiveisAtual === 'VENDA') matchTipo = String(d.situacao || '').toUpperCase() === 'VENDA';
+          if (tipoRecebiveisAtual === 'ALUGUEL') matchTipo = String(d.situacao || '').toUpperCase() === 'ALUGUEL';
+          return matchAno && matchMes && matchTipo;
+        }).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
+      });
+
+      return {
+        label: String(ano),
+        data: dataMeses,
+        backgroundColor: coresAno[ano],
+        borderRadius: 3
+      };
     });
 
-    if (chartInstFatRec) chartInstFatRec.destroy();
-    const ctxFatRec = document.getElementById('chart-fat-recebido').getContext('2d');
-    chartInstFatRec = new Chart(ctxFatRec, {
+    if (chartInstMultianual) chartInstMultianual.destroy();
+    const ctxMulti = document.getElementById('chart-recebiveis-multianual').getContext('2d');
+    chartInstMultianual = new Chart(ctxMulti, {
       type: 'bar',
       data: {
-        labels: anos,
+        labels: MESES_LISTA,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10, weight: 'bold' } } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: R$ ${formatarMoedaInput(ctx.parsed.y)}`
+            }
+          }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { font: { size: 9 }, callback: v => 'R$ ' + (v >= 1000 ? (v/1000) + 'k' : v) } },
+          x: { ticks: { font: { size: 9 } } }
+        }
+      }
+    });
+  }
+
+  // --- SEÇÃO 3: CURVA CRONOLÓGICA DE ADMINISTRAÇÃO (TAXA ADM) ---
+  function renderizarGraficoCurvaAdm() {
+    const dadosTaxaAdm = dadosDB.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM');
+    
+    // Agrupa soma de taxa por Ano e Mês
+    const timeline = {};
+    dadosTaxaAdm.forEach(d => {
+      const a = d.ano;
+      const m = d.mes;
+      const chave = `${a}-${String(ORDEM_MESES[m] || 0).padStart(2,'0')}-${m}`;
+      timeline[chave] = (timeline[chave] || 0) + (parseFloat(d.taxa_mensal) || 0);
+    });
+
+    const labels = [];
+    const valores = [];
+    Object.keys(timeline).sort().forEach(k => {
+      const partes = k.split('-');
+      labels.push(`${partes[2].slice(0,3)}/${partes[0].slice(2)}`);
+      valores.push(timeline[k]);
+    });
+
+    // Se houver valor final, atualiza KPI
+    if (valores.length > 0) {
+      document.getElementById('kpi-taxa-adm').innerText = 'R$ ' + formatarMoedaInput(valores[valores.length - 1]);
+    }
+
+    if (chartInstAdmEvolucao) chartInstAdmEvolucao.destroy();
+    const ctxAdm = document.getElementById('chart-taxa-adm-evolucao').getContext('2d');
+    chartInstAdmEvolucao = new Chart(ctxAdm, {
+      type: 'line',
+      data: {
+        labels: labels,
         datasets: [{
-          label: 'Faturamento Recebido (R$)',
-          data: fatRecebidoPorAno,
-          backgroundColor: '#001e60',
-          borderRadius: 4
+          label: 'Recebimento em Administração (R$)',
+          data: valores,
+          borderColor: '#001e60',
+          backgroundColor: 'rgba(0, 30, 96, 0.08)',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 3,
+          pointBackgroundColor: '#c59b27',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1.5
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, ticks: { font: { size: 9 } } }, x: { ticks: { font: { size: 9 } } } }
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `Taxa ADM: R$ ${formatarMoedaInput(ctx.parsed.y)}`
+            }
+          }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { font: { size: 9 }, callback: v => 'R$ ' + v } },
+          x: { ticks: { font: { size: 8 } } }
+        }
       }
     });
+  }
 
-    // 3. Faturamento Anual: Venda vs Aluguel
-    const fatVendaAno = anos.map(ano => {
-      return dadosDB
-        .filter(d => d.ano === ano && String(d.situacao || '').toUpperCase() === 'VENDA')
-        .reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
-    });
-    const fatAluguelAno = anos.map(ano => {
-      return dadosDB
-        .filter(d => d.ano === ano && String(d.situacao || '').toUpperCase() === 'ALUGUEL')
-        .reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
-    });
+  // --- SEÇÃO 4: FATURAMENTO & VGV / VOLUME ANUAL ---
+  function renderizarGraficosFaturamentoVgv() {
+    const anos = [2022, 2023, 2024, 2025, 2026];
 
-    if (chartInstFatTipo) chartInstFatTipo.destroy();
-    const ctxFatTipo = document.getElementById('chart-fat-tipo').getContext('2d');
-    chartInstFatTipo = new Chart(ctxFatTipo, {
+    // Faturamento e VGV anual
+    const fatAnual = anos.map(ano => dadosDB.filter(d => d.ano === ano).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0));
+    const vgvAnual = anos.map(ano => dadosDB.filter(d => d.ano === ano && String(d.situacao || '').toUpperCase() === 'VENDA').reduce((acc, curr) => acc + (parseFloat(curr.valor) || 0), 0));
+
+    if (chartInstFatVgv) chartInstFatVgv.destroy();
+    const ctxFatVgv = document.getElementById('chart-fat-vgv-anual').getContext('2d');
+    chartInstFatVgv = new Chart(ctxFatVgv, {
       type: 'bar',
       data: {
         labels: anos,
         datasets: [
-          { label: 'Venda (R$)', data: fatVendaAno, backgroundColor: '#c59b27', borderRadius: 4 },
-          { label: 'Aluguel (R$)', data: fatAluguelAno, backgroundColor: '#70ad47', borderRadius: 4 }
+          { label: 'Faturamento Líquido (R$)', data: fatAnual, backgroundColor: '#c59b27', borderRadius: 4 },
+          { label: 'VGV Vendas (R$)', data: vgvAnual, backgroundColor: '#001e60', borderRadius: 4 }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } },
-        scales: { y: { beginAtZero: true, ticks: { font: { size: 9 } } }, x: { ticks: { font: { size: 9 } } } }
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: R$ ${formatarMoedaInput(ctx.parsed.y)}` } }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { font: { size: 9 }, callback: v => 'R$ ' + (v >= 1000000 ? (v/1000000).toFixed(1) + 'M' : (v/1000) + 'k') } },
+          x: { ticks: { font: { size: 9 } } }
+        }
       }
     });
 
-    // 4. Quantidade de Operações Anuais (Venda vs Aluguel)
+    // Quantidade de Contratos Anuais
     const qtdVendas = anos.map(ano => dadosDB.filter(d => d.ano === ano && String(d.situacao || '').toUpperCase() === 'VENDA').length);
     const qtdAlugueis = anos.map(ano => dadosDB.filter(d => d.ano === ano && String(d.situacao || '').toUpperCase() === 'ALUGUEL').length);
 
     if (chartInstQtdOps) chartInstQtdOps.destroy();
-    const ctxQtdOps = document.getElementById('chart-qtd-ops').getContext('2d');
+    const ctxQtdOps = document.getElementById('chart-qtd-ops-anual').getContext('2d');
     chartInstQtdOps = new Chart(ctxQtdOps, {
       type: 'bar',
       data: {
         labels: anos,
         datasets: [
-          { label: 'Qtd Vendas', data: qtdVendas, backgroundColor: '#2563eb', borderRadius: 4 },
-          { label: 'Qtd Aluguéis', data: qtdAlugueis, backgroundColor: '#059669', borderRadius: 4 }
+          { label: 'Vendas', data: qtdVendas, backgroundColor: '#2563eb', borderRadius: 4 },
+          { label: 'Aluguéis', data: qtdAlugueis, backgroundColor: '#16a34a', borderRadius: 4 }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } },
-        scales: { y: { beginAtZero: true, ticks: { font: { size: 9 }, stepSize: 1 } }, x: { ticks: { font: { size: 9 } } } }
-      }
-    });
-
-    // 5. Curva de Recebimento de Administração (Taxa ADM)
-    const dadosTaxaAdm = dadosDB.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM');
-    dadosTaxaAdm.sort((a,b) => {
-      if (a.ano !== b.ano) return a.ano - b.ano;
-      return (ORDEM_MESES[a.mes] || 0) - (ORDEM_MESES[b.mes] || 0);
-    });
-
-    const labelsAdm = [];
-    const valoresAdm = [];
-    dadosTaxaAdm.forEach(d => {
-      labelsAdm.push(`${(d.mes || '').slice(0,3)}/${d.ano}`);
-      valoresAdm.push(parseFloat(d.taxa_mensal) || 0);
-    });
-
-    if (chartInstAdm) chartInstAdm.destroy();
-    const ctxAdm = document.getElementById('chart-taxa-adm').getContext('2d');
-    chartInstAdm = new Chart(ctxAdm, {
-      type: 'line',
-      data: {
-        labels: labelsAdm,
-        datasets: [{
-          label: 'Taxa Mensal ADM (R$)',
-          data: valoresAdm,
-          borderColor: '#c59b27',
-          backgroundColor: 'rgba(197, 155, 39, 0.15)',
-          fill: true,
-          tension: 0.3,
-          pointRadius: 2.5
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, ticks: { font: { size: 9 } } }, x: { ticks: { font: { size: 8 } } } }
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { font: { size: 9 }, stepSize: 5 } },
+          x: { ticks: { font: { size: 9 } } }
+        }
       }
     });
   }
