@@ -386,7 +386,7 @@
   <!-- ABA 3: GRÁFICOS & METAS (BI AVANÇADO) -->
   <div id="page-graficos" class="tab-page">
     
-    <!-- CARDS DE KPIS COM REGRA DE VGV (MARIO = 100%, OUTROS = 50%) -->
+    <!-- CARDS DE KPIS COM FATURAMENTO ALINHADO EXATAMENTE À TABELA DE METAS (RECEBIDO = SIM) -->
     <div class="kpi-row">
       <div class="kpi-card" style="border-left-color: #001e60;">
         <div class="kpi-main-info">
@@ -1219,7 +1219,7 @@
   }
 
   // ========================================================
-  // ABA 3: BI & GRÁFICOS (VGV COM REGRA DE CORRETOR)
+  // ABA 3: BI & GRÁFICOS (FATURAMENTO COM FILTRAGEM RIGOROSA DE RECEBIDO = SIM)
   // ========================================================
   function popularSeletorAnoGraficos() {
     const sel = document.getElementById('sel-ano-graficos');
@@ -1239,9 +1239,6 @@
     if (!dadosDB || dadosDB.length === 0) return;
 
     let totalFatHist = 0;
-    let totalVgvHist = 0;
-    let totalVendasQtd = 0;
-
     const fatPorAno = {};
     const vgvPorAno = {};
     const qtdVendasPorAno = {};
@@ -1253,10 +1250,11 @@
       'Julho': 22996.97, 'Agosto': 3994.50, 'Setembro': 20094.70
     };
 
+    // FATURAMENTO HISTÓRICO: Exigindo RECEBIDO = SIM (alinhado com o Total Geral da Tabela de Metas)
     const anosUnicos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean);
     
     anosUnicos.forEach(ano => {
-      const dadosDoAno = dadosDB.filter(d => d.ano === ano);
+      const dadosDoAno = dadosDB.filter(d => d.ano === ano && String(d.recebido || '').toUpperCase() === 'SIM');
       let somaAno = 0;
       
       if (ano === 2026) {
@@ -1269,6 +1267,9 @@
       totalFatHist += somaAno;
     });
 
+    let totalVgvHist = 0;
+    let totalVendasQtd = 0;
+
     dadosDB.forEach(d => {
       const ano = d.ano;
       const sit = String(d.situacao || '').toUpperCase();
@@ -1276,7 +1277,6 @@
       const corretor = String(d.corretor || '').trim();
       const valVgvOriginal = parseFloat(d.valor) || 0;
 
-      // REGRA VGV: Situação = Venda, Recebido = Sim
       if (rec && ano && sit === 'VENDA') {
         const fatorVgv = (corretor === 'Mario') ? 1.0 : 0.5;
         const valVgvAjustado = valVgvOriginal * fatorVgv;
@@ -1633,7 +1633,6 @@
 
     const fatAnual = anos.map(ano => dadosDB.filter(d => d.ano === ano).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0));
     
-    // VGV Anual considerando a regra do corretor (Mario = 100%, Outros = 50%) com recebido = SIM
     const vgvAnual = anos.map(ano => {
       return dadosDB.filter(d => {
         const matchAno = d.ano === ano;
