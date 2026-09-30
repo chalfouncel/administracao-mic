@@ -768,12 +768,11 @@
   }
 
   // ========================================================
-  // GERAR RELATÓRIO ADM (PDF VERTICAL COMPACTO / SEM QUEBRA)
+  // GERAR RELATÓRIO ADM (PDF PAISAGEM / 1 FOLHA / SEM QUEBRA)
   // ========================================================
   function gerarRelatorioPDF() {
     const { jsPDF } = window.jspdf;
-    // Orientação estritamente Vertical (Portrait) A4 (210mm x 297mm)
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
     const alugueisOpcao = dadosDB.filter(d => 
       String(d.situacao || '').toUpperCase() === 'ALUGUEL' && 
@@ -787,16 +786,27 @@
       return mNumA - mNumB;
     });
 
-    // Cabeçalho enxuto e compacto
+    const totalLinhas = alugueisOpcao.length;
+    // Cálculo dinâmico para garantir estritamente 1 única página
+    let fontCorpo = 6.8;
+    let padLinha = 1.0;
+    if (totalLinhas > 38) {
+      fontCorpo = 5.8;
+      padLinha = 0.6;
+    } else if (totalLinhas > 30) {
+      fontCorpo = 6.2;
+      padLinha = 0.8;
+    }
+
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10.5);
+    doc.setFontSize(11);
     doc.setTextColor(18, 19, 21);
-    doc.text("M&IC CORRETORES DE IMÓVEIS — Relatório Administrativo", 10, 11);
+    doc.text("M&IC CORRETORES DE IMÓVEIS — Relatório Administrativo (Aluguéis com Opção SIM)", 10, 9);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
+    doc.setFontSize(6.5);
     doc.setTextColor(100, 116, 139);
-    doc.text("Aluguéis com Opção SIM • Gerado em: " + new Date().toLocaleDateString('pt-BR') + " às " + new Date().toLocaleTimeString('pt-BR'), 10, 15);
+    doc.text("Gerado em: " + new Date().toLocaleDateString('pt-BR') + " às " + new Date().toLocaleTimeString('pt-BR'), 10, 13);
 
     let somaTaxas = 0;
     const corpoTabela = alugueisOpcao.map(item => {
@@ -811,17 +821,16 @@
       ];
     });
 
-    // Tabela perfeitamente ajustada na vertical, sem quebras de linha nas células
     doc.autoTable({
-      startY: 18,
-      margin: { left: 10, right: 10, top: 10, bottom: 10 },
+      startY: 15,
+      margin: { left: 10, right: 10, top: 8, bottom: 8 },
       head: [['Ano', 'Mês', 'Nome / Inquilino', 'Unidade', 'ADM']],
       body: corpoTabela,
       theme: 'grid',
       styles: {
-        overflow: 'ellipsize', // Não quebra a linha em duas de jeito nenhum
-        fontSize: 6.8,
-        cellPadding: { top: 1.1, bottom: 1.1, left: 1.5, right: 1.5 },
+        overflow: 'visible',
+        fontSize: fontCorpo,
+        cellPadding: { top: padLinha, bottom: padLinha, left: 1.5, right: 1.5 },
         textColor: [30, 41, 59],
         valign: 'middle'
       },
@@ -830,15 +839,14 @@
         textColor: [212, 175, 55],
         fontStyle: 'bold',
         fontSize: 7.2,
-        halign: 'left',
         cellPadding: { top: 1.5, bottom: 1.5, left: 1.5, right: 1.5 }
       },
       columnStyles: {
-        0: { cellWidth: 12, halign: 'center' }, // Ano
-        1: { cellWidth: 20 },                   // Mês
-        2: { cellWidth: 68 },                   // Nome / Inquilino
-        3: { cellWidth: 66 },                   // Unidade
-        4: { cellWidth: 24, halign: 'right' }   // ADM
+        0: { cellWidth: 15, halign: 'center' },
+        1: { cellWidth: 26 },
+        2: { cellWidth: 110 },
+        3: { cellWidth: 96 },
+        4: { cellWidth: 30, halign: 'right' }
       },
       foot: [['', '', '', 'Total Geral:', 'R$ ' + formatarMoedaInput(somaTaxas)]],
       footStyles: {
@@ -847,8 +855,9 @@
         fontStyle: 'bold',
         fontSize: 7.5,
         halign: 'right',
-        cellPadding: 1.5
-      }
+        cellPadding: { top: 1.5, bottom: 1.5, left: 1.5, right: 1.5 }
+      },
+      pageBreak: 'avoid'
     });
 
     doc.save("Relatorio_ADM_Opcoes_SIM.pdf");
