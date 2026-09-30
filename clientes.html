@@ -45,6 +45,7 @@
   .btn-dark { background: var(--secondary); color: #fff; }
   .btn-light { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
   .btn-danger { background: var(--danger); color: #fff; padding: 3px 6px; font-size: 0.7rem; border-radius: 4px; }
+  .btn-success { background: var(--success); color: #fff; }
 
   .table-container { width: 100%; max-height: 72vh; overflow-y: auto; overflow-x: hidden; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
   table.table-compact { width: 100%; border-collapse: collapse; font-size: 0.73rem; table-layout: fixed; }
@@ -408,9 +409,16 @@
 
         <!-- A TABELA DE PREENCHIMENTO -->
         <div id="container-tabela-registro" style="display: none; overflow-x: auto;">
-          <div style="text-align: right; margin-bottom: 10px;">
+          
+          <!-- BOTOES DE AÇÃO AQUI -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-success" style="font-size: 0.8rem; padding: 8px 14px;" onclick="concluirProcessoRegistro()">✅ Processo Concluído</button>
+              <button class="btn btn-danger" style="font-size: 0.8rem; padding: 8px 14px;" onclick="excluirProcessoRegistro()">🗑️ Excluir Processo</button>
+            </div>
             <button class="btn btn-gold" onclick="salvarDadosDoRegistroDB()" id="btnSalvarRegistroAtual">💾 Salvar Dados do Registro</button>
           </div>
+
           <table class="tabela-registro-form">
             <thead>
               <tr>
@@ -1756,13 +1764,13 @@
       return '';
     };
 
-    // --- VENDEDORES (Linha dedicada para certidões, campos estendidos no colspan) ---
+    // --- VENDEDORES (Linha dedicada para certidões, sem o texto de status) ---
     for(let i = 0; i < qtdVendAtual; i++) {
       html += `
         <tr><td colspan="4" class="titulo-secao-reg">VENDEDOR ${i+1}</td></tr>
         
         <tr style="background:#f8fafc;">
-          <td colspan="2" style="text-align: right; font-size: 0.75rem; color: #64748b;"><em>Status das Certidões ➔</em></td>
+          <td colspan="2" style="background:#f1f5f9;"></td>
           <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-data" style="text-align: center;" data-grupo="vend" data-idx="${i}" data-campo="civil" placeholder="Certidão Civil" value="${getVal('vend', i, 'civil')}"></td>
           <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-data" style="text-align: center;" data-grupo="vend" data-idx="${i}" data-campo="fazenda" placeholder="Certidão Fazendária" value="${getVal('vend', i, 'fazenda')}"></td>
         </tr>
@@ -1775,13 +1783,13 @@
       `;
     }
 
-    // --- IMÓVEL (Linha dedicada para certidão, campos estendidos no colspan) ---
+    // --- IMÓVEL (Linha dedicada para certidão, sem o texto de status) ---
     const imovelGet = campo => dadosPreenchidos && dadosPreenchidos.imovel ? (dadosPreenchidos.imovel[campo] || '') : '';
     html += `
         <tr><td colspan="4" class="titulo-secao-reg">DADOS DO IMÓVEL</td></tr>
 
         <tr style="background:#f8fafc;">
-          <td colspan="2" style="text-align: right; font-size: 0.75rem; color: #64748b;"><em>Status da Certidão ➔</em></td>
+          <td colspan="2" style="background:#f1f5f9;"></td>
           <td style="background:#f1f5f9"></td>
           <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-imovel" style="text-align: center;" data-campo="fazenda" placeholder="Certidão Fazendária" value="${imovelGet('fazenda')}"></td>
         </tr>
@@ -1871,6 +1879,66 @@
     } finally {
       document.getElementById('btnSalvarRegistroAtual').innerText = "💾 Salvar Dados do Registro";
       document.getElementById('btnSalvarRegistroAtual').disabled = false;
+    }
+  }
+
+  // --- NOVAS FUNÇÕES PARA OS BOTÕES DE CONCLUSÃO/EXCLUSÃO DO REGISTRO ---
+
+  async function concluirProcessoRegistro() {
+    if (!idRegistroAberto) return;
+    
+    // Pede a confirmação e a nova situação
+    let novaSit = prompt("Deseja concluir o processo e tirá-lo desta fila de pendências?\nDigite a nova SITUAÇÃO que ele deve receber (Ex: OUTROS, CONTRATO, VENDA):", "OUTROS");
+    
+    if (novaSit === null) return; // Se o usuário clicar em Cancelar
+    
+    novaSit = novaSit.trim().toUpperCase();
+    if (!novaSit) novaSit = "OUTROS";
+
+    try {
+      await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?id=eq.' + idRegistroAberto, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ situacao: novaSit })
+      });
+      
+      // Atualiza localmente
+      const idx = dadosDB.findIndex(x => x.id === idRegistroAberto);
+      if(idx !== -1) dadosDB[idx].situacao = novaSit;
+      
+      alert("✅ Processo concluído! A situação foi alterada para: " + novaSit);
+      
+      voltarParaGridRegistros();
+      renderizarGridRegistros();
+      filtrarTabela(); // Para refletir a mudança na aba 1
+
+    } catch (err) {
+      alert("Erro ao concluir o processo: " + err);
+    }
+  }
+
+  async function excluirProcessoRegistro() {
+    if (!idRegistroAberto) return;
+    
+    if (!confirm('⚠️ ATENÇÃO: Tem certeza que deseja EXCLUIR este lançamento permanentemente de todo o sistema?')) return;
+    
+    try {
+      await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?id=eq.' + idRegistroAberto, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+      });
+      
+      // Atualiza localmente
+      dadosDB = dadosDB.filter(x => x.id !== idRegistroAberto);
+      
+      alert("🗑️ Processo excluído com sucesso!");
+      
+      voltarParaGridRegistros();
+      renderizarGridRegistros();
+      filtrarTabela(); // Para refletir a mudança na aba 1
+
+    } catch (err) {
+      alert("Erro ao excluir o processo: " + err);
     }
   }
 
