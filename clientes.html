@@ -766,12 +766,12 @@
   }
 
   // ========================================================
-  // GERAR RELATÓRIO ADM (PDF PAISAGEM / 1 PÁGINA / SEM QUEBRAS)
+  // GERAR RELATÓRIO ADM (PDF VERTICAL COMPACTO / SEM QUEBRA)
   // ========================================================
   function gerarRelatorioPDF() {
     const { jsPDF } = window.jspdf;
-    // Orientação estritamente Paisagem (Landscape) para caber todas as colunas com folga em uma única folha
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    // Orientação estritamente Vertical (Portrait) A4 (210mm x 297mm)
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
     const alugueisOpcao = dadosDB.filter(d => 
       String(d.situacao || '').toUpperCase() === 'ALUGUEL' && 
@@ -785,16 +785,16 @@
       return mNumA - mNumB;
     });
 
-    // Cabeçalho compacto
+    // Cabeçalho enxuto e compacto
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
+    doc.setFontSize(10.5);
     doc.setTextColor(18, 19, 21);
-    doc.text("M&IC CORRETORES DE IMÓVEIS — Relatório Administrativo (Aluguéis com Opção SIM)", 14, 12);
+    doc.text("M&IC CORRETORES DE IMÓVEIS — Relatório Administrativo", 10, 11);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
+    doc.setFontSize(7);
     doc.setTextColor(100, 116, 139);
-    doc.text("Gerado em: " + new Date().toLocaleDateString('pt-BR') + " às " + new Date().toLocaleTimeString('pt-BR'), 14, 16.5);
+    doc.text("Aluguéis com Opção SIM • Gerado em: " + new Date().toLocaleDateString('pt-BR') + " às " + new Date().toLocaleTimeString('pt-BR'), 10, 15);
 
     let somaTaxas = 0;
     const corpoTabela = alugueisOpcao.map(item => {
@@ -809,23 +809,44 @@
       ];
     });
 
-    // Tabela perfeitamente dimensionada para Paisagem A4 com colunas ajustadas e sem quebras indesejadas
+    // Tabela perfeitamente ajustada na vertical, sem quebras de linha nas células
     doc.autoTable({
-      startY: 19.5,
+      startY: 18,
+      margin: { left: 10, right: 10, top: 10, bottom: 10 },
       head: [['Ano', 'Mês', 'Nome / Inquilino', 'Unidade', 'ADM']],
       body: corpoTabela,
       theme: 'grid',
-      headStyles: { fillColor: [18, 19, 21], textColor: [212, 175, 55], fontStyle: 'bold', fontSize: 8.5, cellPadding: 2.2 },
-      bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59], cellPadding: 1.8 },
+      styles: {
+        overflow: 'ellipsize', // Não quebra a linha em duas de jeito nenhum
+        fontSize: 6.8,
+        cellPadding: { top: 1.1, bottom: 1.1, left: 1.5, right: 1.5 },
+        textColor: [30, 41, 59],
+        valign: 'middle'
+      },
+      headStyles: {
+        fillColor: [18, 19, 21],
+        textColor: [212, 175, 55],
+        fontStyle: 'bold',
+        fontSize: 7.2,
+        halign: 'left',
+        cellPadding: { top: 1.5, bottom: 1.5, left: 1.5, right: 1.5 }
+      },
       columnStyles: {
-        0: { cellWidth: 16, halign: 'center' }, // Ano
-        1: { cellWidth: 32 },                     // Mês
-        2: { cellWidth: 102 },                    // Nome / Inquilino
-        3: { cellWidth: 110 },                    // Unidade (espaço amplo para evitar quebra)
-        4: { cellWidth: 37, halign: 'right' }     // ADM
+        0: { cellWidth: 12, halign: 'center' }, // Ano
+        1: { cellWidth: 20 },                   // Mês
+        2: { cellWidth: 68 },                   // Nome / Inquilino
+        3: { cellWidth: 66 },                   // Unidade
+        4: { cellWidth: 24, halign: 'right' }   // ADM
       },
       foot: [['', '', '', 'Total Geral:', 'R$ ' + formatarMoedaInput(somaTaxas)]],
-      footStyles: { fillColor: [217, 225, 242], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 8.5, halign: 'right', cellPadding: 2.2 }
+      footStyles: {
+        fillColor: [217, 225, 242],
+        textColor: [15, 23, 42],
+        fontStyle: 'bold',
+        fontSize: 7.5,
+        halign: 'right',
+        cellPadding: 1.5
+      }
     });
 
     doc.save("Relatorio_ADM_Opcoes_SIM.pdf");
