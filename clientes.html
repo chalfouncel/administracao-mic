@@ -6,6 +6,9 @@
 <title>Administração de Clientes — M&IC</title>
 <link rel="icon" type="image/png" href="/Loga%20marca%20nova.png">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- Biblioteca jsPDF para geração nativa de relatórios em PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
 <style>
   :root { --primary: #121315; --secondary: #1a1c20; --accent: #c59b27; --gold: #d4af37; --border: #cbd5e1; --bg: #f4f6f9; --card: #ffffff; --text: #1e293b; --success: #16a34a; --danger: #dc2626; }
@@ -41,7 +44,7 @@
   .btn-dark { background: var(--secondary); color: #fff; }
   .btn-danger { background: var(--danger); color: #fff; padding: 3px 6px; font-size: 0.7rem; border-radius: 4px; }
 
-  .table-container { width: 100%; max-height: 72vh; overflow-y: auto; overflow-x: hidden; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
+  .table-container { width: 100%; max-height: 75vh; overflow-y: auto; overflow-x: hidden; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
   table.table-compact { width: 100%; border-collapse: collapse; font-size: 0.73rem; table-layout: fixed; }
   table.table-compact th { background: #000; color: #fff; padding: 8px 3px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.69rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   table.table-compact td { padding: 4px 2px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.72rem; }
@@ -93,7 +96,9 @@
   table.pivot-table th { background: #f1f5f9; color: #475569; padding: 6px 8px; font-size: 0.7rem; border-bottom: 1px solid #cbd5e1; }
   table.pivot-table td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
   table.pivot-table tr.total-row { background: #d9e1f2; font-weight: 800; border-top: 1px solid #8ea9db; }
-  .tree-node { font-weight: bold; background: #f8fafc; }
+  .tree-node { font-weight: bold; background: #f8fafc; cursor: pointer; user-select: none; }
+  .tree-subnode { font-weight: bold; background: #ffffff; cursor: pointer; user-select: none; padding-left: 14px !important; color: #0f172a; }
+  .tree-leaf { padding-left: 28px !important; color: #64748b; font-size: 0.7rem; }
 </style>
 </head>
 <body>
@@ -113,9 +118,14 @@
 
 <div class="container">
   
-  <div class="main-tabs">
-    <button class="tab-nav-btn active" onclick="trocarAbaPrincipal('producao', this)">📋 Lançamentos e Produção</button>
-    <button class="tab-nav-btn" onclick="trocarAbaPrincipal('mapa', this)">🗺️ MAPA Financeiro</button>
+  <div class="main-tabs" style="display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; gap: 8px;">
+      <button class="tab-nav-btn active" onclick="trocarAbaPrincipal('producao', this)">📋 Lançamentos e Produção</button>
+      <button class="tab-nav-btn" onclick="trocarAbaPrincipal('mapa', this)">🗺️ MAPA Financeiro</button>
+    </div>
+    <div id="btn-relatorio-container" style="display: none;">
+      <button class="btn btn-gold" onclick="gerarRelatorioPDF()">📄 Gerar Relatório ADM (PDF)</button>
+    </div>
   </div>
 
   <!-- ABA 1: PRODUÇÃO -->
@@ -144,7 +154,7 @@
           <div style="grid-column: span 2;"><label>Nome / Operação</label><input type="text" id="inp-nome" required oninput="recalcularForm()"></div>
           <div><label>Situação</label><select id="inp-situacao" onchange="recalcularForm()"></select></div>
           <div><label>Unidade</label><input type="text" id="inp-unidade"></div>
-          <div><label>Valor (R$)</label><input type="text" id="inp-valor" required placeholder="0,00" oninput="formatarMoedaInput(this); recalcularForm()"></div>
+          <div><label>Valor (R$)</label><input type="text" id="inp-valor" placeholder="0,00" required oninput="formatarInputMoeda(this); recalcularForm()"></div>
           <div><label>Corretor</label><select id="inp-corretor" onchange="recalcularForm()"></select></div>
           <div>
             <label>Faturada?</label>
@@ -152,8 +162,8 @@
               <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
             </select>
           </div>
-          <div><label>Prêmio (R$)</label><input type="text" id="inp-premio" value="0,00" placeholder="0,00" oninput="formatarMoedaInput(this); recalcularForm()"></div>
-          <div><label>Comissão</label><input type="text" id="inp-comissao" required placeholder="0,00" oninput="formatarMoedaInput(this); recalcularForm()"></div>
+          <div><label>Prêmio (R$)</label><input type="text" id="inp-premio" value="0,00" oninput="formatarInputMoeda(this); recalcularForm()"></div>
+          <div><label>Comissão (R$)</label><input type="text" id="inp-comissao" placeholder="0,00" required oninput="formatarInputMoeda(this); recalcularForm()"></div>
           <div><label>Prêmio Corr.</label><input type="text" id="inp-premio-corr" class="read-only-field" readonly></div>
           <div><label>Imposto (15%)</label><input type="text" id="inp-imposto" class="read-only-field" readonly></div>
           <div>
@@ -163,14 +173,14 @@
             </select>
           </div>
           <div><label>Líquido R$</label><input type="text" id="inp-liquido" class="read-only-field" readonly></div>
-          <div><label>Valor Recebido</label><input type="text" id="inp-val-recebido" value="0,00" placeholder="0,00" oninput="formatarMoedaInput(this)"></div>
+          <div><label>Valor Recebido</label><input type="text" id="inp-val-recebido" value="0,00" oninput="formatarInputMoeda(this)"></div>
           <div>
             <label>Opção</label>
             <select id="inp-opcao">
               <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
             </select>
           </div>
-          <div><label>Taxa Mensal (R$)</label><input type="text" id="inp-taxa" value="0,00" placeholder="0,00" oninput="formatarMoedaInput(this)"></div>
+          <div><label>Taxa Mensal (R$)</label><input type="text" id="inp-taxa" value="0,00" oninput="formatarInputMoeda(this)"></div>
           <div style="grid-column: span 2;"><label>Observações</label><input type="text" id="inp-obs"></div>
         </div>
         <div style="margin-top: 12px; text-align: right;">
@@ -181,7 +191,7 @@
 
     <div class="card">
       <div class="card-title">
-        <span>Histórico de Lançamentos (Recebido = NÃO | Do mais novo para o mais antigo)</span>
+        <span>Histórico de Lançamentos (Planilha Viva - Edição Direta)</span>
         <input type="text" id="filtro-busca" placeholder="🔍 Filtrar registros..." style="width: 260px;" oninput="filtrarTabela()">
       </div>
       
@@ -269,16 +279,13 @@
           </table>
         </div>
 
-        <!-- BLOCO 5: MENSAL OPÇÕES + BOTÃO RELATÓRIO ADM -->
+        <!-- BLOCO 5: MENSAL OPÇÕES -->
         <div class="pivot-box">
           <div class="pivot-header-yellow">Mensal Opções</div>
           <table class="pivot-table">
-            <thead><tr><th>Total Período</th><th style="text-align:right;">Soma</th></tr></thead>
+            <thead><tr><th>Ano / Mês / Inquilino</th><th style="text-align:right;">Soma</th></tr></thead>
             <tbody id="mapa-opcoes-body"></tbody>
           </table>
-          <div style="padding: 8px; text-align: center; background: #f8fafc; border-top: 1px solid #cbd5e1;">
-            <button class="btn btn-dark" style="width: 100%; font-size: 0.75rem; padding: 6px;" onclick="gerarRelatorioAdm()">📄 Gerar Relatório ADM</button>
-          </div>
         </div>
 
       </div>
@@ -305,19 +312,51 @@
   };
 
   const MESES_LISTA = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-  const MESES_ORDEM = { "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4, "Maio": 5, "Junho": 6, "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12 };
+  const ORDEM_MESES = { "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4, "Maio": 5, "Junho": 6, "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12 };
+  
   const ALIQUOTA_IMPOSTO = 0.15;
   let dadosDB = [];
 
   let mapaFiltroAno = '2026';
   let mapaFiltroMes = 'Setembro';
+  
+  let anosExpandidos = { '2026': true };
+  let mesesExpandidos = { '2026-Setembro': true };
+
+  function formatarMoedaInput(val) {
+    const num = parseFloat(val) || 0;
+    return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function parseMoedaInput(str) {
+    if (!str) return 0;
+    if (typeof str === 'number') return str;
+    const limpo = String(str).replace(/[^\d,]/g, '').replace(',', '.');
+    return parseFloat(limpo) || 0;
+  }
+
+  function formatarInputMoeda(input) {
+    let v = input.value.replace(/\D/g, '');
+    v = (parseInt(v, 10) / 100).toFixed(2) + '';
+    v = v.replace('.', ',');
+    v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+    input.value = v;
+  }
 
   function trocarAbaPrincipal(qual, btn) {
     document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab-nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('page-' + qual).classList.add('active');
     btn.classList.add('active');
-    if (qual === 'mapa') renderizarMapa();
+    
+    // Exibe ou oculta o botão de relatório ADM no topo da aba Mapa Financeiro
+    const btnRel = document.getElementById('btn-relatorio-container');
+    if (qual === 'mapa') {
+      btnRel.style.display = 'block';
+      renderizarMapa();
+    } else {
+      btnRel.style.display = 'none';
+    }
   }
 
   function initSelects() {
@@ -330,47 +369,22 @@
     document.getElementById('inp-ano').value = hoje.getFullYear();
     document.getElementById('inp-mes').selectedIndex = hoje.getMonth();
     document.getElementById('inp-opcao').value = 'NÃO';
-    document.getElementById('inp-valor').value = '0,00';
-    document.getElementById('inp-premio').value = '0,00';
-    document.getElementById('inp-comissao').value = '0,00';
-    document.getElementById('inp-val-recebido').value = '0,00';
     document.getElementById('inp-taxa').value = '0,00';
-  }
-
-  // Utilitário para formatação de moeda R$ #.##,##
-  function formatarMoedaInput(input) {
-    let valor = input.value.replace(/\D/g, '');
-    if (!valor) {
-      input.value = '0,00';
-      return;
-    }
-    valor = (parseInt(valor, 10) / 100).toFixed(2) + '';
-    valor = valor.replace('.', ',');
-    valor = valor.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-    input.value = valor;
-  }
-
-  function parseMoeda(str) {
-    if (typeof str === 'number') return str;
-    if (!str) return 0;
-    let limpo = String(str).replace('R$', '').trim();
-    limpo = limpo.replace(/\./g, '').replace(',', '.');
-    return parseFloat(limpo) || 0;
-  }
-
-  function formatarMoedaStr(num) {
-    return (parseFloat(num) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    document.getElementById('inp-valor').value = '0,00';
+    document.getElementById('inp-comissao').value = '0,00';
+    document.getElementById('inp-premio').value = '0,00';
+    document.getElementById('inp-val-recebido').value = '0,00';
   }
 
   function calcularFórmulas(item) {
     const nome = (item.nome || '').trim();
     const situacao = (item.situacao || '').trim();
     const corretor = (item.corretor || '').trim();
-    const valor = parseMoeda(item.valor);
-    const premio = parseMoeda(item.premio);
+    const valor = parseMoedaInput(item.valor);
+    const premio = parseMoedaInput(item.premio);
     const faturada = (item.faturada || 'NÃO').trim().toUpperCase();
 
-    let comissao = parseMoeda(item.comissao);
+    let comissao = parseMoedaInput(item.comissao);
 
     let premioCorretor = 'XXXXXX';
     if (situacao === 'ALUGUEL') {
@@ -405,7 +419,7 @@
       if (opcao === 'NÃO') {
         taxaMensal = 'XXXXXX';
       } else {
-        taxaMensal = parseMoeda(item.taxa_mensal);
+        taxaMensal = parseMoedaInput(item.taxa_mensal);
       }
     }
 
@@ -414,7 +428,7 @@
       valor,
       premio,
       comissao,
-      valor_recebido: parseMoeda(item.valor_recebido),
+      valor_recebido: parseMoedaInput(item.valor_recebido),
       premio_corretor: premioCorretor,
       imposto,
       valor_liquido: valorLiquido,
@@ -433,9 +447,11 @@
       comissao: document.getElementById('inp-comissao').value,
       faturada: document.getElementById('inp-faturada').value,
       opcao: document.getElementById('inp-opcao').value,
-      taxa_mensal: document.getElementById('inp-taxa').value
+      taxa_mensal: document.getElementById('inp-taxa').value,
+      valor_recebido: document.getElementById('inp-val-recebido').value
     };
     const c = calcularFórmulas(raw);
+    const fmt = v => typeof v === 'number' ? 'R$ ' + formatarMoedaInput(v) : v;
 
     const setCampoCondicional = (id, val) => {
       const el = document.getElementById(id);
@@ -443,14 +459,14 @@
         el.value = '';
         el.classList.add('input-bloqueado');
       } else {
-        el.value = formatarMoedaStr(val);
+        el.value = fmt(val);
         el.classList.remove('input-bloqueado');
       }
     };
 
     setCampoCondicional('inp-premio-corr', c.premio_corretor);
     setCampoCondicional('inp-imposto', c.imposto);
-    document.getElementById('inp-liquido').value = formatarMoedaStr(c.valor_liquido);
+    document.getElementById('inp-liquido').value = fmt(c.valor_liquido);
   }
 
   async function carregarDados() {
@@ -459,7 +475,7 @@
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
       });
       dadosDB = await res.json();
-      filtrarTabela();
+      renderizarTabela(dadosDB);
       montarSlicers();
       if (document.getElementById('page-mapa').classList.contains('active')) renderizarMapa();
     } catch (e) {
@@ -469,9 +485,10 @@
 
   function renderizarTabela(dados) {
     const tbody = document.getElementById('tabela-corpo');
+    const fmt = v => typeof v === 'number' ? 'R$ ' + formatarMoedaInput(v) : (v || '-');
 
     if (!dados || dados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center; padding:16px;">Nenhum registro com Recebido = NÃO encontrado.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center; padding:16px;">Nenhum registro encontrado.</td></tr>';
       return;
     }
 
@@ -493,44 +510,28 @@
         '<td class="col-nome"><input type="text" class="cell-input" value="' + (item.nome || '') + '" onchange="atualizarItemDireto(' + id + ', \'nome\', this.value)"></td>' +
         '<td class="col-sit"><select class="cell-select" onchange="atualizarItemDireto(' + id + ', \'situacao\', this.value)">' + htmlSit + '</select></td>' +
         '<td class="col-un"><input type="text" class="cell-input" value="' + (item.unidade || '') + '" onchange="atualizarItemDireto(' + id + ', \'unidade\', this.value)"></td>' +
-        '<td class="col-val"><input type="text" class="cell-input" style="text-align:right;" value="' + formatarMoedaStr(item.valor).replace('R$', '').trim() + '" onchange="atualizarItemDireto(' + id + ', \'valor\', this.value)"></td>' +
+        '<td class="col-val"><input type="text" class="cell-input" style="text-align:right;" value="' + formatarMoedaInput(item.valor) + '" onchange="atualizarItemDireto(' + id + ', \'valor\', parseMoedaInput(this.value))"></td>' +
         '<td class="col-cor"><select class="cell-select" onchange="atualizarItemDireto(' + id + ', \'corretor\', this.value)">' + htmlCor + '</select></td>' +
         '<td class="col-fat"><select class="cell-select" style="text-align:center;" onchange="atualizarItemDireto(' + id + ', \'faturada\', this.value)"><option value="NÃO" ' + (item.faturada === 'NÃO' ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (item.faturada === 'SIM' ? 'selected' : '') + '>SIM</option></select></td>' +
-        '<td class="col-com"><input type="text" class="cell-input" style="text-align:right; font-weight:bold;" value="' + formatarMoedaStr(item.comissao).replace('R$', '').trim() + '" onchange="atualizarItemDireto(' + id + ', \'comissao\', this.value)"></td>' +
-        '<td class="col-prem ' + (isX(item.premio_corretor) ? 'celula-bloqueada' : '') + '">' + (isX(item.premio_corretor) ? '' : formatarMoedaStr(item.premio_corretor)) + '</td>' +
-        '<td class="col-imp ' + (isX(item.imposto) ? 'celula-bloqueada' : '') + '">' + (isX(item.imposto) ? '' : formatarMoedaStr(item.imposto)) + '</td>' +
-        '<td class="col-rec"><select class="cell-select status-rec-nao" onchange="atualizarItemDireto(' + id + ', \'recebido\', this.value)"><option value="NÃO" selected>NÃO</option><option value="SIM">SIM</option></select></td>' +
-        '<td class="col-liq">' + formatarMoedaStr(item.valor_liquido) + '</td>' +
+        '<td class="col-com"><input type="text" class="cell-input" style="text-align:right; font-weight:bold;" value="' + formatarMoedaInput(item.comissao) + '" onchange="atualizarItemDireto(' + id + ', \'comissao\', parseMoedaInput(this.value))"></td>' +
+        '<td class="col-prem ' + (isX(item.premio_corretor) ? 'celula-bloqueada' : '') + '">' + (isX(item.premio_corretor) ? '' : fmt(item.premio_corretor)) + '</td>' +
+        '<td class="col-imp ' + (isX(item.imposto) ? 'celula-bloqueada' : '') + '">' + (isX(item.imposto) ? '' : fmt(item.imposto)) + '</td>' +
+        '<td class="col-rec"><select class="cell-select ' + (isRecSim ? 'status-rec-sim' : 'status-rec-nao') + '" onchange="atualizarItemDireto(' + id + ', \'recebido\', this.value)"><option value="NÃO" ' + (!isRecSim ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (isRecSim ? 'selected' : '') + '>SIM</option></select></td>' +
+        '<td class="col-liq">' + fmt(parseFloat(item.valor_liquido)) + '</td>' +
         '<td class="col-opc">' + (isX(item.opcao) ? '<span style="color:#94a3b8">—</span>' : '<select class="cell-select" style="font-weight:bold;" onchange="atualizarItemDireto(' + id + ', \'opcao\', this.value)"><option value="NÃO" ' + (!isOpcSim ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (isOpcSim ? 'selected' : '') + '>SIM</option></select>') + '</td>' +
-        '<td class="col-tax ' + (isX(item.taxa_mensal) ? 'celula-bloqueada' : '') + '">' + (isX(item.taxa_mensal) ? '' : '<input type="text" class="cell-input" style="text-align:right;" value="' + formatarMoedaStr(item.taxa_mensal).replace('R$', '').trim() + '" onchange="atualizarItemDireto(' + id + ', \'taxa_mensal\', this.value)">') + '</td>' +
+        '<td class="col-tax ' + (isX(item.taxa_mensal) ? 'celula-bloqueada' : '') + '">' + (isX(item.taxa_mensal) ? '' : '<input type="text" class="cell-input" style="text-align:right;" value="' + formatarMoedaInput(item.taxa_mensal) + '" onchange="atualizarItemDireto(' + id + ', \'taxa_mensal\', parseMoedaInput(this.value))">') + '</td>' +
       '</tr>';
     }).join('');
   }
 
   function filtrarTabela() {
     const q = document.getElementById('filtro-busca').value.toLowerCase();
-    
-    // Critério 1: Recebido = NÃO
-    // Critério 2: Do mais novo pro mais antigo (Ano desc, Mês desc, ID desc)
-    const filtrados = dadosDB.filter(d => {
-      const rec = String(d.recebido || 'NÃO').toUpperCase();
-      if (rec !== 'NÃO') return false;
-
-      const matchTexto = !q || 
-        (d.nome && d.nome.toLowerCase().includes(q)) ||
-        (d.corretor && d.corretor.toLowerCase().includes(q)) ||
-        (d.unidade && d.unidade.toLowerCase().includes(q)) ||
-        (d.situacao && d.situacao.toLowerCase().includes(q));
-
-      return matchTexto;
-    }).sort((a, b) => {
-      if (b.ano !== a.ano) return b.ano - a.ano;
-      const mB = MESES_ORDEM[b.mes] || 0;
-      const mA = MESES_ORDEM[a.mes] || 0;
-      if (mB !== mA) return mB - mA;
-      return b.id - a.id;
-    });
-
+    const filtrados = dadosDB.filter(d => 
+      (d.nome && d.nome.toLowerCase().includes(q)) ||
+      (d.corretor && d.corretor.toLowerCase().includes(q)) ||
+      (d.unidade && d.unidade.toLowerCase().includes(q)) ||
+      (d.situacao && d.situacao.toLowerCase().includes(q))
+    );
     renderizarTabela(filtrados);
   }
 
@@ -538,12 +539,7 @@
     const idx = dadosDB.findIndex(x => x.id === id);
     if (idx === -1) return;
 
-    if (['valor', 'premio', 'comissao', 'valor_recebido', 'taxa_mensal'].includes(campo)) {
-      dadosDB[idx][campo] = parseMoeda(valorNovo);
-    } else {
-      dadosDB[idx][campo] = valorNovo;
-    }
-
+    dadosDB[idx][campo] = valorNovo;
     const recalculado = calcularFórmulas(dadosDB[idx]);
     dadosDB[idx] = recalculado;
 
@@ -677,6 +673,78 @@
   }
 
   // ========================================================
+  // GERAR RELATÓRIO ADM (PDF)
+  // ========================================================
+  function gerarRelatorioPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Filtra aluguéis com Opção == SIM
+    const alugueisOpcao = dadosDB.filter(d => 
+      String(d.situacao || '').toUpperCase() === 'ALUGUEL' && 
+      String(d.opcao || '').toUpperCase() === 'SIM'
+    );
+
+    // Ordena do mais antigo para o mais novo (Ano ASC, depois Mês ASC)
+    alugueisOpcao.sort((a, b) => {
+      if (a.ano !== b.ano) return a.ano - b.ano;
+      const mNumA = ORDEM_MESES[a.mes] || 0;
+      const mNumB = ORDEM_MESES[b.mes] || 0;
+      return mNumA - mNumB;
+    });
+
+    // Cabeçalho do PDF
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(18, 19, 21);
+    doc.text("M&IC CORRETORES DE IMÓVEIS", 14, 20);
+
+    doc.setFontSize(12);
+    doc.setTextColor(197, 155, 39);
+    doc.text("Relatório Administrativo — Aluguéis com Opção SIM", 14, 28);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    doc.text("Gerado em: " + new Date().toLocaleDateString('pt-BR') + " às " + new Date().toLocaleTimeString('pt-BR'), 14, 34);
+
+    let somaTaxas = 0;
+    const corpoTabela = alugueisOpcao.map(item => {
+      const taxa = parseFloat(item.taxa_mensal) || 0;
+      somaTaxas += taxa;
+      return [
+        String(item.ano || ''),
+        String(item.mes || ''),
+        String(item.nome || ''),
+        String(item.unidade || ''),
+        'R$ ' + formatarMoedaInput(taxa)
+      ];
+    });
+
+    // Tabela com jsPDF-AutoTable
+    doc.autoTable({
+      startY: 42,
+      head: [['Ano', 'Mês', 'Nome / Inquilino', 'Unidade', 'Taxa Mensal Aluguel']],
+      body: corpoTabela,
+      theme: 'grid',
+      headStyles: { fillColor: [18, 19, 21], textColor: [212, 175, 55], fontStyle: 'bold', fontSize: 9 },
+      bodyStyles: { fontSize: 8.5, textColor: [30, 41, 59] },
+      columnStyles: {
+        0: { cellWidth: 15, halign: 'center' },
+        1: { cellWidth: 28 },
+        2: { cellWidth: 72 },
+        3: { cellWidth: 32 },
+        4: { cellWidth: 35, halign: 'right' }
+      },
+      foot: [['', '', '', 'Total Geral:', 'R$ ' + formatarMoedaInput(somaTaxas)]],
+      footStyles: { fillColor: [217, 225, 242], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 9, halign: 'right' }
+    });
+
+    // Salva o PDF gerado
+    doc.save("Relatorio_ADM_Opcoes_SIM.pdf");
+  }
+
+  // ========================================================
   // MAPA FINANCEIRO RIGOROSO
   // ========================================================
   function montarSlicers() {
@@ -691,9 +759,22 @@
   }
 
   function setFiltroMapa(tipo, valor) {
-    if (tipo === 'ano') mapaFiltroAno = valor;
+    if (tipo === 'ano') {
+      mapaFiltroAno = valor;
+      if (valor !== 'TODOS') anosExpandidos[valor] = true;
+    }
     if (tipo === 'mes') mapaFiltroMes = valor;
     montarSlicers();
+    renderizarMapa();
+  }
+
+  function toggleExpandirAno(ano) {
+    anosExpandidos[ano] = !anosExpandidos[ano];
+    renderizarMapa();
+  }
+
+  function toggleExpandirMes(chave) {
+    mesesExpandidos[chave] = !mesesExpandidos[chave];
     renderizarMapa();
   }
 
@@ -806,60 +887,45 @@
     });
     document.getElementById('mapa-aluguel-body').innerHTML = htmlAluguel + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalAluguel) + '</td></tr>';
 
-    // 5. BLOCO MENSAL OPÇÕES (SOMENTE TOTAL GERAL FILTRADO POR ANO)
-    const baseOpcoes = dadosDB.filter(d => {
-      const matchAno = (mapaFiltroAno === 'TODOS') || (d.ano == mapaFiltroAno);
-      return matchAno && String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM';
-    });
-
+    // 5. BLOCO MENSAL OPÇÕES
+    const baseOpcoes = dadosDB.filter(d => String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM');
     let totalOpcoes = 0;
+    const treeOpcoes = {};
+
     baseOpcoes.forEach(d => {
-      totalOpcoes += (parseFloat(d.taxa_mensal) || 0);
+      const a = d.ano || 'Sem Ano';
+      const m = d.mes || 'Sem Mês';
+      const v = typeof d.taxa_mensal === 'number' ? d.taxa_mensal : (parseFloat(d.taxa_mensal) || 0);
+      if (!treeOpcoes[a]) treeOpcoes[a] = { total: 0, meses: {} };
+      if (!treeOpcoes[a].meses[m]) treeOpcoes[a].meses[m] = { total: 0, itens: [] };
+      treeOpcoes[a].total += v;
+      treeOpcoes[a].meses[m].total += v;
+      treeOpcoes[a].meses[m].itens.push({ nome: d.nome, valor: v });
+      totalOpcoes += v;
     });
 
-    document.getElementById('mapa-opcoes-body').innerHTML = '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalOpcoes) + '</td></tr>';
-  }
-
-  // GERAR RELATÓRIO ADM (Aluguéis com Opção SIM, do mais antigo pro mais novo)
-  function gerarRelatorioAdm() {
-    const alugueisOpcaoSim = dadosDB.filter(d => 
-      String(d.situacao || '').toUpperCase() === 'ALUGUEL' && 
-      String(d.opcao || '').toUpperCase() === 'SIM'
-    ).sort((a, b) => {
-      if (a.ano !== b.ano) return a.ano - b.ano; // mais antigo para mais novo
-      const mA = MESES_ORDEM[a.mes] || 0;
-      const mB = MESES_ORDEM[b.mes] || 0;
-      if (mA !== mB) return mA - mB;
-      return a.id - b.id;
+    let htmlOpcoes = '';
+    Object.keys(treeOpcoes).sort().forEach(ano => {
+      const isAnoExp = !!anosExpandidos[ano];
+      const sinalAno = isAnoExp ? '[-] ' : '[+] ';
+      htmlOpcoes += '<tr class="tree-node" onclick="toggleExpandirAno(\'' + ano + '\')"><td>' + sinalAno + '📅 ' + ano + '</td><td style="text-align:right;">' + fmt(treeOpcoes[ano].total) + '</td></tr>';
+      
+      if (isAnoExp) {
+        Object.keys(treeOpcoes[ano].meses).forEach(mes => {
+          const chaveMes = ano + '-' + mes;
+          const isMesExp = !!mesesExpandidos[chaveMes];
+          const sinalMes = isMesExp ? '[-] ' : '[+] ';
+          htmlOpcoes += '<tr class="tree-subnode" onclick="toggleExpandirMes(\'' + chaveMes + '\')"><td>' + sinalMes + '↳ ' + mes + '</td><td style="text-align:right;">' + fmt(treeOpcoes[ano].meses[mes].total) + '</td></tr>';
+          
+          if (isMesExp) {
+            treeOpcoes[ano].meses[mes].itens.forEach(it => {
+              htmlOpcoes += '<tr class="tree-leaf"><td>' + it.nome + '</td><td style="text-align:right;">' + fmt(it.valor) + '</td></tr>';
+            });
+          }
+        });
+      }
     });
-
-    let janela = window.open('', '_blank');
-    let html = '<html><head><title>Relatório ADM - Aluguéis com Opção SIM</title>' +
-      '<style>body{font-family:sans-serif;padding:20px;color:#1e293b;} h2{color:#0f172a;margin-bottom:4px;} p{color:#64748b;font-size:0.85rem;margin-bottom:20px;}' +
-      'table{width:100%;border-collapse:collapse;font-size:0.85rem;} th,td{border:1px solid #cbd5e1;padding:8px 12px;text-align:left;} th{background:#1a1c20;color:#fff;}' +
-      'tr:nth-child(even){background:#f8fafc;} .total{font-weight:bold;background:#e2e8f0;}</style></head><body>' +
-      '<h2>Relatório ADM — Opções de Aluguel (SIM)</h2>' +
-      '<p>M&IC Corretores de Imóveis • Gerado em ' + new Date().toLocaleDateString('pt-BR') + '</p>' +
-      '<table><thead><tr><th>Ano</th><th>Mês</th><th>Nome</th><th>Unidade</th><th style="text-align:right;">Taxa Mensal Aluguel</th></tr></thead><tbody>';
-
-    let somaTotal = 0;
-    alugueisOpcaoSim.forEach(d => {
-      const taxa = parseFloat(d.taxa_mensal) || 0;
-      somaTotal += taxa;
-      html += '<tr>' +
-        '<td>' + d.ano + '</td>' +
-        '<td>' + (d.mes || '') + '</td>' +
-        '<td>' + (d.nome || '') + '</td>' +
-        '<td>' + (d.unidade || '') + '</td>' +
-        '<td style="text-align:right;">' + formatarMoedaStr(taxa) + '</td>' +
-      '</tr>';
-    });
-
-    html += '<tr class="total"><td colspan="4" style="text-align:right;">Total Geral:</td><td style="text-align:right;">' + formatarMoedaStr(somaTotal) + '</td></tr>';
-    html += '</tbody></table></body></html>';
-
-    janela.document.write(html);
-    janela.document.close();
+    document.getElementById('mapa-opcoes-body').innerHTML = htmlOpcoes + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalOpcoes) + '</td></tr>';
   }
 
   document.addEventListener('DOMContentLoaded', () => {
