@@ -104,7 +104,7 @@
   .tree-subnode { font-weight: bold; background: #ffffff; cursor: pointer; user-select: none; padding-left: 14px !important; color: #0f172a; }
   .tree-leaf { padding-left: 28px !important; color: #64748b; font-size: 0.7rem; }
 
-  /* ESTILOS DA ABA BI / KPIS LADO DIREITO COM DESTAQUE MELHOR RESULTADO */
+  /* ESTILOS DA ABA BI / KPIS */
   .graficos-header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; background: #fff; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); }
   .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 14px; }
   .kpi-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); border-left: 4px solid var(--accent); display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
@@ -1082,15 +1082,26 @@
       return matchAno && matchMes;
     });
 
-    const baseVGV = basePeriodo.filter(d => String(d.situacao || '').toUpperCase() === 'VENDA');
+    // CORREÇÃO: Tabela Corretor VGV (Recebido = SIM, Situação = VENDA, Mario = 100%, Outros = 50%)
+    const baseVGV = basePeriodo.filter(d => 
+      String(d.situacao || '').toUpperCase() === 'VENDA' && 
+      String(d.recebido || '').toUpperCase() === 'SIM'
+    );
+    
     const vgvCorretor = {};
     let totalVGV = 0;
+    
     baseVGV.forEach(d => {
       const c = d.corretor || 'Outros';
-      const v = parseFloat(d.valor) || 0;
-      vgvCorretor[c] = (vgvCorretor[c] || 0) + v;
-      totalVGV += v;
+      const valOriginal = parseFloat(d.valor) || 0;
+      
+      const isMario = String(c).trim().toLowerCase() === 'mario' || String(c).trim().toLowerCase() === 'mário';
+      const valAjustado = isMario ? valOriginal : (valOriginal * 0.5);
+
+      vgvCorretor[c] = (vgvCorretor[c] || 0) + valAjustado;
+      totalVGV += valAjustado;
     });
+
     document.getElementById('mapa-vgv-body').innerHTML = Object.keys(vgvCorretor).map(c => 
       '<tr><td>' + c + '</td><td style="text-align:right;">R$ ' + fmt(vgvCorretor[c]) + '</td></tr>'
     ).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ' + fmt(totalVGV) + '</td></tr>';
@@ -1244,7 +1255,6 @@
     const qtdVendasPorAno = {};
     const admPorAno = {};
 
-    // FATURAMENTO HISTÓRICO: Exigindo RECEBIDO = SIM
     const anosUnicos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean);
     
     anosUnicos.forEach(ano => {
@@ -1258,15 +1268,17 @@
     let totalVgvHist = 0;
     let totalVendasQtd = 0;
 
+    // CORREÇÃO APLICADA AQUI TAMBÉM: Para ter 100% de certeza que "Mário" ou "Mario" vão bater na regra
     dadosDB.forEach(d => {
       const ano = d.ano;
       const sit = String(d.situacao || '').toUpperCase();
       const rec = String(d.recebido || '').toUpperCase() === 'SIM';
-      const corretor = String(d.corretor || '').trim();
+      const corretor = String(d.corretor || '').trim().toLowerCase();
       const valVgvOriginal = parseFloat(d.valor) || 0;
 
       if (rec && ano && sit === 'VENDA') {
-        const fatorVgv = (corretor === 'Mario') ? 1.0 : 0.5;
+        const isMario = corretor === 'mario' || corretor === 'mário';
+        const fatorVgv = isMario ? 1.0 : 0.5;
         const valVgvAjustado = valVgvOriginal * fatorVgv;
 
         totalVgvHist += valVgvAjustado;
@@ -1326,10 +1338,8 @@
     const receitaMensal = {};
     MESES_LISTA.forEach(m => receitaMensal[m] = 0);
 
-    // METAS: SOMA TUDO O QUE FOI COMERCIALIZADO (INDEPENDENTE DE RECEBIDO)
     dadosAno.forEach(d => {
       const m = d.mes;
-      
       if (receitaMensal[m] !== undefined) {
         receitaMensal[m] += (parseFloat(d.valor_liquido) || 0);
       }
@@ -1341,11 +1351,13 @@
 
     MESES_LISTA.forEach(m => {
       const recM = receitaMensal[m];
+      
       totalAnoReceita += recM;
       valoresGrafico.push(recM);
 
       const percMes = metaMes > 0 ? (recM / metaMes) * 100 : 0;
       const bateuMeta = recM >= metaMes;
+      const percAnoAcumulado = metaAno > 0 ? (totalAnoReceita / metaAno) * 100 : 0;
 
       htmlMetas += `<tr>
         <td style="font-weight:600;">${m}</td>
@@ -1355,8 +1367,8 @@
         <td style="text-align:center; font-weight:700;">
           ${recM > 0 ? percMes.toFixed(2).replace('.', ',') + '%' : '-'}
         </td>
-        <td style="text-align:center; font-weight:700;">
-          ${m === 'Janeiro' ? ((totalAnoReceita / metaAno) * 100).toFixed(2).replace('.', ',') + '% 🠉' : ''}
+        <td style="text-align:center; font-weight:700; color:#475569;">
+          ${recM > 0 ? percAnoAcumulado.toFixed(2).replace('.', ',') + '%' : '-'}
         </td>
       </tr>`;
     });
@@ -1617,6 +1629,7 @@
 
     const fatAnual = anos.map(ano => dadosDB.filter(d => d.ano === ano && String(d.recebido || '').toUpperCase() === 'SIM').reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0));
     
+    // CORREÇÃO APLICADA NO GRÁFICO TAMBÉM
     const vgvAnual = anos.map(ano => {
       return dadosDB.filter(d => {
         const matchAno = d.ano === ano;
@@ -1624,9 +1637,10 @@
         const rec = String(d.recebido || '').toUpperCase() === 'SIM';
         return matchAno && sit && rec;
       }).reduce((acc, curr) => {
-        const corr = String(curr.corretor || '').trim();
+        const corr = String(curr.corretor || '').trim().toLowerCase();
         const v = parseFloat(curr.valor) || 0;
-        return acc + (corr === 'Mario' ? v : v * 0.5);
+        const isMario = corr === 'mario' || corr === 'mário';
+        return acc + (isMario ? v : v * 0.5);
       }, 0);
     });
 
