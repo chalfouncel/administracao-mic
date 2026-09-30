@@ -76,7 +76,7 @@
   .col-fat { width: 52px; text-align: center; }
   .col-com { width: 80px; text-align: right; }
   .col-prem { width: 60px; text-align: right; }
-  .col-imp { width: 60px; text-align: right; }
+  .col-imp { width: 70px; text-align: right; }
   .col-rec { width: 54px; text-align: center; }
   .col-liq { width: 80px; text-align: right; font-weight: bold; color: var(--success); }
   .col-opc { width: 52px; text-align: center; }
@@ -543,7 +543,9 @@
 
   function renderizarTabela(dados) {
     const tbody = document.getElementById('tabela-corpo');
-    const fmt = v => typeof v === 'number' ? 'R$ ' + formatarMoedaInput(v) : (v || '-');
+    const fmt = v => (typeof v === 'number' || (!isNaN(parseFloat(v)) && String(v).trim() !== 'XXXXXX')) 
+      ? 'R$ ' + formatarMoedaInput(parseFloat(v)) 
+      : (v || '-');
 
     if (!dados || dados.length === 0) {
       tbody.innerHTML = '<tr><td colspan="17" style="text-align:center; padding:16px;">Nenhum registro encontrado com estes filtros.</td></tr>';
@@ -573,7 +575,7 @@
         '<td class="col-fat"><select class="cell-select" style="text-align:center;" onchange="atualizarItemDireto(' + id + ', \'faturada\', this.value)"><option value="NÃO" ' + (item.faturada === 'NÃO' ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (item.faturada === 'SIM' ? 'selected' : '') + '>SIM</option></select></td>' +
         '<td class="col-com"><input type="text" class="cell-input" style="text-align:right; font-weight:bold;" value="' + formatarMoedaInput(item.comissao) + '" onchange="atualizarItemDireto(' + id + ', \'comissao\', parseMoedaInput(this.value))"></td>' +
         '<td class="col-prem ' + (isX(item.premio_corretor) ? 'celula-bloqueada' : '') + '">' + (isX(item.premio_corretor) ? '' : fmt(item.premio_corretor)) + '</td>' +
-        '<td class="col-imp ' + (isX(item.imposto) ? 'celula-bloqueada' : '') + '">' + (isX(item.imposto) ? '' : fmt(item.imposto)) + '</td>' +
+        '<td class="col-imp ' + (isX(item.imposto) ? 'celula-bloqueada' : '') + '" style="text-align:right;">' + (isX(item.imposto) ? '' : fmt(item.imposto)) + '</td>' +
         '<td class="col-rec"><select class="cell-select ' + (isRecSim ? 'status-rec-sim' : 'status-rec-nao') + '" onchange="atualizarItemDireto(' + id + ', \'recebido\', this.value)"><option value="NÃO" ' + (!isRecSim ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (isRecSim ? 'selected' : '') + '>SIM</option></select></td>' +
         '<td class="col-liq">' + fmt(parseFloat(item.valor_liquido)) + '</td>' +
         '<td class="col-opc">' + (isX(item.opcao) ? '<span style="color:#94a3b8">—</span>' : '<select class="cell-select" style="font-weight:bold;" onchange="atualizarItemDireto(' + id + ', \'opcao\', this.value)"><option value="NÃO" ' + (!isOpcSim ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (isOpcSim ? 'selected' : '') + '>SIM</option></select>') + '</td>' +
