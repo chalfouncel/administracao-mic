@@ -391,9 +391,8 @@
               <tr>
                 <th style="padding:6px;">Mês</th>
                 <th style="text-align:right; padding:6px;">Receita</th>
-                <th style="text-align:right; padding:6px;">Meta Mês</th>
-                <th style="text-align:center; padding:6px;">% Mês</th>
-                <th style="text-align:center; padding:6px;">% Ano</th>
+                <th style="text-align:center; padding:6px;">META MÊS</th>
+                <th style="text-align:center; padding:6px;">META ANO</th>
               </tr>
             </thead>
             <tbody id="tabela-metas-corpo"></tbody>
@@ -466,11 +465,11 @@
 
   // Histórico de IPCA para reajuste anual automático (IPCA + 10%)
   const IPCA_HISTORICO = {
-    2022: 0.0579, // 5.79%
-    2023: 0.0462, // 4.62%
-    2024: 0.0483, // 4.83%
-    2025: 0.0450, // 4.50%
-    2026: 0.0420  // 4.20%
+    2022: 0.0579,
+    2023: 0.0462,
+    2024: 0.0483,
+    2025: 0.0450,
+    2026: 0.0420
   };
 
   // Instâncias do Chart.js
@@ -500,16 +499,26 @@
     input.value = v;
   }
 
+  // Metas de referência exatas (Base 2026: R$ 12.100,00 mês / R$ 145.200,00 ano)
   function calcularMetaAno(anoAlvo) {
-    const anoBase = 2022;
+    const anoBase = 2026;
     let metaMes = 12100.00;
     let metaAno = 145200.00;
 
-    for (let y = anoBase; y < anoAlvo; y++) {
-      const ipca = IPCA_HISTORICO[y] !== undefined ? IPCA_HISTORICO[y] : 0.045;
-      const taxaReajuste = 1 + (ipca + 0.10); // IPCA + 10%
-      metaMes *= taxaReajuste;
-      metaAno *= taxaReajuste;
+    if (anoAlvo > anoBase) {
+      for (let y = anoBase; y < anoAlvo; y++) {
+        const ipca = IPCA_HISTORICO[y] !== undefined ? IPCA_HISTORICO[y] : 0.045;
+        const taxaReajuste = 1 + (ipca + 0.10);
+        metaMes *= taxaReajuste;
+        metaAno *= taxaReajuste;
+      }
+    } else if (anoAlvo < anoBase) {
+      for (let y = anoBase - 1; y >= anoAlvo; y--) {
+        const ipca = IPCA_HISTORICO[y] !== undefined ? IPCA_HISTORICO[y] : 0.045;
+        const taxaReajuste = 1 + (ipca + 0.10);
+        metaMes /= taxaReajuste;
+        metaAno /= taxaReajuste;
+      }
     }
 
     return { metaMes, metaAno };
@@ -1192,9 +1201,10 @@
 
     dadosAno.forEach(d => {
       const m = d.mes;
-      const rec = String(d.recebido || '').toUpperCase() === 'SIM';
-      if (rec && receitaMensal[m] !== undefined) {
-        receitaMensal[m] += (parseFloat(d.comissao) || 0);
+      if (receitaMensal[m] !== undefined) {
+        // Receita considera o total de comissão registada no mês (igual ao Excel)
+        const com = parseFloat(d.comissao) || 0;
+        receitaMensal[m] += com;
       }
     });
 
@@ -1208,28 +1218,30 @@
       valoresGrafico.push(recM);
 
       const percMes = metaMes > 0 ? (recM / metaMes) * 100 : 0;
-      const percAno = metaAno > 0 ? (totalAnoReceita / metaAno) * 100 : 0;
       const bateuMeta = recM >= metaMes;
 
       htmlMetas += `<tr>
         <td style="padding:4px 6px; font-weight:600;">${m}</td>
-        <td style="text-align:right; padding:4px 6px;">R$ ${formatarMoedaInput(recM)}</td>
-        <td style="text-align:right; padding:4px 6px; color:#64748b;">R$ ${formatarMoedaInput(metaMes)}</td>
-        <td style="text-align:center; padding:4px 6px;">
-          <span class="semaforo-badge ${bateuMeta ? 'semaforo-verde' : 'semaforo-vermelho'}">${percMes.toFixed(1)}%</span>
+        <td style="text-align:right; padding:4px 6px; font-weight:700; background:${recM > 0 ? (bateuMeta ? '#86efac' : '#fca5a5') : 'transparent'}; color:#0f172a;">
+          ${recM > 0 ? formatarMoedaInput(recM) : '-'}
         </td>
-        <td style="text-align:center; padding:4px 6px; font-weight:700;">${percAno.toFixed(1)}%</td>
+        <td style="text-align:center; padding:4px 6px; font-weight:700;">
+          ${recM > 0 ? percMes.toFixed(2).replace('.', ',') + '%' : '-'}
+        </td>
+        <td style="text-align:center; padding:4px 6px; font-weight:700;">
+          ${m === 'Janeiro' ? ((totalAnoReceita / metaAno) * 100).toFixed(2).replace('.', ',') + '%' : ''}
+        </td>
       </tr>`;
     });
 
     const percAnoFinal = metaAno > 0 ? (totalAnoReceita / metaAno) * 100 : 0;
     htmlMetas += `<tr class="total-row">
-      <td style="padding:6px;">Total Acumulado</td>
-      <td style="text-align:right; padding:6px;">R$ ${formatarMoedaInput(totalAnoReceita)}</td>
-      <td style="text-align:right; padding:6px;">R$ ${formatarMoedaInput(metaAno)}</td>
-      <td colspan="2" style="text-align:center; padding:6px;">
+      <td style="padding:6px;">Total Geral</td>
+      <td style="text-align:right; padding:6px;">${formatarMoedaInput(totalAnoReceita)}</td>
+      <td style="text-align:center; padding:6px;">-</td>
+      <td style="text-align:center; padding:6px; font-weight:900;">
         <span class="semaforo-badge ${totalAnoReceita >= metaAno ? 'semaforo-verde' : 'semaforo-vermelho'}" style="font-size:0.8rem;">
-          ${percAnoFinal.toFixed(1)}% da Meta Anual
+          ${percAnoFinal.toFixed(2).replace('.', ',')}%
         </span>
       </td>
     </tr>`;
@@ -1248,14 +1260,14 @@
           {
             label: 'Receita Realizada (R$)',
             data: valoresGrafico,
-            backgroundColor: valoresGrafico.map(v => v >= metaMes ? '#16a34a' : '#d4af37'),
+            backgroundColor: valoresGrafico.map(v => v >= metaMes ? '#16a34a' : '#ef4444'),
             borderRadius: 4
           },
           {
             type: 'line',
             label: 'Meta Mensal',
             data: Array(12).fill(metaMes),
-            borderColor: '#dc2626',
+            borderColor: '#0f172a',
             borderWidth: 2,
             borderDash: [5, 5],
             pointRadius: 0,
@@ -1275,7 +1287,7 @@
     const anos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean).sort((a,b) => a - b);
     const fatRecebidoPorAno = anos.map(ano => {
       return dadosDB
-        .filter(d => d.ano === ano && String(d.recebido || '').toUpperCase() === 'SIM')
+        .filter(d => d.ano === ano)
         .reduce((acc, curr) => acc + (parseFloat(curr.comissao) || 0), 0);
     });
 
