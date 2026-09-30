@@ -766,10 +766,11 @@
   }
 
   // ========================================================
-  // GERAR RELATÓRIO ADM (PDF VERTICAL / RETRATO)
+  // GERAR RELATÓRIO ADM (PDF VERTICAL / RETRATO OTIMIZADO)
   // ========================================================
   function gerarRelatorioPDF() {
     const { jsPDF } = window.jspdf;
+    // Configurado estritamente para folha em pé (Vertical / Retrato)
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
     const alugueisOpcao = dadosDB.filter(d => 
@@ -784,20 +785,20 @@
       return mNumA - mNumB;
     });
 
-    // Cabeçalho
+    // Cabeçalho do Relatório
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.setTextColor(18, 19, 21);
-    doc.text("M&IC CORRETORES DE IMÓVEIS", 14, 16);
+    doc.text("M&IC CORRETORES DE IMÓVEIS", 14, 15);
 
-    doc.setFontSize(10);
+    doc.setFontSize(9.5);
     doc.setTextColor(197, 155, 39);
-    doc.text("Relatório Administrativo — Aluguéis com Opção SIM", 14, 22);
+    doc.text("Relatório Administrativo — Aluguéis com Opção SIM", 14, 21);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setTextColor(100, 116, 139);
-    doc.text("Gerado em: " + new Date().toLocaleDateString('pt-BR') + " às " + new Date().toLocaleTimeString('pt-BR'), 14, 27);
+    doc.text("Gerado em: " + new Date().toLocaleDateString('pt-BR') + " às " + new Date().toLocaleTimeString('pt-BR'), 14, 25.5);
 
     let somaTaxas = 0;
     const corpoTabela = alugueisOpcao.map(item => {
@@ -812,23 +813,23 @@
       ];
     });
 
-    // Tabela otimizada para formato vertical (retrato / portrait) com larguras customizadas e espaço expandido para Unidade
+    // Tabela estritamente dimensionada para A4 Retrato sem quebras nas colunas
     doc.autoTable({
-      startY: 31,
+      startY: 29,
       head: [['Ano', 'Mês', 'Nome / Inquilino', 'Unidade', 'ADM']],
       body: corpoTabela,
       theme: 'grid',
-      headStyles: { fillColor: [18, 19, 21], textColor: [212, 175, 55], fontStyle: 'bold', fontSize: 8.5, cellPadding: 3 },
-      bodyStyles: { fontSize: 8, textColor: [30, 41, 59], cellPadding: 2.5 },
+      headStyles: { fillColor: [18, 19, 21], textColor: [212, 175, 55], fontStyle: 'bold', fontSize: 8, cellPadding: 2.5 },
+      bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59], cellPadding: 2 },
       columnStyles: {
-        0: { cellWidth: 15, halign: 'center' }, // Ano compacto
-        1: { cellWidth: 26 },                     // Mês compacto
-        2: { cellWidth: 68 },                     // Nome / Inquilino
-        3: { cellWidth: 55, halign: 'center' },   // Unidade com espaço generoso para evitar quebra
-        4: { cellWidth: 38, halign: 'right' }     // ADM
+        0: { cellWidth: 12, halign: 'center' }, // Ano estreito
+        1: { cellWidth: 22 },                     // Mês otimizado
+        2: { cellWidth: 70 },                     // Nome / Inquilino com espaço adequado
+        3: { cellWidth: 64 },                     // Unidade com grande largura para eliminar quebra de linha
+        4: { cellWidth: 32, halign: 'right' }     // ADM (Taxa)
       },
       foot: [['', '', '', 'Total Geral:', 'R$ ' + formatarMoedaInput(somaTaxas)]],
-      footStyles: { fillColor: [217, 225, 242], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 8.5, halign: 'right', cellPadding: 3 }
+      footStyles: { fillColor: [217, 225, 242], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 8.5, halign: 'right', cellPadding: 2.5 }
     });
 
     doc.save("Relatorio_ADM_Opcoes_SIM.pdf");
@@ -998,14 +999,14 @@
     Object.keys(treeOpcoes).sort().forEach(ano => {
       const isAnoExp = !!anosExpandidos[ano];
       const sinalAno = isAnoExp ? '[-] ' : '[+] ';
-      htmlOpcoes += '<tr class="tree-node" onclick="toggleExpandirAno(\'' + ano + '\')"><td>' + sinalAno + '📅 ' + ano + '</td><td style="text-align:right;">' + fmt(treeOpcoes[ano].total) + '</td></tr>';
+      htmlOpcoes += '<tr class="tree-node" onclick="toggleExpandirAno(\'' + ano + \')"><td>' + sinalAno + '📅 ' + ano + '</td><td style="text-align:right;">' + fmt(treeOpcoes[ano].total) + '</td></tr>';
       
       if (isAnoExp) {
         Object.keys(treeOpcoes[ano].meses).forEach(mes => {
           const chaveMes = ano + '-' + mes;
           const isMesExp = !!mesesExpandidos[chaveMes];
           const sinalMes = isMesExp ? '[-] ' : '[+] ';
-          htmlOpcoes += '<tr class="tree-subnode" onclick="toggleExpandirMes(\'' + chaveMes + '\')"><td>' + sinalMes + '↳ ' + mes + '</td><td style="text-align:right;">' + fmt(treeOpcoes[ano].meses[mes].total) + '</td></tr>';
+          htmlOpcoes += '<tr class="tree-subnode" onclick="toggleExpandirMes(\'' + chaveMes + \')"><td>' + sinalMes + '↳ ' + mes + '</td><td style="text-align:right;">' + fmt(treeOpcoes[ano].meses[mes].total) + '</td></tr>';
           
           if (isMesExp) {
             treeOpcoes[ano].meses[mes].itens.forEach(it => {
