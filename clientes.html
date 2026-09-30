@@ -116,7 +116,6 @@
   .kpi-ano-item { display: flex; justify-content: space-between; font-size: 0.65rem; color: #475569; gap: 6px; padding: 1px 3px; border-radius: 3px; }
   .kpi-ano-item span:last-child { font-weight: 700; color: #1e293b; }
   
-  /* Tarja verde para o melhor resultado */
   .kpi-ano-melhor { background-color: #dcfce7 !important; color: #166534 !important; font-weight: bold; }
   .kpi-ano-melhor span { color: #166534 !important; }
 
@@ -387,7 +386,7 @@
   <!-- ABA 3: GRÁFICOS & METAS (BI AVANÇADO) -->
   <div id="page-graficos" class="tab-page">
     
-    <!-- CARDS DE KPIS COM DESTAQUE VERDE NO MELHOR RESULTADO -->
+    <!-- CARDS DE KPIS ALINHADOS COM O TOTAL DA TABELA DE METAS -->
     <div class="kpi-row">
       <div class="kpi-card" style="border-left-color: #001e60;">
         <div class="kpi-main-info">
@@ -467,7 +466,7 @@
     <div class="card" style="margin-bottom: 14px;">
       <div class="card-title">
         <span>Curva de Crescimento — Recebimentos em Administração (com Valores)</span>
-        <span style="font-size:0.75rem; color:#64748b;">Evolução cronológica mês a mês (Coluna P com recebido SIM)</span>
+        <span style="font-size:0.75rem; color:#64748b;">Evolução cronológica mês a mês (Coluna P)</span>
       </div>
       <div class="chart-container" style="height: 300px;">
         <canvas id="chart-taxa-adm-evolucao"></canvas>
@@ -1220,7 +1219,7 @@
   }
 
   // ========================================================
-  // ABA 3: BI & GRÁFICOS COM DESTAQUE "MELHOR RESULTADO"
+  // ABA 3: BI & GRÁFICOS (FATURAMENTO ALINHADO COM TABELA DE METAS)
   // ========================================================
   function popularSeletorAnoGraficos() {
     const sel = document.getElementById('sel-ano-graficos');
@@ -1240,25 +1239,44 @@
     if (!dadosDB || dadosDB.length === 0) return;
 
     let totalFatHist = 0;
-    let totalVgvHist = 0;
-    let totalVendasQtd = 0;
-
     const fatPorAno = {};
     const vgvPorAno = {};
     const qtdVendasPorAno = {};
     const admPorAno = {};
 
+    const valoresExatosExcel2026 = {
+      'Janeiro': 15615.47, 'Fevereiro': 14536.81, 'Março': 23744.53,
+      'Abril': 11358.89, 'Maio': 43418.00, 'Junho': 12883.08,
+      'Julho': 22996.97, 'Agosto': 3994.50, 'Setembro': 20094.70
+    };
+
+    // Calcula os totais por ano igualzinho à tabela de metas (soma da receita do ano)
+    const anosUnicos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean);
+    
+    anosUnicos.forEach(ano => {
+      const dadosDoAno = dadosDB.filter(d => d.ano === ano);
+      let somaAno = 0;
+      
+      if (ano === 2026) {
+        somaAno = Object.values(valoresExatosExcel2026).reduce((a,b) => a+b, 0);
+      } else {
+        somaAno = dadosDoAno.reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
+      }
+      
+      fatPorAno[ano] = somaAno;
+      totalFatHist += somaAno;
+    });
+
+    let totalVgvHist = 0;
+    let totalVendasQtd = 0;
+
     dadosDB.forEach(d => {
       const ano = d.ano;
       const sit = String(d.situacao || '').toUpperCase();
       const rec = String(d.recebido || '').toUpperCase() === 'SIM';
-      const valLiq = parseFloat(d.valor_liquido) || 0;
       const valVgv = parseFloat(d.valor) || 0;
 
       if (rec && ano) {
-        totalFatHist += valLiq;
-        fatPorAno[ano] = (fatPorAno[ano] || 0) + valLiq;
-
         if (sit === 'VENDA') {
           totalVgvHist += valVgv;
           totalVendasQtd++;
@@ -1270,22 +1288,18 @@
       if (rec && ano) {
         const n = String(d.nome || '').trim().toLowerCase();
         if (n === 'recebimento das administrações' || n === 'recebimento das administracoes' || n.includes('administrações m&ic') || n.includes('administracoes m&ic')) {
-          admPorAno[ano] = (admPorAno[ano] || 0) + valLiq;
+          admPorAno[ano] = (admPorAno[ano] || 0) + (parseFloat(d.valor_liquido) || 0);
         }
       }
     });
 
     const anosOrdenados = Object.keys(fatPorAno).sort((a,b) => b - a);
 
-    // Função auxiliar para encontrar a chave com o maior valor numérico
     const acharMelhorAno = (obj) => {
       let melhor = null;
       let maxVal = -1;
       Object.keys(obj).forEach(a => {
-        if (obj[a] > maxVal) {
-          maxVal = obj[a];
-          melhor = a;
-        }
+        if (obj[a] > maxVal) { maxVal = obj[a]; melhor = a; }
       });
       return melhor;
     };
@@ -1295,28 +1309,24 @@
     const melhorVendasAno = acharMelhorAno(qtdVendasPorAno);
     const melhorAdmAno = acharMelhorAno(admPorAno);
 
-    // Preenche KPI 1: Faturamento
     document.getElementById('kpi-fat-total').innerText = 'R$ ' + formatarMoedaInput(totalFatHist);
     document.getElementById('kpi-fat-breakdown').innerHTML = anosOrdenados.map(a => {
-      const isMelhor = a === melhorFatAno;
+      const isMelhor = a == melhorFatAno;
       return `<div class="kpi-ano-item ${isMelhor ? 'kpi-ano-melhor' : ''}"><span>${a}:</span><span>R$ ${formatarMoedaInput(fatPorAno[a])}</span></div>`;
     }).join('');
 
-    // Preenche KPI 2: VGV
     document.getElementById('kpi-vgv-total').innerText = 'R$ ' + formatarMoedaInput(totalVgvHist);
     document.getElementById('kpi-vgv-breakdown').innerHTML = anosOrdenados.map(a => {
-      const isMelhor = a === melhorVgvAno;
+      const isMelhor = a == melhorVgvAno;
       return `<div class="kpi-ano-item ${isMelhor ? 'kpi-ano-melhor' : ''}"><span>${a}:</span><span>R$ ${formatarMoedaInput(vgvPorAno[a] || 0)}</span></div>`;
     }).join('');
 
-    // Preenche KPI 3: Contratos de Venda
     document.getElementById('kpi-qtd-vendas').innerText = totalVendasQtd;
     document.getElementById('kpi-vendas-breakdown').innerHTML = anosOrdenados.map(a => {
-      const isMelhor = a === melhorVendasAno;
+      const isMelhor = a == melhorVendasAno;
       return `<div class="kpi-ano-item ${isMelhor ? 'kpi-ano-melhor' : ''}"><span>${a}:</span><span>${qtdVendasPorAno[a] || 0} unid.</span></div>`;
     }).join('');
 
-    // --- SEÇÃO 1: ACOMPANHAMENTO DE METAS DO ANO ---
     const selAno = parseInt(document.getElementById('sel-ano-graficos').value) || 2026;
     const { metaMes, metaAno } = calcularMetaAno(selAno);
 
@@ -1325,12 +1335,6 @@
     const dadosAno = dadosDB.filter(d => d.ano === selAno);
     const receitaMensal = {};
     MESES_LISTA.forEach(m => receitaMensal[m] = 0);
-
-    const valoresExatosExcel2026 = {
-      'Janeiro': 15615.47, 'Fevereiro': 14536.81, 'Março': 23744.53,
-      'Abril': 11358.89, 'Maio': 43418.00, 'Junho': 12883.08,
-      'Julho': 22996.97, 'Agosto': 3994.50, 'Setembro': 20094.70
-    };
 
     dadosAno.forEach(d => {
       const m = d.mes;
@@ -1558,7 +1562,7 @@
 
     const anosAdmOrd = Object.keys(admPorAno).sort((a,b) => b - a);
     document.getElementById('kpi-adm-breakdown').innerHTML = anosAdmOrd.map(a => {
-      const isMelhor = a === melhorAdmAno;
+      const isMelhor = a == melhorAdmAno;
       return `<div class="kpi-ano-item ${isMelhor ? 'kpi-ano-melhor' : ''}"><span>${a}:</span><span>R$ ${formatarMoedaInput(admPorAno[a])}</span></div>`;
     }).join('');
 
