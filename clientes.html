@@ -37,7 +37,7 @@
   .form-scroll-container { width: 100%; }
   .form-row-exact { display: flex; gap: 6px; width: 100%; align-items: flex-end; }
   .field-col { display: flex; flex-direction: column; }
-  
+
   .fc-ano { width: 52px; flex-shrink: 0; }
   .fc-mes { width: 58px; flex-shrink: 0; }
   .fc-nome { flex: 2.2; min-width: 140px; }
@@ -72,7 +72,7 @@
     overflow: hidden; 
     text-overflow: ellipsis; 
   }
-  
+
   .form-row-exact input, 
   .form-row-exact select,
   .form-row-bottom input { 
@@ -85,13 +85,13 @@
     height: 26px;
     background-color: #fff;
   }
-  
+
   .form-row-exact select {
     padding-left: 2px;
     padding-right: 1px;
     font-size: 0.68rem;
   }
-  
+
   .form-row-exact input:focus, 
   .form-row-exact select:focus,
   .form-row-bottom input:focus { 
@@ -265,7 +265,7 @@
               <select id="inp-mes" required style="text-align:center;">
                 <option value="Janeiro">Jan</option><option value="Fevereiro">Fev</option><option value="Março">Mar</option>
                 <option value="Abril">Abr</option><option value="Maio">Mai</option><option value="Junho">Jun</option>
-                <option value="Julho">Jul</option><option value="Agosto">Ago</option><option value="Setembro">Set</option>
+                <option value="Julho">Julho</option><option value="Agosto">Ago</option><option value="Setembro">Set</option>
                 <option value="Outubro">Out</option><option value="Novembro">Nov</option><option value="Dezembro">Dez</option>
               </select>
             </div>
@@ -644,6 +644,32 @@
     if (fRec) fRec.value = 'NÃO';
   }
 
+  // REGRA EXCEL COMISSÃO:
+  // =SEERRO(SE([@Nome]="Recebimento das Administrações";[@Valor];(SE([@Corretor]="Parceria";[@Valor]*35%;(SE([@Situação]="ALUGUEL";[@Valor]*70%;[@Valor]*[@[%]])))));"")
+  function calcularComissaoFormula(nome, situacao, corretor, valor, comissaoManual = null) {
+    const nomeNorm = String(nome || '').trim().toLowerCase();
+    const isRecebimentoAdm = nomeNorm === 'recebimento das administrações' || nomeNorm === 'recebimento das administracoes';
+    const sitNorm = String(situacao || '').trim().toUpperCase();
+    const corrNorm = String(corretor || '').trim();
+
+    if (isRecebimentoAdm) {
+      return valor;
+    }
+    if (corrNorm.toLowerCase() === 'parceria') {
+      return valor * 0.35;
+    }
+    if (sitNorm === 'ALUGUEL') {
+      return valor * 0.70;
+    }
+
+    if (comissaoManual !== null && comissaoManual !== undefined && comissaoManual > 0) {
+      return comissaoManual;
+    }
+
+    const pctCorretor = TABELA_CORRETORES[corrNorm] !== undefined ? TABELA_CORRETORES[corrNorm] : 0.02;
+    return valor * pctCorretor;
+  }
+
   function calcularFórmulas(item) {
     const nome = (item.nome || '').trim();
     const situacao = (item.situacao || '').trim().toUpperCase();
@@ -652,7 +678,8 @@
     const premio = parseMoedaInput(item.premio);
     const faturada = (item.faturada || 'NÃO').trim().toUpperCase();
 
-    let comissao = parseMoedaInput(item.comissao);
+    let comissaoManual = item.comissao !== undefined ? parseMoedaInput(item.comissao) : null;
+    let comissao = calcularComissaoFormula(nome, situacao, corretor, valor, comissaoManual);
 
     let premioCorretor = 'XXXXXX';
     if (situacao === 'ALUGUEL') {
@@ -682,7 +709,7 @@
       opcao = 'XXXXXX';
     }
 
-    // REGRA DO EXCEL:
+    // REGRA EXCEL TAXA MÊS:
     // =SE([@Situação]="ALUGUEL";(SE([@OPÇÃO]="NÃO";"XXXXXX";(SE([@Nome]="Recebimento das administrações";"xxxxxx";(SE(E([@Situação]="ALUGUEL"; [@Valor]<1500);1500 * 2%;[@Valor]*2%))))));"XXXXXX")
     let taxaMensal = 'XXXXXX';
     const nomeNormalizado = nome.toLowerCase();
@@ -719,13 +746,22 @@
   }
 
   function recalcularForm() {
+    const nome = document.getElementById('inp-nome').value;
+    const situacao = document.getElementById('inp-situacao').value;
+    const corretor = document.getElementById('inp-corretor').value;
+    const valor = parseMoedaInput(document.getElementById('inp-valor').value);
+
+    // Atualiza automaticamente o campo de Comissão pela regra do Excel
+    const novaComissao = calcularComissaoFormula(nome, situacao, corretor, valor, null);
+    document.getElementById('inp-comissao').value = formatarMoedaInput(novaComissao);
+
     const raw = {
-      nome: document.getElementById('inp-nome').value,
-      situacao: document.getElementById('inp-situacao').value,
-      corretor: document.getElementById('inp-corretor').value,
-      valor: document.getElementById('inp-valor').value,
+      nome: nome,
+      situacao: situacao,
+      corretor: corretor,
+      valor: valor,
       premio: document.getElementById('inp-premio').value,
-      comissao: document.getElementById('inp-comissao').value,
+      comissao: novaComissao,
       faturada: document.getElementById('inp-faturada').value,
       opcao: document.getElementById('inp-opcao').value,
       taxa_mensal: document.getElementById('inp-taxa').value,
@@ -1176,7 +1212,7 @@
       const saldo = mapaReceberClientes[nome];
       totalAReceber += saldo;
       return '<tr><td>' + nome + '</td><td style="text-align:right;">' + fmt(saldo) + '</td></tr>';
-    }).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ' + fmt(totalAReceber) + '</td></tr>';
+    }).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalAReceber) + '</td></tr>';
 
     const situacoesResumoVenda = ['VENDA', 'REGISTRO', 'CRÉDITO'];
     const baseVenda = basePeriodo.filter(d => situacoesResumoVenda.includes(String(d.situacao || '').toUpperCase()));
