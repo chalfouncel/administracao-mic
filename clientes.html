@@ -281,7 +281,7 @@
               <select id="inp-mes" required style="text-align:center;">
                 <option value="Janeiro">Jan</option><option value="Fevereiro">Fev</option><option value="Março">Mar</option>
                 <option value="Abril">Abr</option><option value="Maio">Mai</option><option value="Junho">Jun</option>
-                <option value="Julho">Jul</option><option value="Agosto">Ago</option><option value="Setembro">Set</option>
+                <option value="Julho">Julho</option><option value="Agosto">Ago</option><option value="Setembro">Set</option>
                 <option value="Outubro">Out</option><option value="Novembro">Nov</option><option value="Dezembro">Dez</option>
               </select>
             </div>
@@ -693,7 +693,6 @@
   let chartInstQtdOps = null;
   let tipoRecebiveisAtual = 'TODOS';
 
-  // Controle de edição manual de comissão no formulário
   let comissaoEditadaManualmente = false;
 
   // VARIÁVEIS DO MÓDULO DE REGISTRO
@@ -791,9 +790,6 @@
     if (fRec) fRec.value = 'NÃO';
   }
 
-  // REGRA DE COMISSÃO:
-  // Se o usuário informou um valor manual, ele prevalece categoricamente.
-  // Caso contrário, calcula pela regra padrão do Excel.
   function calcularComissaoFormula(nome, situacao, corretor, valor, comissaoManual = null) {
     if (comissaoManual !== null && comissaoManual !== undefined && !isNaN(comissaoManual) && comissaoManual > 0) {
       return comissaoManual;
@@ -801,7 +797,7 @@
 
     const nomeNorm = String(nome || '').trim().toLowerCase();
     const isRecebimentoAdm = nomeNorm === 'recebimento das administrações' || nomeNorm === 'recebimento das administracoes';
-    const isRecebimentoMic = nomeNorm.includes('recebimento das administrações m&ic') || nomeNorm.includes('recebimento das administracoes m&ic');
+    const isRecebimentoMic = nomeNorm.includes('administrações m&ic') || nomeNorm.includes('administracoes m&ic');
     const sitNorm = String(situacao || '').trim().toUpperCase();
     const corrNorm = String(corretor || '').trim();
 
@@ -868,9 +864,9 @@
         taxaMensal = 'XXXXXX';
       } else {
         if (valor < 1500) {
-          taxaMensal = 1500 * 0.02; // 30,00 fixo
+          taxaMensal = 1500 * 0.02;
         } else {
-          taxaMensal = valor * 0.02; // 2% do valor
+          taxaMensal = valor * 0.02;
         }
       }
     } else {
@@ -891,7 +887,6 @@
     };
   }
 
-  // Quando o usuário digita diretamente no campo de comissão, ativa a trava manual
   function recalcularComissaoManual() {
     comissaoEditadaManualmente = true;
     recalcularForm(true);
@@ -951,7 +946,6 @@
     const anoAtual = hoje.getFullYear();
     const mesAtualNome = MESES_LISTA[hoje.getMonth()];
 
-    // 1. Checa se os dois lançamentos já existem para o mês e ano correntes
     const existeAdmGeral = dadosDB.some(d => {
       const n = String(d.nome || '').trim().toLowerCase();
       return d.ano === anoAtual && d.mes === mesAtualNome && (n === 'recebimento das administrações' || n === 'recebimento das administracoes');
@@ -966,7 +960,6 @@
 
     let novosParaInserir = [];
 
-    // 2. Calcula total das Opções (se necessário)
     if (!existeAdmGeral) {
       let totalOpcoes = 0;
       dadosDB.forEach(d => {
@@ -995,7 +988,6 @@
       novosParaInserir.push(payloadAdmGeral);
     }
 
-    // 3. Calcula total da Taxa de Adm Fixa na tabela de Locações (se necessário)
     if (!existeAdmMic) {
       let totalTaxaFixaLocacoes = 0;
       try {
@@ -1032,7 +1024,6 @@
       novosParaInserir.push(payloadAdmMic);
     }
 
-    // 4. Grava no banco e atualiza a interface
     if (novosParaInserir.length > 0) {
       try {
         const respPost = await fetch(SUPABASE_URL + '/rest/v1/clientes_producao', {
@@ -1061,7 +1052,6 @@
       });
       dadosDB = await res.json();
       
-      // Executa a automação de verificação do 1º dia/mês corrente
       await verificarEGerarLancamentosMensaisAutomaticos();
 
       filtrarTabela();
@@ -1640,11 +1630,12 @@
         qtdVendasPorAno[ano] = (qtdVendasPorAno[ano] || 0) + 1;
       }
 
-      if (rec && ano) {
-        const n = String(d.nome || '').trim().toLowerCase();
-        if (n === 'recebimento das administrações' || n === 'recebimento das administracoes' || n.includes('administrações m&ic') || n.includes('administracoes m&ic')) {
-          admPorAno[ano] = (admPorAno[ano] || 0) + (parseFloat(d.valor_liquido) || 0);
-        }
+      const n = String(d.nome || '').trim().toLowerCase();
+      const isAdmNome = n === 'recebimento das administrações' || n === 'recebimento das administracoes' || n.includes('administrações m&ic') || n.includes('administracoes m&ic');
+
+      // Para a soma por ano de administração, considera valores existentes
+      if (ano && isAdmNome) {
+        admPorAno[ano] = (admPorAno[ano] || 0) + (parseFloat(d.valor_liquido) || 0);
       }
     });
 
@@ -1662,7 +1653,6 @@
     const melhorFatAno = acharMelhorAno(fatPorAno);
     const melhorVgvAno = acharMelhorAno(vgvPorAno);
     const melhorVendasAno = acharMelhorAno(qtdVendasPorAno);
-    const melhorAdmAno = acharMelhorAno(admPorAno);
 
     document.getElementById('kpi-fat-total').innerText = 'R$ ' + formatarMoedaInput(totalFatHist);
     document.getElementById('kpi-fat-breakdown').innerHTML = anosOrdenados.map(a => {
@@ -1843,12 +1833,19 @@
     });
   }
 
+  // =================================================================================
+  // CORREÇÃO CRÍTICA DA CURVA DE CRESCIMENTO (ADMINISTRAÇÕES)
+  // =================================================================================
   function renderizarGraficoCurvaAdm() {
     const timelineChaves = [];
     dadosDB.forEach(d => {
       if (d.ano && d.mes) {
-        const chave = `${d.ano}-${String(ORDEM_MESES[d.mes] || 0).padStart(2, '0')}-${d.mes}`;
-        if (!timelineChaves.includes(chave)) timelineChaves.push(chave);
+        const n = String(d.nome || '').trim().toLowerCase();
+        const isAdm = n === 'recebimento das administrações' || n === 'recebimento das administracoes' || n.includes('administrações m&ic') || n.includes('administracoes m&ic');
+        if (isAdm) {
+          const chave = `${d.ano}-${String(ORDEM_MESES[d.mes] || 0).padStart(2, '0')}-${d.mes}`;
+          if (!timelineChaves.includes(chave)) timelineChaves.push(chave);
+        }
       }
     });
     timelineChaves.sort();
@@ -1864,26 +1861,27 @@
       const anoNum = parseInt(partes[0]);
       const mesNome = partes[2];
 
-      labels.push(`${mesNome.slice(0, 3)}/${String(anoNum).slice(2)}`);
-
+      // Busca o valor líquido lançado para as Administrações Gerais
       const somaGeral = dadosDB.filter(d => {
         const n = String(d.nome || '').trim().toLowerCase();
-        const rec = String(d.recebido || '').toUpperCase() === 'SIM';
-        return d.ano === anoNum && d.mes === mesNome && rec && (n === 'recebimento das administrações' || n === 'recebimento das administracoes');
+        return d.ano === anoNum && d.mes === mesNome && (n === 'recebimento das administrações' || n === 'recebimento das administracoes');
       }).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
 
+      // Busca o valor líquido lançado para as Administrações M&IC
       const somaMic = dadosDB.filter(d => {
         const n = String(d.nome || '').trim().toLowerCase();
-        const rec = String(d.recebido || '').toUpperCase() === 'SIM';
-        return d.ano === anoNum && d.mes === mesNome && rec && (n.includes('administrações m&ic') || n.includes('administracoes m&ic'));
+        return d.ano === anoNum && d.mes === mesNome && (n.includes('administrações m&ic') || n.includes('administracoes m&ic'));
       }).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
 
       const somaTotalPeriodo = somaGeral + somaMic;
 
-      serieGeral.push(somaGeral);
-      serieMic.push(somaMic);
-
-      if (somaTotalPeriodo > 0) ultimoValorValido = somaTotalPeriodo;
+      // Só inclui o mês no gráfico se houver valor (evita queda falsa para 0 no mês corrente em aberto)
+      if (somaTotalPeriodo > 0 || (somaGeral > 0 || somaMic > 0)) {
+        labels.push(`${mesNome.slice(0, 3)}/${String(anoNum).slice(2)}`);
+        serieGeral.push(somaGeral);
+        serieMic.push(somaMic);
+        ultimoValorValido = somaTotalPeriodo;
+      }
     });
 
     if (ultimoValorValido > 0) {
@@ -1893,10 +1891,9 @@
     const admPorAno = {};
     dadosDB.forEach(d => {
       const ano = d.ano;
-      const rec = String(d.recebido || '').toUpperCase() === 'SIM';
       const val = parseFloat(d.valor_liquido) || 0;
       const n = String(d.nome || '').trim().toLowerCase();
-      if (rec && ano && (n === 'recebimento das administrações' || n === 'recebimento das administracoes' || n.includes('administrações m&ic') || n.includes('administracoes m&ic'))) {
+      if (ano && (n === 'recebimento das administrações' || n === 'recebimento das administracoes' || n.includes('administrações m&ic') || n.includes('administracoes m&ic'))) {
         admPorAno[ano] = (admPorAno[ano] || 0) + val;
       }
     });
@@ -2162,7 +2159,6 @@
       return '';
     };
 
-    // --- VENDEDORES ---
     for(let i = 0; i < qtdVendAtual; i++) {
       html += `
         <tr><td colspan="4" class="titulo-secao-reg">VENDEDOR ${i+1}</td></tr>
@@ -2181,7 +2177,6 @@
       `;
     }
 
-    // --- IMÓVEL ---
     const imovelGet = campo => dadosPreenchidos && dadosPreenchidos.imovel ? (dadosPreenchidos.imovel[campo] || '') : '';
     html += `
         <tr><td colspan="4" class="titulo-secao-reg">DADOS DO IMÓVEL</td></tr>
@@ -2202,7 +2197,6 @@
         <tr><td><strong>IPTU</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-imovel" data-campo="iptu" value="${imovelGet('iptu')}"></td></tr>
     `;
 
-    // --- COMPRADORES ---
     html += `<tr><td colspan="4" class="titulo-secao-reg">COMPRADORES</td></tr>`;
     for(let i = 0; i < qtdCompAtual; i++) {
       html += `
