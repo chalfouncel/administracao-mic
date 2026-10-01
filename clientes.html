@@ -214,9 +214,11 @@
   .bg-certidao-reg { background-color: #fff9c4 !important; font-weight: bold; }
   .titulo-secao-reg { background-color: #e2e8f0; font-weight: 900; text-transform: uppercase; font-size: 0.85rem; text-align: center; letter-spacing: 1px; }
 
-  /* CENTRAL DE DOCUMENTAÇÃO E LINKS CARTORÁRIOS */
-  .doc-hub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
-  @media(max-width: 900px) { .doc-hub-grid { grid-template-columns: 1fr; } }
+  /* NOVO LAYOUT DIVIDIDO 50 / 50 NA ABA REGISTROS */
+  .registros-split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  @media(max-width: 1050px) { .registros-split-layout { grid-template-columns: 1fr; } }
+
+  .doc-hub-column { display: flex; flex-direction: column; gap: 14px; }
   .doc-block { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
   .doc-block-title { font-size: 0.88rem; font-weight: 800; color: var(--primary); padding-bottom: 8px; margin-bottom: 10px; border-bottom: 2px solid #f1f5f9; display: flex; align-items: center; gap: 6px; }
   .doc-list { display: flex; flex-direction: column; gap: 7px; }
@@ -227,7 +229,6 @@
   .doc-item-desc { font-size: 0.66rem; color: #64748b; }
   .doc-link-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.68rem; font-weight: 700; background: #001e60; color: #fff; text-decoration: none; border-radius: 4px; transition: 0.2s; white-space: nowrap; }
   .doc-link-btn:hover { background: var(--accent); color: #121315; }
-  .doc-tag-fisica { background: #fef3c7; color: #92400e; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.68rem; border: 1px solid #fde68a; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -280,7 +281,7 @@
               <select id="inp-mes" required style="text-align:center;">
                 <option value="Janeiro">Jan</option><option value="Fevereiro">Fev</option><option value="Março">Mar</option>
                 <option value="Abril">Abr</option><option value="Maio">Mai</option><option value="Junho">Jun</option>
-                <option value="Julho">Julho</option><option value="Agosto">Ago</option><option value="Setembro">Set</option>
+                <option value="Julho">Jul</option><option value="Agosto">Ago</option><option value="Setembro">Set</option>
                 <option value="Outubro">Out</option><option value="Novembro">Nov</option><option value="Dezembro">Dez</option>
               </select>
             </div>
@@ -462,19 +463,74 @@
     <div class="graficos-grid-2col"><div class="chart-box"><div class="chart-title"><span>Faturamento vs VGV Anual (R$)</span></div><div class="chart-container"><canvas id="chart-fat-vgv-anual"></canvas></div></div><div class="chart-box"><div class="chart-title"><span>Volume Anual de Negócios (Qtd Vendas vs Qtd Aluguéis)</span></div><div class="chart-container"><canvas id="chart-qtd-ops-anual"></canvas></div></div></div>
   </div>
 
-  <!-- ABA 4: REGISTROS -->
+  <!-- ABA 4: REGISTROS (LAYOUT DIVIDIDO 50 / 50) -->
   <div id="page-registros" class="tab-page">
 
-    <!-- CENTRAL DE DOCUMENTAÇÃO E LINKS CARTORÁRIOS -->
-    <div class="card" style="border-top: 3px solid var(--accent);">
-      <div class="card-title">
-        <span>🏛️ Central de Documentação & Links Cartorários</span>
-        <span style="font-size:0.75rem; color:#64748b; font-weight: normal;">Acesso rápido para emissão de certidões e procedimentos no RJ</span>
+    <div class="registros-split-layout">
+      <!-- LADO ESQUERDO: MÓDULO DE REGISTROS -->
+      <div class="registros-col-esquerda">
+        <!-- TELA 1: GRID DE QUADRADINHOS -->
+        <div id="view-registros-grid">
+          <div class="card" style="border-top: 3px solid var(--accent); margin-bottom: 0;">
+            <div class="card-title">
+              <span>Módulo de Registros (Apenas Novas Entradas)</span>
+            </div>
+            <div id="container-grid-registros" class="grid-registros">
+              <!-- Os cards serão injetados aqui via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- TELA 2: DETALHE DO REGISTRO (FORMULÁRIO) -->
+        <div id="view-registros-detalhe" style="display: none;">
+          <div class="card" style="border-top: 3px solid var(--accent); margin-bottom: 0;">
+            <div class="card-title">
+              <span id="titulo-detalhe-registro">Detalhes do Registro</span>
+              <button class="btn btn-light" onclick="voltarParaGridRegistros()">⬅ Voltar para Lista</button>
+            </div>
+
+            <!-- SETUP INICIAL SE NÃO TIVER DADOS -->
+            <div id="setup-form-registro" style="max-width: 400px; margin: 20px auto; text-align: center;">
+              <p>Informe as quantidades para gerar a estrutura de campos:</p>
+              <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                <div style="flex: 1;"><label>Vendedores</label><input type="number" id="qtdVendSetup" value="1" min="1"></div>
+                <div style="flex: 1;"><label>Compradores</label><input type="number" id="qtdCompSetup" value="1" min="1"></div>
+              </div>
+              <button class="btn btn-dark w-100" style="width: 100%;" onclick="gerarTabelaRegistroDinamicamente()">Gerar Formulário</button>
+            </div>
+
+            <!-- A TABELA DE PREENCHIMENTO -->
+            <div id="container-tabela-registro" style="display: none; overflow-x: auto;">
+              <!-- BOTOES DE AÇÃO AQUI -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-success" style="font-size: 0.8rem; padding: 8px 14px;" onclick="concluirProcessoRegistro()">✅ Processo Concluído</button>
+                  <button class="btn btn-danger" style="font-size: 0.8rem; padding: 8px 14px;" onclick="excluirProcessoRegistro()">🗑️ Excluir Processo</button>
+                </div>
+                <button class="btn btn-gold" onclick="salvarDadosDoRegistroDB()" id="btnSalvarRegistroAtual">💾 Salvar Dados do Registro</button>
+              </div>
+
+              <table class="tabela-registro-form">
+                <thead>
+                  <tr>
+                    <th style="width: 15%;">Campo</th>
+                    <th style="width: 35%;">Dados</th>
+                    <th style="width: 25%; text-align: center;">Certidão Civil</th>
+                    <th style="width: 25%; text-align: center;">Certidão Fazendária</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-tabela-registro">
+                  <!-- JS Injeta as linhas aqui -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="doc-hub-grid">
-        <!-- BLOCO 1: VALIDAÇÃO DO NEGÓCIO -->
-        <div class="doc-block">
+      <!-- LADO DIREITO: CENTRAL DE DOCUMENTAÇÃO & LINKS CARTORÁRIOS -->
+      <div class="doc-hub-column">
+        <div class="doc-block" style="border-top: 3px solid var(--accent);">
           <div class="doc-block-title">
             <span>📑 Documentos para Validação do Negócio</span>
           </div>
@@ -537,8 +593,7 @@
           </div>
         </div>
 
-        <!-- BLOCO 2: DOCUMENTOS PARA REGISTRO -->
-        <div class="doc-block">
+        <div class="doc-block" style="border-top: 3px solid #001e60;">
           <div class="doc-block-title">
             <span>🏛️ Documentos para Levar a Registro</span>
           </div>
@@ -549,14 +604,6 @@
                 <span class="doc-item-desc">Data superior à idade do comprador (1º imóvel) • e-Cartório RJ</span>
               </div>
               <a href="https://e-cartoriorj.com.br/Home/ListarCertidoes/?categoria=0#" target="_blank" rel="noopener noreferrer" class="doc-link-btn">Acessar ↗</a>
-            </div>
-
-            <div class="doc-item" style="background:#fffbeb; border-color:#fde68a;">
-              <div class="doc-item-info">
-                <span class="doc-item-title">Contrato de Financiamento</span>
-                <span class="doc-item-desc">1 via original com a procuração emitida pelo Banco</span>
-              </div>
-              <span class="doc-tag-fisica">📦 Via Física Original</span>
             </div>
 
             <div class="doc-item">
@@ -603,64 +650,6 @@
       </div>
     </div>
 
-    <!-- TELA 1: GRID DE QUADRADINHOS -->
-    <div id="view-registros-grid">
-      <div class="card">
-        <div class="card-title">
-          <span>Módulo de Registros (Apenas Novas Entradas)</span>
-        </div>
-        <div id="container-grid-registros" class="grid-registros">
-          <!-- Os cards serão injetados aqui via JS -->
-        </div>
-      </div>
-    </div>
-
-    <!-- TELA 2: DETALHE DO REGISTRO (FORMULÁRIO) -->
-    <div id="view-registros-detalhe" style="display: none; max-width: 900px; margin: 0 auto;">
-      <div class="card">
-        <div class="card-title">
-          <span id="titulo-detalhe-registro">Detalhes do Registro</span>
-          <button class="btn btn-light" onclick="voltarParaGridRegistros()">⬅ Voltar para Lista</button>
-        </div>
-
-        <!-- SETUP INICIAL SE NÃO TIVER DADOS -->
-        <div id="setup-form-registro" style="max-width: 400px; margin: 20px auto; text-align: center;">
-          <p>Informe as quantidades para gerar a estrutura de campos:</p>
-          <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-            <div style="flex: 1;"><label>Vendedores</label><input type="number" id="qtdVendSetup" value="1" min="1"></div>
-            <div style="flex: 1;"><label>Compradores</label><input type="number" id="qtdCompSetup" value="1" min="1"></div>
-          </div>
-          <button class="btn btn-dark w-100" style="width: 100%;" onclick="gerarTabelaRegistroDinamicamente()">Gerar Formulário</button>
-        </div>
-
-        <!-- A TABELA DE PREENCHIMENTO -->
-        <div id="container-tabela-registro" style="display: none; overflow-x: auto;">
-
-          <!-- BOTOES DE AÇÃO AQUI -->
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
-            <div style="display: flex; gap: 8px;">
-              <button class="btn btn-success" style="font-size: 0.8rem; padding: 8px 14px;" onclick="concluirProcessoRegistro()">✅ Processo Concluído</button>
-              <button class="btn btn-danger" style="font-size: 0.8rem; padding: 8px 14px;" onclick="excluirProcessoRegistro()">🗑️ Excluir Processo</button>
-            </div>
-            <button class="btn btn-gold" onclick="salvarDadosDoRegistroDB()" id="btnSalvarRegistroAtual">💾 Salvar Dados do Registro</button>
-          </div>
-
-          <table class="tabela-registro-form">
-            <thead>
-              <tr>
-                <th style="width: 15%;">Campo</th>
-                <th style="width: 35%;">Dados</th>
-                <th style="width: 25%; text-align: center;">Certidão Civil</th>
-                <th style="width: 25%; text-align: center;">Certidão Fazendária</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-tabela-registro">
-              <!-- JS Injeta as linhas aqui -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
   </div>
 
 </div>
@@ -1365,7 +1354,7 @@
       const saldo = mapaReceberClientes[nome];
       totalAReceber += saldo;
       return '<tr><td>' + nome + '</td><td style="text-align:right;">' + fmt(saldo) + '</td></tr>';
-    }).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalAReceber) + '</td></tr>';
+    }).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ' + fmt(totalAReceber) + '</td></tr>';
 
     const situacoesResumoVenda = ['VENDA', 'REGISTRO', 'CRÉDITO'];
     const baseVenda = basePeriodo.filter(d => situacoesResumoVenda.includes(String(d.situacao || '').toUpperCase()));
