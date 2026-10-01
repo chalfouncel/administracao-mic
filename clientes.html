@@ -33,7 +33,7 @@
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
   .card-title { font-size: 0.95rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 
-  /* LINHA DO FORMULÁRIO COM LARGURAS EXATAS DO PRINT */
+  /* LINHA DO FORMULÁRIO COM LARGURAS EXATAS DO PRINT E TAMANHOS DE FONTE ADAPTADOS */
   .form-scroll-container { width: 100%; overflow-x: auto; padding-bottom: 6px; }
   .form-row-exact { display: flex; gap: 8px; min-width: 1720px; align-items: flex-end; }
   .field-col { display: flex; flex-direction: column; }
@@ -57,9 +57,41 @@
   .fc-tax { width: 75px; flex-shrink: 0; }
   .fc-obs { width: 220px; flex-shrink: 0; }
 
-  label { display: block; font-size: 0.68rem; font-weight: 700; color: #475569; margin-bottom: 3px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  input, select, textarea { width: 100%; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 0.82rem; outline: none; }
-  input:focus, select:focus { border-color: var(--accent); }
+  .form-row-exact label { 
+    display: block; 
+    font-size: 0.65rem; 
+    font-weight: 700; 
+    color: #475569; 
+    margin-bottom: 3px; 
+    text-transform: uppercase; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+  }
+  
+  .form-row-exact input, 
+  .form-row-exact select { 
+    width: 100%; 
+    padding: 3px 4px; 
+    border: 1.5px solid #cbd5e1; 
+    border-radius: 4px; 
+    font-size: 0.70rem; 
+    outline: none; 
+    height: 26px;
+    background-color: #fff;
+  }
+  
+  .form-row-exact select {
+    padding-left: 2px;
+    padding-right: 1px;
+    font-size: 0.68rem;
+  }
+  
+  .form-row-exact input:focus, 
+  .form-row-exact select:focus { 
+    border-color: var(--accent); 
+  }
+
   .read-only-field { background-color: #f8fafc; font-weight: bold; color: #334155; }
   .input-bloqueado { background-color: #121315 !important; border-color: #000 !important; color: #121315 !important; cursor: not-allowed; }
 
@@ -75,15 +107,15 @@
   table.table-compact { width: 100%; min-width: 1720px; border-collapse: collapse; font-size: 0.75rem; table-layout: fixed; }
   table.table-compact th { background: #000; color: #fff; padding: 7px 4px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.70rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-right: 1px solid #27272a; }
   table.table-compact th.th-filtro { background: #1a1c20; padding: 4px 3px; position: sticky; top: 29px; z-index: 10; border-right: 1px solid #27272a; }
-  table.table-compact th.th-filtro input, table.table-compact th.th-filtro select { width: 100%; padding: 2px 4px; font-size: 0.67rem; background: #fff; border: 1px solid #475569; border-radius: 3px; color: #1e293b; }
+  table.table-compact th.th-filtro input, table.table-compact th.th-filtro select { width: 100%; padding: 2px 4px; font-size: 0.67rem; background: #fff; border: 1px solid #475569; border-radius: 3px; color: #1e293b; height: 24px; }
 
   table.table-compact td { padding: 4px 3px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #f1f5f9; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.74rem; }
   table.table-compact tr:hover { background: #f8fafc; }
 
-  .cell-input { width: 100%; padding: 3px 4px; font-size: 0.73rem; border: 1px solid transparent; background: transparent; border-radius: 3px; }
+  .cell-input { width: 100%; padding: 3px 4px; font-size: 0.73rem; border: 1px solid transparent; background: transparent; border-radius: 3px; height: 24px; }
   .cell-input:hover { border-color: #cbd5e1; background: #fff; }
   .cell-input:focus { border-color: var(--accent); background: #fff; outline: none; }
-  .cell-select { width: 100%; padding: 2px 0px; font-size: 0.72rem; border: 1px solid transparent; background: transparent; cursor: pointer; border-radius: 3px; }
+  .cell-select { width: 100%; padding: 2px 0px; font-size: 0.70rem; border: 1px solid transparent; background: transparent; cursor: pointer; border-radius: 3px; height: 24px; }
   .cell-select:hover { border-color: #cbd5e1; background: #fff; }
   .cell-select:focus { border-color: var(--accent); background: #fff; outline: none; }
   .status-rec-sim { background-color: #dcfce7 !important; color: #166534 !important; font-weight: 800; border-radius: 4px; }
@@ -224,10 +256,10 @@
             <div class="field-col fc-mes">
               <label>Mês</label>
               <select id="inp-mes" required style="text-align:center;">
-                <option value="Janeiro">Janeiro</option><option value="Fevereiro">Fevereiro</option><option value="Março">Março</option>
-                <option value="Abril">Abril</option><option value="Maio">Maio</option><option value="Junho">Junho</option>
-                <option value="Julho">Julho</option><option value="Agosto">Agosto</option><option value="Setembro">Setembro</option>
-                <option value="Outubro">Outubro</option><option value="Novembro">Novembro</option><option value="Dezembro">Dezembro</option>
+                <option value="Janeiro">Jan</option><option value="Fevereiro">Fev</option><option value="Março">Mar</option>
+                <option value="Abril">Abr</option><option value="Maio">Mai</option><option value="Junho">Jun</option>
+                <option value="Julho">Jul</option><option value="Agosto">Ago</option><option value="Setembro">Set</option>
+                <option value="Outubro">Out</option><option value="Novembro">Nov</option><option value="Dezembro">Dez</option>
               </select>
             </div>
             <div class="field-col fc-nome"><label>Nome / Operação</label><input type="text" id="inp-nome" required oninput="recalcularForm()"></div>
