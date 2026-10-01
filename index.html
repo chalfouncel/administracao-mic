@@ -925,6 +925,307 @@
     if (tit && tit.value.trim() === '') tit.value = prop;
   }
 
+  // =======================================================
+  // MOTOR DE CAPTURA ROBUSTO V16 (MÉTODO DO INDEX VISTORIA)
+  // =======================================================
+  function decodeAddressOnly(text) {
+    if (!text) return "";
+    var s = text;
+    s = s.replace(/PraÁa/g, "Praça")
+         .replace(/praÁa/g, "praça")
+         .replace(/HÈlder/g, "Hélder")
+         .replace(/hÈlder/g, "hélder")
+         .replace(/c‚mara/g, "câmara")
+         .replace(/C‚mara/g, "Câmara")
+         .replace(/n∫/g, "nº")
+         .replace(/N∫/g, "Nº")
+         .replace(/n\s*∫/g, "nº")
+         .replace(/∫/g, "º")
+         .replace(/™/g, "ª")
+         .replace(/‚/g, "â")
+         .replace(/È/g, "é")
+         .replace(/Á(?=[a-z])/g, "ç");
+
+    try { s = s.normalize('NFC'); } catch(e) {}
+    return s.replace(/\s+/g, ' ').trim();
+  }
+
+  function isValidPersonName(str) {
+    if (!str) return false;
+    var s = str.trim();
+    var sNorm = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+    var monthRegex = /\b(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez|janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/i;
+    if (monthRegex.test(sNorm) && /\d/.test(s)) return false;
+    if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/.test(s)) return false;
+    if (/^\d{1,2}\s+[a-z]{3,9}\s+\d{2,4}/i.test(sNorm)) return false;
+
+    if (s.indexOf('@') !== -1) return false;
+    if (sNorm.indexOf("cpf") !== -1 || sNorm.indexOf("cnpj") !== -1 || sNorm.indexOf("rg") !== -1) return false;
+    if (sNorm.indexOf("hash") !== -1 || sNorm.indexOf("ip:") !== -1 || sNorm.indexOf("token") !== -1) return false;
+    if (sNorm.indexOf("assinou") !== -1 || sNorm.indexOf("autenticado") !== -1 || sNorm.indexOf("clicksign") !== -1) return false;
+    if (/^\d+$/.test(s.replace(/[\.\-\s\/]/g, ''))) return false;
+
+    if (!/[A-Za-zÀ-Úà-ú]{3,}/.test(s)) return false;
+    return true;
+  }
+
+  function cleanName(raw) {
+    if (!raw) return "";
+    var s = raw.trim();
+    s = s.replace(/^(?:Nome|Signat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '');
+    s = s.replace(/\s+CPF.*$/i, '');
+    s = s.replace(/\s+assinou.*$/i, '');
+    var parts = s.split(',');
+    return parts[0].trim();
+  }
+
+  function cleanSearch(text) {
+    if (!text) return "";
+    return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+
+  function sanitizePdfSpaces(text) {
+    if (!text) return "";
+    let t = text.replace(/\s+/g, " ").trim();
+    t = t.replace(/\b([A-Z])\s+([a-z]+)\b/g, "$1$2");
+    t = t.replace(/\b([a-zA-Z]{2,})\s+(la|lo|ra|ro|na|no|vy|ny|ly|cy|sy|ma|me|mi|mo|mu)\b/gi, function(match, p1, p2) {
+        const prep = ['de', 'da', 'do', 'das', 'dos'].includes(p1.toLowerCase());
+        if (prep) return match;
+        return p1 + p2; 
+    });
+    return t;
+  }
+
+  function toIsoDate(d) {
+    var str = (d || '').replace(/\s+/g, '');
+    var m = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+    if (m) {
+      var ano = m[3].length === 2 ? '20' + m[3] : m[3];
+      function pad(n) { return (n.length < 2 ? '0' : '') + n; }
+      return ano + '-' + pad(m[2]) + '-' + pad(m[1]);
+    }
+    var iso = str.match(/\d{4}-\d{2}-\d{2}/);
+    if (iso) return iso[0];
+    return '';
+  }
+
+  function findTrueSignerAbove(lines, index) {
+    for (var j = index - 1; j >= Math.max(0, index - 8); j--) {
+      var candidate = lines[j].trim();
+      if (isValidPersonName(candidate)) return cleanName(candidate);
+    }
+    return "";
+  }
+
+  function extractAddressAfterSituado(text) {
+    if (!text) return "";
+    var normText = cleanSearch(text);
+    var indexSituado = normText.indexOf("situado");
+
+    if (indexSituado !== -1) {
+      var afterSituado = text.substring(indexSituado + 7).trim();
+      afterSituado = afterSituado.replace(/^(?:na|no|à|a|em|:)\s+/i, '').trim();
+      var addressCandidate = afterSituado.split(/[;\.\r\n]/)[0].trim();
+      addressCandidate = addressCandidate.replace(/(?:,?\s*destinado\s+exclusivamente|para\s+fins\s+residenciais|conforme).*/i, '').trim();
+      if (addressCandidate.length > 5) return addressCandidate;
+    }
+
+    var indexImovel = normText.indexOf("imovel:");
+    if (indexImovel !== -1) {
+      var afterImov = text.substring(indexImovel + 7).trim();
+      var addr = afterImov.split(/[;\.\r\n]/)[0].trim();
+      return addr.replace(/(?:destinado|para\s+fins).*/i, '').trim();
+    }
+    return "";
+  }
+
+  function flash(id, val) {
+    if (val !== null && val !== undefined && String(val).trim() !== '') {
+      const el = document.getElementById(id);
+      if (el) { 
+        el.value = val; 
+        el.classList.add('field-ok'); 
+        el.addEventListener('input', function onEdit() { 
+          el.classList.remove('field-ok'); 
+          el.removeEventListener('input', onEdit); 
+        }); 
+      }
+    }
+  }
+
+  function runMicDadosExtraction(textoInteiro) {
+    var blocoMatch = textoInteiro.match(/\[\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]([\s\S]*?)\[\s*\/\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]/i);
+    if (!blocoMatch) return false;
+
+    var bloco = blocoMatch[1];
+
+    function capturarCampo(nomeCampo) {
+      var regex = new RegExp('(?:\\{\\s*)?' + nomeCampo + '(?:\\s*\\})?[:\\s-]*([^{]+)', 'i');
+      var match = bloco.match(regex);
+      if (match && match[1]) {
+        return match[1].replace(/\s+/g, " ").trim();
+      }
+      
+      var regexInside = new RegExp('\\{\\s*' + nomeCampo + '\\s*[:=]\\s*([^}]+)\\}', 'i');
+      var matchInside = bloco.match(regexInside);
+      if (matchInside && matchInside[1]) {
+        return matchInside[1].replace(/\s+/g, " ").trim();
+      }
+      
+      return "";
+    }
+
+    var proprietario = capturarCampo("Proprietario") || capturarCampo("Locador");
+    var telProprietario = capturarCampo("TelProprietario") || capturarCampo("TelefoneProprietario");
+    var pixProprietario = capturarCampo("PixProprietario") || capturarCampo("ChavePix");
+    var titularPix = capturarCampo("TitularPix");
+    
+    var inquilino = capturarCampo("Inquilino") || capturarCampo("Locatario");
+    var cpfInquilino = capturarCampo("CpfInquilino") || capturarCampo("CPF");
+    var emailInquilino = capturarCampo("EmailInquilino") || capturarCampo("Email");
+    var telInquilino = capturarCampo("TelInquilino") || capturarCampo("TelefoneInquilino");
+    
+    var endereco = capturarCampo("Endereco") || capturarCampo("Imovel");
+    var dataInicio = capturarCampo("DataInicio") || capturarCampo("Data Inicial");
+    var dataFim = capturarCampo("DataFim") || capturarCampo("Data Fim") || capturarCampo("DataTermino") || capturarCampo("Data Termino");
+    var valorAluguel = capturarCampo("ValorAluguel") || capturarCampo("AluguelBase");
+
+    var aplicou = false;
+
+    if (proprietario) {
+      flash('proprietario', sanitizePdfSpaces(proprietario));
+      aplicou = true;
+    }
+    if (telProprietario) {
+      flash('telProprietario', telProprietario.replace(/\D/g, ''));
+    }
+    if (pixProprietario) {
+      flash('pixProprietario', pixProprietario.replace(/\s/g, ''));
+    }
+    if (titularPix) {
+      flash('titularPix', sanitizePdfSpaces(titularPix));
+    } else if (proprietario) {
+      flash('titularPix', sanitizePdfSpaces(proprietario));
+    }
+
+    if (inquilino) {
+      flash('inquilino', sanitizePdfSpaces(inquilino));
+      aplicou = true;
+    }
+    if (cpfInquilino) {
+      flash('cpfInquilino', cpfInquilino.replace(/\D/g, ''));
+    }
+    if (emailInquilino) {
+      flash('emailInquilino', emailInquilino.replace(/\s/g, ''));
+    }
+    if (telInquilino) {
+      flash('telInquilino', telInquilino.replace(/\D/g, ''));
+    }
+
+    if (endereco) {
+      flash('endereco', decodeAddressOnly(sanitizePdfSpaces(endereco)));
+      aplicou = true;
+    }
+    if (dataInicio) {
+      var isoIni = toIsoDate(dataInicio);
+      if (isoIni) {
+        flash('dataInicio', isoIni);
+        aplicou = true;
+      }
+    }
+    if (dataFim) {
+      var isoFim = toIsoDate(dataFim);
+      if (isoFim) {
+        flash('dataFim', isoFim);
+        aplicou = true;
+      }
+    }
+    if (valorAluguel) {
+      var vClean = valorAluguel.replace(/R\$\s*/gi, '').replace(/\s/g, '');
+      var num = 0;
+      if (vClean.includes(',')) num = parseFloat(vClean.replace(/\./g, '').replace(',', '.')) || 0;
+      else num = parseFloat(vClean) || 0;
+      if (num > 0) flash('aluguelBase', formatadorStr(num));
+    }
+
+    return aplicou;
+  }
+
+  function runContractExtractionV16(allLines, page1Lines) {
+    var page1Text = page1Lines.join(" ");
+
+    // LOCADOR
+    var locadorEncontrado = "";
+    var mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
+    if (mLoc1 && isValidPersonName(mLoc1[1])) locadorEncontrado = cleanName(mLoc1[1]);
+    if (!locadorEncontrado) {
+      for (var i = 0; i < allLines.length; i++) {
+        if (cleanSearch(allLines[i]).indexOf("assinou como locador") !== -1) {
+          locadorEncontrado = findTrueSignerAbove(allLines, i);
+          if (locadorEncontrado) break;
+        }
+      }
+    }
+    if (locadorEncontrado && !document.getElementById('proprietario').value) {
+      flash('proprietario', sanitizePdfSpaces(locadorEncontrado));
+      if (!document.getElementById('titularPix').value) {
+        flash('titularPix', sanitizePdfSpaces(locadorEncontrado));
+      }
+    }
+
+    // LOCATÁRIO
+    var locatarioEncontrado = "";
+    var mLocat1 = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
+    if (mLocat1 && isValidPersonName(mLocat1[1])) locatarioEncontrado = cleanName(mLocat1[1]);
+    if (!locatarioEncontrado) {
+      for (var j = 0; j < allLines.length; j++) {
+        if (cleanSearch(allLines[j]).indexOf("assinou como locatario") !== -1) {
+          locatarioEncontrado = findTrueSignerAbove(allLines, j);
+          if (locatarioEncontrado) break;
+        }
+      }
+    }
+    if (locatarioEncontrado && !document.getElementById('inquilino').value) {
+      flash('inquilino', sanitizePdfSpaces(locatarioEncontrado));
+    }
+
+    // ENDEREÇO
+    var addressRaw = extractAddressAfterSituado(page1Text);
+    if (addressRaw && !document.getElementById('endereco').value) {
+      flash('endereco', decodeAddressOnly(sanitizePdfSpaces(addressRaw)));
+    }
+
+    // DATAS DE VIGÊNCIA
+    var dateMatches = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
+    if (dateMatches && dateMatches.length >= 2) {
+      if (!document.getElementById('dataInicio').value) flash('dataInicio', toIsoDate(dateMatches[0]));
+      if (!document.getElementById('dataFim').value) flash('dataFim', toIsoDate(dateMatches[1]));
+    }
+
+    // CPF DO INQUILINO (busca heurística pelo 2º CPF ou CPF próximo ao locatário)
+    if (!document.getElementById('cpfInquilino').value) {
+      var cpfs = page1Text.match(/\b\d{3}\.\d{3}\.\d{3}\-\d{2}\b/g);
+      if (cpfs && cpfs.length >= 2) {
+        flash('cpfInquilino', cpfs[1].replace(/\D/g, ''));
+      } else if (cpfs && cpfs.length === 1) {
+        flash('cpfInquilino', cpfs[0].replace(/\D/g, ''));
+      }
+    }
+
+    // ALUGUEL BASE (busca heurística de valores)
+    if (!document.getElementById('aluguelBase').value) {
+      var mVal = page1Text.match(/R\$\s*([\d\.]+(?:,\d{2})?)/i) || page1Text.match(/(?:aluguel|valor)\s*(?:mensal)?\s*(?:de)?\s*R\$\s*([\d\.]+(?:,\d{2})?)/i);
+      if (mVal && mVal[1]) {
+        var numVal = parseMoedaToFloat(mVal[1]);
+        if (numVal > 0) flash('aluguelBase', formatadorStr(numVal));
+      }
+    }
+  }
+
+  // =======================================================
+  // PROCESSAMENTO DO CONTRATO PDF (COMPLETO E ROBUSTO)
+  // =======================================================
   async function processarContratoPDF(event) {
     const file = event.target.files[0];
     if (!file || file.type !== 'application/pdf') return;
@@ -934,7 +1235,7 @@
     document.getElementById('file-name-pill').style.display = 'inline-block';
 
     const loader = document.getElementById('ai-extract-loader');
-    loader.innerHTML = '⏳ Lendo o arquivo do contrato com [MIC_DADOS]...';
+    loader.innerHTML = '⏳ Lendo o arquivo do contrato com inteligência de captura...';
     loader.style.display = 'block';
 
     try {
@@ -942,80 +1243,45 @@
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       await renderPdfThumbnail(pdf);
 
-      let fullText = '';
+      var allRawLines = [];
+      var page1RawLines = [];
+
       for (let p = 1; p <= pdf.numPages; p++) {
-        const page = await pdf.getPage(p); const textContent = await page.getTextContent();
-        for (const item of textContent.items) {
-          const str = String(item.str || '').trim();
-          if (str) fullText += ' ' + str;
+        const page = await pdf.getPage(p);
+        const textContent = await page.getTextContent();
+        for (let i = 0; i < textContent.items.length; i++) {
+          var str = textContent.items[i].str;
+          if (str && str.trim().length > 0) {
+            allRawLines.push(str.trim());
+            if (p === 1) page1RawLines.push(str.trim());
+          }
         }
       }
 
-      let ext = { locador: '', telLocador: '', locatario: '', cpfInquilino: '', emailLocatario: '', telLocatario: '', endereco: '', dataIn: '', dataFim: '', valor: 0, pix: '', titularPix: '' };
-      
-      const compactOriginal = String(fullText || '').replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
-      const m = compactOriginal.match(/\[\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]([\s\S]*?)\[\s*\/\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]/i);
-      
-      if (m) { 
-          const hiddenBlock = m[1] || ''; 
-          const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const canonicalKey = (raw) => String(raw || '').replace(/[{}\s]/g, '').toLowerCase();
-          const FIELD_KEYS = [ 'Proprietario', 'TelProprietario', 'PixProprietario', 'TitularPix', 'Inquilino', 'CpfInquilino', 'EmailInquilino', 'TelInquilino', 'Endereco', 'DataInicio', 'DataFim', 'ValorAluguel' ];
-          const keyMap = Object.fromEntries(FIELD_KEYS.map(k => [canonicalKey(k), k]));
+      var textoInteiro = allRawLines.join(" ");
 
-          const parseHiddenFields = (block) => {
-            const result = {}; if (!block) return result;
-            let b = String(block).replace(/\u00A0/g, ' ').replace(/[\r\n]+/g, '\n').replace(/\s+/g, ' ').trim();
-            const keyPattern = FIELD_KEYS.map(k => k.split('').map(ch => escapeRegExp(ch)).join('\\s*')).join('|');
-            const fieldRegex = new RegExp('(?:\\{\\s*)?(' + keyPattern + ')(?:\\s*)(?::)(?:\\s*\\})?\\s*', 'gi');
-            const matches = []; let mRegex;
-            while ((mRegex = fieldRegex.exec(b)) !== null) { matches.push({ index: mRegex.index, end: fieldRegex.lastIndex, key: keyMap[canonicalKey(mRegex[1])] }); }
-            for (let i = 0; i < matches.length; i++) {
-              const current = matches[i]; const next = matches[i + 1];
-              let value = b.slice(current.end, next ? next.index : b.length).trim();
-              value = value.replace(/^\s*\}/, '').trim(); value = value.replace(/\{\s*$/, '').trim();
-              if (current.key) result[current.key] = value;
-            }
-            return result;
-          };
+      // 1. TENTA PRIMEIRO VIA [MIC_DADOS]
+      var temBlocoMic = /\[\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]/i.test(textoInteiro);
+      var usouMicDados = false;
 
-          const hidden = parseHiddenFields(hiddenBlock);
-          const cleanValue = (v) => String(v || '').replace(/^[\s{}]+|[\s{}]+$/g, '').replace(/\s+/g, ' ').trim();
-          const fixSpacing = (str) => {
-            let s = cleanValue(str); const rx = /\b([A-ZÀ-ÖØ-Ý][a-zà-öø-ÿ]{0,2})\s+([a-zà-öø-ÿ]{2,3})\b/g;
-            let anterior = ''; while (s !== anterior) { anterior = s; s = s.replace(rx, '$1$2'); } return s.replace(/\s+/g, ' ').trim();
-          };
-
-          ext.locador = fixSpacing(hidden.Proprietario); ext.telLocador = cleanValue(hidden.TelProprietario).replace(/\D/g, '');
-          ext.pix = cleanValue(hidden.PixProprietario).replace(/\s/g, ''); ext.titularPix = fixSpacing(hidden.TitularPix);
-          ext.locatario = fixSpacing(hidden.Inquilino); ext.cpfInquilino = cleanValue(hidden.CpfInquilino).replace(/\D/g, '');
-          ext.emailLocatario = cleanValue(hidden.EmailInquilino).replace(/\s/g, ''); ext.telLocatario = cleanValue(hidden.TelInquilino).replace(/\D/g, '');
-          ext.endereco = fixSpacing(hidden.Endereco);
-
-          const toIsoDate = (value) => { const v = cleanValue(value).replace(/\s/g, ''); const mx = v.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/); return mx ? `${mx[3]}-${mx[2].padStart(2,'0')}-${mx[1].padStart(2,'0')}` : ''; };
-          ext.dataIn = toIsoDate(hidden.DataInicio); ext.dataFim = toIsoDate(hidden.DataFim);
-
-          const parseMoney = (value) => { const v = cleanValue(value).replace(/R\$\s*/gi, '').replace(/\s/g, ''); if (!v) return 0; if (v.includes(',')) return parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0; return parseFloat(v) || 0; };
-          ext.valor = parseMoney(hidden.ValorAluguel);
-
-      } else {
-          alert("Tag [MIC_DADOS] não encontrada neste PDF. Por favor, preencha manualmente.");
+      if (temBlocoMic) {
+        usouMicDados = runMicDadosExtraction(textoInteiro);
       }
 
-      function flash(id, val) {
-        if (val !== null && val !== undefined && String(val).trim() !== '') {
-          const el = document.getElementById(id);
-          if (el) { el.value = val; el.classList.add('field-ok'); el.addEventListener('input', function onEdit() { el.classList.remove('field-ok'); el.removeEventListener('input', onEdit); }); }
-        }
+      // 2. SE NÃO TIVER BLOCO OU FALTAR CAMPOS CRÍTICOS, COMPLEMENTA COM MOTOR V16
+      if (!usouMicDados || !document.getElementById('proprietario').value || !document.getElementById('inquilino').value || !document.getElementById('endereco').value) {
+        runContractExtractionV16(allRawLines, page1RawLines);
       }
 
-      flash('proprietario', ext.locador); flash('telProprietario', ext.telLocador); flash('pixProprietario', ext.pix); flash('titularPix', ext.titularPix || ext.locador);
-      flash('inquilino', ext.locatario); flash('cpfInquilino', ext.cpfInquilino); flash('emailInquilino', ext.emailLocatario); flash('telInquilino', ext.telLocatario);
-      flash('endereco', ext.endereco); flash('dataInicio', ext.dataIn); flash('dataFim', ext.dataFim);
-      if (ext.valor > 0) flash('aluguelBase', formatadorStr(ext.valor));
+      sincronizarCampos();
 
-    } catch (err) { alert('Erro ao processar PDF: O ficheiro pode estar protegido ou corrompido.'); } 
-    finally { loader.style.display = 'none'; loader.innerHTML = '⏳ Escaneando o contrato com Inteligência de Captura...'; }
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao processar PDF: O ficheiro pode estar protegido ou corrompido.');
+    } finally {
+      loader.style.display = 'none';
+      loader.innerHTML = '⏳ Lendo o arquivo do contrato...';
+    }
   }
 
   // =======================================================
@@ -1072,7 +1338,7 @@
   }
 
   // =======================================================
-  // FUNÇÃO NOVA: CARREGAR CONTRATO PARA EDIÇÃO COMPLETA
+  // CARREGAR CONTRATO PARA EDIÇÃO COMPLETA
   // =======================================================
   function editarContrato(idReg) {
       const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
@@ -1273,7 +1539,7 @@
       regra_seguro: document.getElementById('regraSeguro').value || 'S'
     };
 
-    if (urlPdf) payload.contrato_url = urlPdf; // Se não houver arquivo anexado, mantem o que já estava lá
+    if (urlPdf) payload.contrato_url = urlPdf; // Se não houver arquivo anexado, mantém o que já estava lá
 
     try {
       if (idContratoEdicao) {
