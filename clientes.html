@@ -281,7 +281,7 @@
               <select id="inp-mes" required style="text-align:center;">
                 <option value="Janeiro">Jan</option><option value="Fevereiro">Fev</option><option value="Março">Mar</option>
                 <option value="Abril">Abr</option><option value="Maio">Mai</option><option value="Junho">Jun</option>
-                <option value="Julho">Julho</option><option value="Agosto">Ago</option><option value="Setembro">Set</option>
+                <option value="Julho">Jul</option><option value="Agosto">Ago</option><option value="Setembro">Set</option>
                 <option value="Outubro">Out</option><option value="Novembro">Nov</option><option value="Dezembro">Dez</option>
               </select>
             </div>
@@ -296,7 +296,7 @@
                 <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
               </select>
             </div>
-            <div class="field-col fc-com"><label>Comissão (R$)</label><input type="text" id="inp-comissao" placeholder="0,00" required oninput="formatarInputMoeda(this); recalcularForm()" style="text-align:right;"></div>
+            <div class="field-col fc-com"><label>Comissão (R$)</label><input type="text" id="inp-comissao" placeholder="0,00" required oninput="formatarInputMoeda(this); recalcularComissaoManual()" style="text-align:right;"></div>
             <div class="field-col fc-prem"><label>Prêmio</label><input type="text" id="inp-premio" value="0,00" oninput="formatarInputMoeda(this); recalcularForm()" style="text-align:right;"></div>
             <div class="field-col fc-prem-corr"><label>Prêmio Corr.</label><input type="text" id="inp-premio-corr" class="read-only-field" readonly style="text-align:right;"></div>
             <div class="field-col fc-imp"><label>Imposto</label><input type="text" id="inp-imposto" class="read-only-field" readonly style="text-align:right;"></div>
@@ -693,6 +693,9 @@
   let chartInstQtdOps = null;
   let tipoRecebiveisAtual = 'TODOS';
 
+  // Controle de edição manual de comissão no formulário
+  let comissaoEditadaManualmente = false;
+
   // VARIÁVEIS DO MÓDULO DE REGISTRO
   let idRegistroAberto = null;
   let qtdVendAtual = 1;
@@ -782,13 +785,20 @@
     document.getElementById('inp-premio').value = '0,00';
     document.getElementById('inp-val-recebido').value = '0,00';
 
+    comissaoEditadaManualmente = false;
+
     const fRec = document.getElementById('f-rec');
     if (fRec) fRec.value = 'NÃO';
   }
 
-  // REGRA EXCEL COMISSÃO:
-  // =SEERRO(SE([@Nome]="Recebimento das Administrações";[@Valor];(SE([@Corretor]="Parceria";[@Valor]*35%;(SE([@Situação]="ALUGUEL";[@Valor]*70%;[@Valor]*[@[%]])))));"")
+  // REGRA DE COMISSÃO:
+  // Se o usuário informou um valor manual, ele prevalece categoricamente.
+  // Caso contrário, calcula pela regra padrão do Excel.
   function calcularComissaoFormula(nome, situacao, corretor, valor, comissaoManual = null) {
+    if (comissaoManual !== null && comissaoManual !== undefined && !isNaN(comissaoManual) && comissaoManual > 0) {
+      return comissaoManual;
+    }
+
     const nomeNorm = String(nome || '').trim().toLowerCase();
     const isRecebimentoAdm = nomeNorm === 'recebimento das administrações' || nomeNorm === 'recebimento das administracoes';
     const isRecebimentoMic = nomeNorm.includes('recebimento das administrações m&ic') || nomeNorm.includes('recebimento das administracoes m&ic');
@@ -803,10 +813,6 @@
     }
     if (sitNorm === 'ALUGUEL') {
       return valor * 0.70;
-    }
-
-    if (comissaoManual !== null && comissaoManual !== undefined && comissaoManual > 0) {
-      return comissaoManual;
     }
 
     const pctCorretor = TABELA_CORRETORES[corrNorm] !== undefined ? TABELA_CORRETORES[corrNorm] : 0.02;
@@ -852,8 +858,6 @@
       opcao = 'XXXXXX';
     }
 
-    // REGRA EXCEL TAXA MÊS:
-    // =SE([@Situação]="ALUGUEL";(SE([@OPÇÃO]="NÃO";"XXXXXX";(SE([@Nome]="Recebimento das administrações";"xxxxxx";(SE(E([@Situação]="ALUGUEL"; [@Valor]<1500);1500 * 2%;[@Valor]*2%))))));"XXXXXX")
     let taxaMensal = 'XXXXXX';
     const nomeNormalizado = nome.toLowerCase();
     const isNomeRecebimentoAdm = nomeNormalizado === 'recebimento das administrações' || nomeNormalizado === 'recebimento das administracoes';
@@ -887,15 +891,25 @@
     };
   }
 
-  function recalcularForm() {
+  // Quando o usuário digita diretamente no campo de comissão, ativa a trava manual
+  function recalcularComissaoManual() {
+    comissaoEditadaManualmente = true;
+    recalcularForm(true);
+  }
+
+  function recalcularForm(manterComissaoManual = false) {
     const nome = document.getElementById('inp-nome').value;
     const situacao = document.getElementById('inp-situacao').value;
     const corretor = document.getElementById('inp-corretor').value;
     const valor = parseMoedaInput(document.getElementById('inp-valor').value);
 
-    // Atualiza automaticamente o campo de Comissão pela regra do Excel
-    const novaComissao = calcularComissaoFormula(nome, situacao, corretor, valor, null);
-    document.getElementById('inp-comissao').value = formatarMoedaInput(novaComissao);
+    let comissaoParaUsar = null;
+    if (manterComissaoManual || comissaoEditadaManualmente) {
+      comissaoParaUsar = parseMoedaInput(document.getElementById('inp-comissao').value);
+    } else {
+      comissaoParaUsar = calcularComissaoFormula(nome, situacao, corretor, valor, null);
+      document.getElementById('inp-comissao').value = formatarMoedaInput(comissaoParaUsar);
+    }
 
     const raw = {
       nome: nome,
@@ -903,7 +917,7 @@
       corretor: corretor,
       valor: valor,
       premio: document.getElementById('inp-premio').value,
-      comissao: novaComissao,
+      comissao: comissaoParaUsar,
       faturada: document.getElementById('inp-faturada').value,
       opcao: document.getElementById('inp-opcao').value,
       taxa_mensal: document.getElementById('inp-taxa').value,
@@ -1469,7 +1483,7 @@
       const saldo = mapaReceberClientes[nome];
       totalAReceber += saldo;
       return '<tr><td>' + nome + '</td><td style="text-align:right;">' + fmt(saldo) + '</td></tr>';
-    }).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalAReceber) + '</td></tr>';
+    }).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ' + fmt(totalAReceber) + '</td></tr>';
 
     const situacoesResumoVenda = ['VENDA', 'REGISTRO', 'CRÉDITO'];
     const baseVenda = basePeriodo.filter(d => situacoesResumoVenda.includes(String(d.situacao || '').toUpperCase()));
