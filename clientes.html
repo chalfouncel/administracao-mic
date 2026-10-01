@@ -294,11 +294,11 @@
             <div class="field-col fc-liq"><label>Líquido</label><input type="text" id="inp-liquido" class="read-only-field" readonly style="text-align:right;"></div>
             <div class="field-col fc-opc">
               <label>Opção</label>
-              <select id="inp-opcao" style="text-align:center;">
+              <select id="inp-opcao" onchange="recalcularForm()" style="text-align:center;">
                 <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
               </select>
             </div>
-            <div class="field-col fc-tax"><label>Taxa Mês</label><input type="text" id="inp-taxa" value="0,00" oninput="formatarInputMoeda(this)" style="text-align:right;"></div>
+            <div class="field-col fc-tax"><label>Taxa Mês</label><input type="text" id="inp-taxa" class="read-only-field" readonly style="text-align:right;"></div>
           </div>
 
           <!-- LINHA 2: OBSERVAÇÕES E BOTÃO SALVAR LADO A LADO -->
@@ -634,7 +634,7 @@
     document.getElementById('inp-mes').selectedIndex = hoje.getMonth();
     document.getElementById('inp-recebido').value = 'NÃO';
     document.getElementById('inp-opcao').value = 'NÃO';
-    document.getElementById('inp-taxa').value = '0,00';
+    document.getElementById('inp-taxa').value = 'XXXXXX';
     document.getElementById('inp-valor').value = '0,00';
     document.getElementById('inp-comissao').value = '0,00';
     document.getElementById('inp-premio').value = '0,00';
@@ -646,7 +646,7 @@
 
   function calcularFórmulas(item) {
     const nome = (item.nome || '').trim();
-    const situacao = (item.situacao || '').trim();
+    const situacao = (item.situacao || '').trim().toUpperCase();
     const corretor = (item.corretor || '').trim();
     const valor = parseMoedaInput(item.valor);
     const premio = parseMoedaInput(item.premio);
@@ -682,13 +682,26 @@
       opcao = 'XXXXXX';
     }
 
+    // REGRA DO EXCEL:
+    // =SE([@Situação]="ALUGUEL";(SE([@OPÇÃO]="NÃO";"XXXXXX";(SE([@Nome]="Recebimento das administrações";"xxxxxx";(SE(E([@Situação]="ALUGUEL"; [@Valor]<1500);1500 * 2%;[@Valor]*2%))))));"XXXXXX")
     let taxaMensal = 'XXXXXX';
+    const nomeNormalizado = nome.toLowerCase();
+    const isNomeRecebimentoAdm = nomeNormalizado === 'recebimento das administrações' || nomeNormalizado === 'recebimento das administracoes';
+
     if (situacao === 'ALUGUEL') {
       if (opcao === 'NÃO') {
         taxaMensal = 'XXXXXX';
+      } else if (isNomeRecebimentoAdm) {
+        taxaMensal = 'XXXXXX';
       } else {
-        taxaMensal = parseMoedaInput(item.taxa_mensal);
+        if (valor < 1500) {
+          taxaMensal = 1500 * 0.02; // 30,00 fixo
+        } else {
+          taxaMensal = valor * 0.02; // 2% do valor
+        }
       }
+    } else {
+      taxaMensal = 'XXXXXX';
     }
 
     return {
@@ -734,6 +747,7 @@
 
     setCampoCondicional('inp-premio-corr', c.premio_corretor);
     setCampoCondicional('inp-imposto', c.imposto);
+    setCampoCondicional('inp-taxa', c.taxa_mensal);
     document.getElementById('inp-liquido').value = fmt(c.valor_liquido);
   }
 
@@ -792,7 +806,7 @@
         '<td class="col-vrec"><input type="text" class="cell-input" style="text-align:right;" value="' + formatarMoedaInput(item.valor_recebido) + '" onchange="atualizarItemDireto(' + id + ', \'valor_recebido\', parseMoedaInput(this.value))"></td>' +
         '<td class="col-liq">' + fmt(parseFloat(item.valor_liquido)) + '</td>' +
         '<td class="col-opc">' + (isX(item.opcao) ? '<span style="color:#94a3b8">—</span>' : '<select class="cell-select" style="font-weight:bold; text-align:center;" onchange="atualizarItemDireto(' + id + ', \'opcao\', this.value)"><option value="NÃO" ' + (!isOpcSim ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (isOpcSim ? 'selected' : '') + '>SIM</option></select>') + '</td>' +
-        '<td class="col-tax ' + (isX(item.taxa_mensal) ? 'celula-bloqueada' : '') + '">' + (isX(item.taxa_mensal) ? '' : '<input type="text" class="cell-input" style="text-align:right;" value="' + formatarMoedaInput(item.taxa_mensal) + '" onchange="atualizarItemDireto(' + id + ', \'taxa_mensal\', parseMoedaInput(this.value))">') + '</td>' +
+        '<td class="col-tax ' + (isX(item.taxa_mensal) ? 'celula-bloqueada' : '') + '">' + (isX(item.taxa_mensal) ? '' : fmt(item.taxa_mensal)) + '</td>' +
       '</tr>';
     }).join('');
   }
