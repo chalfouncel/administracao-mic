@@ -281,7 +281,7 @@
               <select id="inp-mes" required style="text-align:center;">
                 <option value="Janeiro">Jan</option><option value="Fevereiro">Fev</option><option value="Março">Mar</option>
                 <option value="Abril">Abr</option><option value="Maio">Mai</option><option value="Junho">Jun</option>
-                <option value="Julho">Jul</option><option value="Agosto">Ago</option><option value="Setembro">Set</option>
+                <option value="Julho">Julho</option><option value="Agosto">Ago</option><option value="Setembro">Set</option>
                 <option value="Outubro">Out</option><option value="Novembro">Nov</option><option value="Dezembro">Dez</option>
               </select>
             </div>
@@ -791,10 +791,11 @@
   function calcularComissaoFormula(nome, situacao, corretor, valor, comissaoManual = null) {
     const nomeNorm = String(nome || '').trim().toLowerCase();
     const isRecebimentoAdm = nomeNorm === 'recebimento das administrações' || nomeNorm === 'recebimento das administracoes';
+    const isRecebimentoMic = nomeNorm.includes('recebimento das administrações m&ic') || nomeNorm.includes('recebimento das administracoes m&ic');
     const sitNorm = String(situacao || '').trim().toUpperCase();
     const corrNorm = String(corretor || '').trim();
 
-    if (isRecebimentoAdm) {
+    if (isRecebimentoAdm || isRecebimentoMic) {
       return valor;
     }
     if (corrNorm.toLowerCase() === 'parceria') {
@@ -856,11 +857,10 @@
     let taxaMensal = 'XXXXXX';
     const nomeNormalizado = nome.toLowerCase();
     const isNomeRecebimentoAdm = nomeNormalizado === 'recebimento das administrações' || nomeNormalizado === 'recebimento das administracoes';
+    const isNomeRecebimentoMic = nomeNormalizado.includes('administrações m&ic') || nomeNormalizado.includes('administracoes m&ic');
 
     if (situacao === 'ALUGUEL') {
-      if (opcao === 'NÃO') {
-        taxaMensal = 'XXXXXX';
-      } else if (isNomeRecebimentoAdm) {
+      if (opcao === 'NÃO' || isNomeRecebimentoAdm || isNomeRecebimentoMic) {
         taxaMensal = 'XXXXXX';
       } else {
         if (valor < 1500) {
@@ -929,12 +929,127 @@
     document.getElementById('inp-liquido').value = fmt(c.valor_liquido);
   }
 
+  // =================================================================================
+  // AUTOMAÇÃO MENSAL: RECEBIMENTO DAS ADMINISTRAÇÕES E ADMINISTRAÇÕES M&IC
+  // =================================================================================
+  async function verificarEGerarLancamentosMensaisAutomaticos() {
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear();
+    const mesAtualNome = MESES_LISTA[hoje.getMonth()];
+
+    // 1. Checa se os dois lançamentos já existem para o mês e ano correntes
+    const existeAdmGeral = dadosDB.some(d => {
+      const n = String(d.nome || '').trim().toLowerCase();
+      return d.ano === anoAtual && d.mes === mesAtualNome && (n === 'recebimento das administrações' || n === 'recebimento das administracoes');
+    });
+
+    const existeAdmMic = dadosDB.some(d => {
+      const n = String(d.nome || '').trim().toLowerCase();
+      return d.ano === anoAtual && d.mes === mesAtualNome && (n.includes('administrações m&ic') || n.includes('administracoes m&ic'));
+    });
+
+    if (existeAdmGeral && existeAdmMic) return;
+
+    let novosParaInserir = [];
+
+    // 2. Calcula total das Opções (se necessário)
+    if (!existeAdmGeral) {
+      let totalOpcoes = 0;
+      dadosDB.forEach(d => {
+        if (String(d.situacao || '').toUpperCase() === 'ALUGUEL' && String(d.opcao || '').toUpperCase() === 'SIM') {
+          totalOpcoes += parseFloat(d.taxa_mensal) || 0;
+        }
+      });
+
+      const payloadAdmGeral = calcularFórmulas({
+        ano: anoAtual,
+        mes: mesAtualNome,
+        nome: 'Recebimento das Administrações',
+        situacao: 'ALUGUEL',
+        unidade: '',
+        valor: totalOpcoes,
+        corretor: 'Mario',
+        faturada: 'SIM',
+        premio: 0,
+        comissao: totalOpcoes,
+        recebido: 'NÃO',
+        valor_recebido: 0,
+        opcao: 'XXXXXX',
+        taxa_mensal: 'XXXXXX',
+        obs: 'Lançamento automático de opções do mês'
+      });
+      novosParaInserir.push(payloadAdmGeral);
+    }
+
+    // 3. Calcula total da Taxa de Adm Fixa na tabela de Locações (se necessário)
+    if (!existeAdmMic) {
+      let totalTaxaFixaLocacoes = 0;
+      try {
+        const respLoc = await fetch(SUPABASE_URL + '/rest/v1/locacoes?select=taxa_adm_fixa,ativo&ativo=eq.SIM', {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        });
+        if (respLoc.ok) {
+          const locacoesAtivas = await respLoc.json();
+          locacoesAtivas.forEach(loc => {
+            totalTaxaFixaLocacoes += parseFloat(loc.taxa_adm_fixa) || 0;
+          });
+        }
+      } catch(e) {
+        console.error("Falha ao consultar locações ativas para taxa de adm fixa:", e);
+      }
+
+      const payloadAdmMic = calcularFórmulas({
+        ano: anoAtual,
+        mes: mesAtualNome,
+        nome: 'Recebimento das Administrações M&IC',
+        situacao: 'ALUGUEL',
+        unidade: '',
+        valor: totalTaxaFixaLocacoes,
+        corretor: 'Mario',
+        faturada: 'NÃO',
+        premio: 0,
+        comissao: totalTaxaFixaLocacoes,
+        recebido: 'NÃO',
+        valor_recebido: 0,
+        opcao: 'XXXXXX',
+        taxa_mensal: 'XXXXXX',
+        obs: 'Lançamento automático taxa fixa de locação (imóveis ativos)'
+      });
+      novosParaInserir.push(payloadAdmMic);
+    }
+
+    // 4. Grava no banco e atualiza a interface
+    if (novosParaInserir.length > 0) {
+      try {
+        const respPost = await fetch(SUPABASE_URL + '/rest/v1/clientes_producao', {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+          body: JSON.stringify(novosParaInserir)
+        });
+        if (respPost.ok) {
+          const inseridos = await respPost.json();
+          dadosDB.push(...inseridos);
+          filtrarTabela();
+          montarSlicers();
+          if (document.getElementById('page-mapa').classList.contains('active')) renderizarMapa();
+          if (document.getElementById('page-graficos').classList.contains('active')) renderizarAbaGraficos();
+        }
+      } catch(err) {
+        console.error("Erro na rotina de lançamentos mensais automáticos:", err);
+      }
+    }
+  }
+
   async function carregarDados() {
     try {
       const res = await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?select=*&order=id.asc', {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
       });
       dadosDB = await res.json();
+      
+      // Executa a automação de verificação do 1º dia/mês corrente
+      await verificarEGerarLancamentosMensaisAutomaticos();
+
       filtrarTabela();
       montarSlicers();
 
@@ -1354,7 +1469,7 @@
       const saldo = mapaReceberClientes[nome];
       totalAReceber += saldo;
       return '<tr><td>' + nome + '</td><td style="text-align:right;">' + fmt(saldo) + '</td></tr>';
-    }).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ' + fmt(totalAReceber) + '</td></tr>';
+    }).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalAReceber) + '</td></tr>';
 
     const situacoesResumoVenda = ['VENDA', 'REGISTRO', 'CRÉDITO'];
     const baseVenda = basePeriodo.filter(d => situacoesResumoVenda.includes(String(d.situacao || '').toUpperCase()));
