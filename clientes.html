@@ -33,33 +33,37 @@
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
   .card-title { font-size: 0.95rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 
-  /* LINHA DO FORMULÁRIO COM LARGURAS EXATAS DO PRINT E TAMANHOS DE FONTE ADAPTADOS */
-  .form-scroll-container { width: 100%; overflow-x: auto; padding-bottom: 6px; }
-  .form-row-exact { display: flex; gap: 8px; min-width: 1720px; align-items: flex-end; }
+  /* LINHA DO FORMULÁRIO SEM SCROLL HORIZONTAL */
+  .form-scroll-container { width: 100%; }
+  .form-row-exact { display: flex; gap: 6px; width: 100%; align-items: flex-end; }
   .field-col { display: flex; flex-direction: column; }
   
-  .fc-ano { width: 55px; flex-shrink: 0; }
-  .fc-mes { width: 62px; flex-shrink: 0; }
-  .fc-nome { width: 280px; flex-shrink: 0; }
-  .fc-sit { width: 95px; flex-shrink: 0; }
-  .fc-un { width: 290px; flex-shrink: 0; }
-  .fc-val { width: 95px; flex-shrink: 0; }
-  .fc-cor { width: 80px; flex-shrink: 0; }
-  .fc-fat { width: 56px; flex-shrink: 0; }
-  .fc-com { width: 90px; flex-shrink: 0; }
-  .fc-prem { width: 68px; flex-shrink: 0; }
-  .fc-prem-corr { width: 75px; flex-shrink: 0; }
-  .fc-imp { width: 75px; flex-shrink: 0; }
-  .fc-rec { width: 58px; flex-shrink: 0; }
-  .fc-vrec { width: 92px; flex-shrink: 0; }
-  .fc-liq { width: 92px; flex-shrink: 0; }
-  .fc-opc { width: 56px; flex-shrink: 0; }
-  .fc-tax { width: 75px; flex-shrink: 0; }
-  .fc-obs { width: 220px; flex-shrink: 0; }
+  .fc-ano { width: 52px; flex-shrink: 0; }
+  .fc-mes { width: 58px; flex-shrink: 0; }
+  .fc-nome { flex: 2.2; min-width: 140px; }
+  .fc-sit { width: 90px; flex-shrink: 0; }
+  .fc-un { flex: 2.4; min-width: 150px; }
+  .fc-val { width: 85px; flex-shrink: 0; }
+  .fc-cor { width: 75px; flex-shrink: 0; }
+  .fc-fat { width: 52px; flex-shrink: 0; }
+  .fc-com { width: 82px; flex-shrink: 0; }
+  .fc-prem { width: 62px; flex-shrink: 0; }
+  .fc-prem-corr { width: 70px; flex-shrink: 0; }
+  .fc-imp { width: 70px; flex-shrink: 0; }
+  .fc-rec { width: 54px; flex-shrink: 0; }
+  .fc-vrec { width: 82px; flex-shrink: 0; }
+  .fc-liq { width: 85px; flex-shrink: 0; }
+  .fc-opc { width: 52px; flex-shrink: 0; }
+  .fc-tax { width: 70px; flex-shrink: 0; }
 
-  .form-row-exact label { 
+  /* LINHA DE BAIXO: OBSERVAÇÕES E SALVAR */
+  .form-row-bottom { display: flex; gap: 12px; align-items: flex-end; margin-top: 10px; width: 100%; }
+  .form-row-bottom .field-col { flex: 1; }
+
+  .form-row-exact label,
+  .form-row-bottom label { 
     display: block; 
-    font-size: 0.65rem; 
+    font-size: 0.63rem; 
     font-weight: 700; 
     color: #475569; 
     margin-bottom: 3px; 
@@ -70,7 +74,8 @@
   }
   
   .form-row-exact input, 
-  .form-row-exact select { 
+  .form-row-exact select,
+  .form-row-bottom input { 
     width: 100%; 
     padding: 3px 4px; 
     border: 1.5px solid #cbd5e1; 
@@ -88,14 +93,15 @@
   }
   
   .form-row-exact input:focus, 
-  .form-row-exact select:focus { 
+  .form-row-exact select:focus,
+  .form-row-bottom input:focus { 
     border-color: var(--accent); 
   }
 
   .read-only-field { background-color: #f8fafc; font-weight: bold; color: #334155; }
   .input-bloqueado { background-color: #121315 !important; border-color: #000 !important; color: #121315 !important; cursor: not-allowed; }
 
-  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; border: none; transition: 0.15s; font-size: 0.8rem; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 6px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; border: none; transition: 0.15s; font-size: 0.8rem; height: 26px; }
   .btn-gold { background: linear-gradient(135deg, #c59b27, #dfba48); color: #121315; }
   .btn-dark { background: var(--secondary); color: #fff; }
   .btn-light { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
@@ -124,7 +130,7 @@
   td.celula-bloqueada { background-color: #121315 !important; color: #121315 !important; text-align: center !important; }
   td.celula-bloqueada::after { content: "—"; color: #334155; }
 
-  /* DEFINIÇÃO EXATA DAS COLUNAS */
+  /* DEFINIÇÃO EXATA DAS COLUNAS DA TABELA */
   .col-del { width: 32px; text-align: center; }
   .col-ano { width: 55px; text-align: center; }
   .col-mes { width: 62px; text-align: center; }
@@ -251,6 +257,7 @@
 
       <form id="form-cliente" onsubmit="salvarLinha(event)">
         <div class="form-scroll-container">
+          <!-- LINHA 1: TODOS OS CAMPOS PROPORCIONAIS NA LARGURA DA TELA SEM SCROLL -->
           <div class="form-row-exact">
             <div class="field-col fc-ano"><label>Ano</label><input type="number" id="inp-ano" required style="text-align:center;"></div>
             <div class="field-col fc-mes">
@@ -292,11 +299,18 @@
               </select>
             </div>
             <div class="field-col fc-tax"><label>Taxa Mês</label><input type="text" id="inp-taxa" value="0,00" oninput="formatarInputMoeda(this)" style="text-align:right;"></div>
-            <div class="field-col fc-obs"><label>Observações</label><input type="text" id="inp-obs"></div>
           </div>
-        </div>
-        <div style="margin-top: 14px; text-align: right;">
-          <button type="submit" class="btn btn-gold" id="btn-salvar">💾 Salvar Lançamento</button>
+
+          <!-- LINHA 2: OBSERVAÇÕES E BOTÃO SALVAR LADO A LADO -->
+          <div class="form-row-bottom">
+            <div class="field-col">
+              <label>Observações</label>
+              <input type="text" id="inp-obs" placeholder="Observações do lançamento...">
+            </div>
+            <div>
+              <button type="submit" class="btn btn-gold" id="btn-salvar">💾 Salvar Lançamento</button>
+            </div>
+          </div>
         </div>
       </form>
     </div>
@@ -1148,7 +1162,7 @@
       const saldo = mapaReceberClientes[nome];
       totalAReceber += saldo;
       return '<tr><td>' + nome + '</td><td style="text-align:right;">' + fmt(saldo) + '</td></tr>';
-    }).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">' + fmt(totalAReceber) + '</td></tr>';
+    }).join('') + '<tr class="total-row"><td>Total Geral</td><td style="text-align:right;">R$ ' + fmt(totalAReceber) + '</td></tr>';
 
     const situacoesResumoVenda = ['VENDA', 'REGISTRO', 'CRÉDITO'];
     const baseVenda = basePeriodo.filter(d => situacoesResumoVenda.includes(String(d.situacao || '').toUpperCase()));
