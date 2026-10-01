@@ -736,7 +736,7 @@
 
       if (!isAprovado) {
            status.className = 'auth-msg err'; 
-           status.innerHTML = '⚠️️ Aguardando validação do acesso pelo administrador.';
+           status.innerHTML = '⚠ Aguardando validação do acesso pelo administrador.';
            btn.disabled = false; 
            setLocalSession(null); 
            return;
@@ -861,9 +861,18 @@
       });
     }
     
-    const hoje = new Date(); let proxMes = hoje.getMonth() + 2; let anoVenc = hoje.getFullYear();
-    if(proxMes > 12) { proxMes = 1; anoVenc++; }
-    document.getElementById('filtro-mes').value = `${anoVenc}-${proxMes.toString().padStart(2, '0')}`;
+    // DEFINIÇÃO DO MÊS DE REFERÊNCIA:
+    // O mês de referência padrão corresponde ao mês atual (ex: outubro) até o dia 25.
+    // Após o dia 25 (corte de fechamento/repasses), o sistema passa a apontar para o mês seguinte (novembro).
+    const hoje = new Date(); 
+    let anoRef = hoje.getFullYear();
+    let mesRef = hoje.getMonth() + 1; // 1 a 12
+    if (hoje.getDate() > 25) {
+        mesRef++;
+        if (mesRef > 12) { mesRef = 1; anoRef++; }
+    }
+    document.getElementById('filtro-mes').value = `${anoRef}-${mesRef.toString().padStart(2, '0')}`;
+    
     checkSession();
   });
 
@@ -2004,7 +2013,7 @@
           }
       }
       if (count > 0) { alert(`✅ ${count} transferências executadas com sucesso no Asaas!`); atualizarInterfaceGeral(); } 
-      else { alert('Não há contratos marcados aguardando transferência para este mês.'); }
+      else { alert('Não hay contratos marcados aguardando transferência para este mês.'); }
   }
 
   function gerarTextosRepasse() {
