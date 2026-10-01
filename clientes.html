@@ -47,8 +47,8 @@
   .btn-danger { background: var(--danger); color: #fff; padding: 3px 6px; font-size: 0.7rem; border-radius: 4px; }
   .btn-success { background: var(--success); color: #fff; }
 
-  .table-container { width: 100%; max-height: 72vh; overflow-y: auto; overflow-x: hidden; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
-  table.table-compact { width: 100%; border-collapse: collapse; font-size: 0.73rem; table-layout: fixed; }
+  .table-container { width: 100%; max-height: 72vh; overflow-y: auto; overflow-x: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
+  table.table-compact { width: 100%; min-width: 1360px; border-collapse: collapse; font-size: 0.73rem; table-layout: fixed; }
   table.table-compact th { background: #000; color: #fff; padding: 6px 3px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.69rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   table.table-compact th.th-filtro { background: #1a1c20; padding: 4px 2px; position: sticky; top: 28px; z-index: 10; }
   table.table-compact th.th-filtro input, table.table-compact th.th-filtro select { width: 100%; padding: 2px 3px; font-size: 0.66rem; background: #fff; border: 1px solid #475569; border-radius: 3px; color: #1e293b; }
@@ -82,6 +82,7 @@
   .col-prem { width: 60px; text-align: right; }
   .col-imp { width: 70px; text-align: right; }
   .col-rec { width: 54px; text-align: center; }
+  .col-vrec { width: 80px; text-align: right; font-weight: 600; color: #0369a1; }
   .col-liq { width: 80px; text-align: right; font-weight: bold; color: var(--success); }
   .col-opc { width: 52px; text-align: center; }
   .col-tax { width: 65px; text-align: right; }
@@ -136,7 +137,7 @@
   .filter-pill-btn { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 4px 12px; font-size: 0.72rem; font-weight: 700; color: #475569; cursor: pointer; transition: 0.15s; }
   .filter-pill-btn.active { background: var(--secondary); color: var(--gold); border-color: var(--secondary); }
 
-  /* ESTILOS EXCLUSIVOS DA NOVA ABA REGISTROS */
+  /* ESTILOS EXCLUSIVOS DO MÓDULO REGISTROS */
   .grid-registros { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
   .card-registro-box { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s; min-height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
   .card-registro-box:hover { border-color: var(--accent); box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: translateY(-2px); }
@@ -266,6 +267,7 @@
               <th class="col-prem">Prêmio</th>
               <th class="col-imp">Imposto</th>
               <th class="col-rec">Rec.</th>
+              <th class="col-vrec">Val. Rec.</th>
               <th class="col-liq">Líquido</th>
               <th class="col-opc">Opção</th>
               <th class="col-tax">Taxa Mês</th>
@@ -316,6 +318,7 @@
                   <option value="NÃO">NÃO</option>
                 </select>
               </th>
+              <th class="th-filtro"><input type="text" id="f-vrec" placeholder="Val. Rec." oninput="filtrarTabela()"></th>
               <th class="th-filtro"><input type="text" id="f-liq" placeholder="Líquido" oninput="filtrarTabela()"></th>
               <th class="th-filtro">
                 <select id="f-opc" onchange="filtrarTabela()">
@@ -328,7 +331,7 @@
             </tr>
           </thead>
           <tbody id="tabela-corpo">
-            <tr><td colspan="17" style="text-align:center; padding:16px;">Carregando registros...</td></tr>
+            <tr><td colspan="18" style="text-align:center; padding:16px;">Carregando registros...</td></tr>
           </tbody>
         </table>
       </div>
@@ -374,7 +377,7 @@
     <div class="graficos-grid-2col"><div class="chart-box"><div class="chart-title"><span>Faturamento vs VGV Anual (R$)</span></div><div class="chart-container"><canvas id="chart-fat-vgv-anual"></canvas></div></div><div class="chart-box"><div class="chart-title"><span>Volume Anual de Negócios (Qtd Vendas vs Qtd Aluguéis)</span></div><div class="chart-container"><canvas id="chart-qtd-ops-anual"></canvas></div></div></div>
   </div>
 
-  <!-- ABA 4: REGISTROS (NOVA) -->
+  <!-- ABA 4: REGISTROS -->
   <div id="page-registros" class="tab-page">
     
     <!-- TELA 1: GRID DE QUADRADINHOS -->
@@ -478,7 +481,7 @@
   let chartInstQtdOps = null;
   let tipoRecebiveisAtual = 'TODOS';
 
-  // VARIÁVEIS DO NOVO MÓDULO DE REGISTRO
+  // VARIÁVEIS DO MÓDULO DE REGISTRO
   let idRegistroAberto = null;
   let qtdVendAtual = 1;
   let qtdCompAtual = 1;
@@ -684,7 +687,7 @@
       : (v || '-');
 
     if (!dados || dados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center; padding:16px;">Nenhum registro encontrado com estes filtros.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="18" style="text-align:center; padding:16px;">Nenhum registro encontrado com estes filtros.</td></tr>';
       return;
     }
 
@@ -713,6 +716,7 @@
         '<td class="col-prem ' + (isX(item.premio_corretor) ? 'celula-bloqueada' : '') + '">' + (isX(item.premio_corretor) ? '' : fmt(item.premio_corretor)) + '</td>' +
         '<td class="col-imp ' + (isX(item.imposto) ? 'celula-bloqueada' : '') + '" style="text-align:right;">' + (isX(item.imposto) ? '' : fmt(item.imposto)) + '</td>' +
         '<td class="col-rec"><select class="cell-select ' + (isRecSim ? 'status-rec-sim' : 'status-rec-nao') + '" onchange="atualizarItemDireto(' + id + ', \'recebido\', this.value)"><option value="NÃO" ' + (!isRecSim ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (isRecSim ? 'selected' : '') + '>SIM</option></select></td>' +
+        '<td class="col-vrec"><input type="text" class="cell-input" style="text-align:right;" value="' + formatarMoedaInput(item.valor_recebido) + '" onchange="atualizarItemDireto(' + id + ', \'valor_recebido\', parseMoedaInput(this.value))"></td>' +
         '<td class="col-liq">' + fmt(parseFloat(item.valor_liquido)) + '</td>' +
         '<td class="col-opc">' + (isX(item.opcao) ? '<span style="color:#94a3b8">—</span>' : '<select class="cell-select" style="font-weight:bold;" onchange="atualizarItemDireto(' + id + ', \'opcao\', this.value)"><option value="NÃO" ' + (!isOpcSim ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (isOpcSim ? 'selected' : '') + '>SIM</option></select>') + '</td>' +
         '<td class="col-tax ' + (isX(item.taxa_mensal) ? 'celula-bloqueada' : '') + '">' + (isX(item.taxa_mensal) ? '' : '<input type="text" class="cell-input" style="text-align:right;" value="' + formatarMoedaInput(item.taxa_mensal) + '" onchange="atualizarItemDireto(' + id + ', \'taxa_mensal\', parseMoedaInput(this.value))">') + '</td>' +
@@ -733,6 +737,7 @@
     const fPrem = document.getElementById('f-prem').value.trim().toLowerCase();
     const fImp = document.getElementById('f-imp').value.trim().toLowerCase();
     const fRec = document.getElementById('f-rec').value;
+    const fVrec = document.getElementById('f-vrec').value.trim().toLowerCase();
     const fLiq = document.getElementById('f-liq').value.trim().toLowerCase();
     const fOpc = document.getElementById('f-opc').value;
     const fTax = document.getElementById('f-tax').value.trim().toLowerCase();
@@ -750,6 +755,7 @@
       if (fPrem && !String(d.premio_corretor || '').toLowerCase().includes(fPrem)) return false;
       if (fImp && !String(d.imposto || '').toLowerCase().includes(fImp)) return false;
       if (fRec && String(d.recebido || '').toUpperCase() !== fRec) return false;
+      if (fVrec && !String(d.valor_recebido || '').toLowerCase().includes(fVrec)) return false;
       if (fLiq && !String(d.valor_liquido || '').toLowerCase().includes(fLiq)) return false;
       if (fOpc && String(d.opcao || '').toUpperCase() !== fOpc) return false;
       if (fTax && !String(d.taxa_mensal || '').toLowerCase().includes(fTax)) return false;
@@ -760,7 +766,7 @@
   }
 
   function limparFiltrosTabela() {
-    ['f-ano', 'f-mes', 'f-nome', 'f-sit', 'f-un', 'f-val', 'f-cor', 'f-fat', 'f-com', 'f-prem', 'f-imp', 'f-rec', 'f-liq', 'f-opc', 'f-tax'].forEach(id => {
+    ['f-ano', 'f-mes', 'f-nome', 'f-sit', 'f-un', 'f-val', 'f-cor', 'f-fat', 'f-com', 'f-prem', 'f-imp', 'f-rec', 'f-vrec', 'f-liq', 'f-opc', 'f-tax'].forEach(id => {
       document.getElementById(id).value = '';
     });
     renderizarTabela(dadosDB);
@@ -1689,16 +1695,13 @@
   }
 
   // =================================================================================
-  // FUNÇÕES DA NOVA ABA "REGISTROS"
+  // FUNÇÕES DO MÓDULO "REGISTROS"
   // =================================================================================
 
   function renderizarGridRegistros() {
     const container = document.getElementById('container-grid-registros');
-    
-    // ATENÇÃO MÁRIO: Filtra apenas a partir do ID 1717
     const ULTIMO_ID_ANTIGO = 1716; 
     
-    // Filtra apenas clientes com situação == REGISTRO e que sejam MAIORES que o id antigo (ou seja, >= 1717)
     const registros = dadosDB.filter(d => 
       String(d.situacao).toUpperCase() === 'REGISTRO' && 
       d.id > ULTIMO_ID_ANTIGO
@@ -1764,7 +1767,7 @@
       return '';
     };
 
-    // --- VENDEDORES (Linha dedicada para certidões, sem o texto de status) ---
+    // --- VENDEDORES ---
     for(let i = 0; i < qtdVendAtual; i++) {
       html += `
         <tr><td colspan="4" class="titulo-secao-reg">VENDEDOR ${i+1}</td></tr>
@@ -1783,7 +1786,7 @@
       `;
     }
 
-    // --- IMÓVEL (Linha dedicada para certidão, sem o texto de status) ---
+    // --- IMÓVEL ---
     const imovelGet = campo => dadosPreenchidos && dadosPreenchidos.imovel ? (dadosPreenchidos.imovel[campo] || '') : '';
     html += `
         <tr><td colspan="4" class="titulo-secao-reg">DADOS DO IMÓVEL</td></tr>
@@ -1882,15 +1885,12 @@
     }
   }
 
-  // --- NOVAS FUNÇÕES PARA OS BOTÕES DE CONCLUSÃO/EXCLUSÃO DO REGISTRO ---
-
   async function concluirProcessoRegistro() {
     if (!idRegistroAberto) return;
     
-    // Pede a confirmação e a nova situação
     let novaSit = prompt("Deseja concluir o processo e tirá-lo desta fila de pendências?\nDigite a nova SITUAÇÃO que ele deve receber (Ex: OUTROS, CONTRATO, VENDA):", "OUTROS");
     
-    if (novaSit === null) return; // Se o usuário clicar em Cancelar
+    if (novaSit === null) return;
     
     novaSit = novaSit.trim().toUpperCase();
     if (!novaSit) novaSit = "OUTROS";
@@ -1902,7 +1902,6 @@
         body: JSON.stringify({ situacao: novaSit })
       });
       
-      // Atualiza localmente
       const idx = dadosDB.findIndex(x => x.id === idRegistroAberto);
       if(idx !== -1) dadosDB[idx].situacao = novaSit;
       
@@ -1910,7 +1909,7 @@
       
       voltarParaGridRegistros();
       renderizarGridRegistros();
-      filtrarTabela(); // Para refletir a mudança na aba 1
+      filtrarTabela();
 
     } catch (err) {
       alert("Erro ao concluir o processo: " + err);
@@ -1928,14 +1927,13 @@
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
       });
       
-      // Atualiza localmente
       dadosDB = dadosDB.filter(x => x.id !== idRegistroAberto);
       
       alert("🗑️ Processo excluído com sucesso!");
       
       voltarParaGridRegistros();
       renderizarGridRegistros();
-      filtrarTabela(); // Para refletir a mudança na aba 1
+      filtrarTabela();
 
     } catch (err) {
       alert("Erro ao excluir o processo: " + err);
