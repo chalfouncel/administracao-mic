@@ -33,7 +33,30 @@
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
   .card-title { font-size: 0.95rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 
-  .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 10px; }
+  /* GRID DO FORMULÁRIO COM LARGURAS PROPORCIONAIS */
+  .grid-form { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px; align-items: end; }
+  .form-col-1 { grid-column: span 1; min-width: 70px; }
+  .form-col-2 { grid-column: span 2; min-width: 110px; }
+  .form-col-3 { grid-column: span 3; min-width: 170px; }
+  .form-col-4 { grid-column: span 4; min-width: 240px; }
+  .form-col-5 { grid-column: span 5; min-width: 280px; }
+  .form-col-6 { grid-column: span 6; min-width: 320px; }
+
+  @media(max-width: 1200px) {
+    .grid-form { grid-template-columns: repeat(6, 1fr); }
+    .form-col-1 { grid-column: span 2; }
+    .form-col-2 { grid-column: span 2; }
+    .form-col-3 { grid-column: span 3; }
+    .form-col-4 { grid-column: span 6; }
+    .form-col-5 { grid-column: span 6; }
+    .form-col-6 { grid-column: span 6; }
+  }
+
+  @media(max-width: 768px) {
+    .grid-form { grid-template-columns: 1fr; }
+    .form-col-1, .form-col-2, .form-col-3, .form-col-4, .form-col-5, .form-col-6 { grid-column: span 1; min-width: 100%; }
+  }
+
   label { display: block; font-size: 0.68rem; font-weight: 700; color: #475569; margin-bottom: 3px; text-transform: uppercase; }
   input, select, textarea { width: 100%; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 0.82rem; outline: none; }
   input:focus, select:focus { border-color: var(--accent); }
@@ -174,7 +197,7 @@
   <div class="main-tabs" style="display: flex; justify-content: space-between; align-items: center;">
     <div style="display: flex; gap: 8px;">
       <button class="tab-nav-btn active" onclick="trocarAbaPrincipal('producao', this)">📋 Lançamentos e Produção</button>
-      <button class="tab-nav-btn" onclick="trocarAbaPrincipal('mapa', this)">🗺️️ MAPA Financeiro</button>
+      <button class="tab-nav-btn" onclick="trocarAbaPrincipal('mapa', this)">🗺️ MAPA Financeiro</button>
       <button class="tab-nav-btn" onclick="trocarAbaPrincipal('graficos', this)">📊 Gráficos & Metas (BI)</button>
       <button class="tab-nav-btn" onclick="trocarAbaPrincipal('registros', this)">📝 Registros</button>
     </div>
@@ -196,8 +219,9 @@
 
       <form id="form-cliente" onsubmit="salvarLinha(event)">
         <div class="grid-form">
-          <div><label>Ano</label><input type="number" id="inp-ano" required></div>
-          <div>
+          <!-- LINHA 1: IDENTIFICAÇÃO COM NOME E UNIDADE AMPLIADOS -->
+          <div class="form-col-1"><label>Ano</label><input type="number" id="inp-ano" required></div>
+          <div class="form-col-1">
             <label>Mês</label>
             <select id="inp-mes" required>
               <option value="Janeiro">Janeiro</option><option value="Fevereiro">Fevereiro</option><option value="Março">Março</option>
@@ -206,39 +230,43 @@
               <option value="Outubro">Outubro</option><option value="Novembro">Novembro</option><option value="Dezembro">Dezembro</option>
             </select>
           </div>
-          <div style="grid-column: span 2;"><label>Nome / Operação</label><input type="text" id="inp-nome" required oninput="recalcularForm()"></div>
-          <div><label>Situação</label><select id="inp-situacao" onchange="recalcularForm()"></select></div>
-          <div><label>Unidade</label><input type="text" id="inp-unidade"></div>
-          <div><label>Valor (R$)</label><input type="text" id="inp-valor" placeholder="0,00" required oninput="formatarInputMoeda(this); recalcularForm()"></div>
-          <div><label>Corretor</label><select id="inp-corretor" onchange="recalcularForm()"></select></div>
-          <div>
+          <div class="form-col-4"><label>Nome / Operação</label><input type="text" id="inp-nome" required oninput="recalcularForm()"></div>
+          <div class="form-col-2"><label>Situação</label><select id="inp-situacao" onchange="recalcularForm()"></select></div>
+          <div class="form-col-4"><label>Unidade</label><input type="text" id="inp-unidade"></div>
+
+          <!-- LINHA 2: VALORES E COMISSÕES -->
+          <div class="form-col-2"><label>Valor (R$)</label><input type="text" id="inp-valor" placeholder="0,00" required oninput="formatarInputMoeda(this); recalcularForm()"></div>
+          <div class="form-col-2"><label>Corretor</label><select id="inp-corretor" onchange="recalcularForm()"></select></div>
+          <div class="form-col-1">
             <label>Faturada?</label>
             <select id="inp-faturada" onchange="recalcularForm()">
               <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
             </select>
           </div>
-          <div><label>Prêmio (R$)</label><input type="text" id="inp-premio" value="0,00" oninput="formatarInputMoeda(this); recalcularForm()"></div>
-          <div><label>Comissão (R$)</label><input type="text" id="inp-comissao" placeholder="0,00" required oninput="formatarInputMoeda(this); recalcularForm()"></div>
-          <div><label>Prêmio Corr.</label><input type="text" id="inp-premio-corr" class="read-only-field" readonly></div>
-          <div><label>Imposto (15%)</label><input type="text" id="inp-imposto" class="read-only-field" readonly></div>
-          <div>
+          <div class="form-col-2"><label>Comissão (R$)</label><input type="text" id="inp-comissao" placeholder="0,00" required oninput="formatarInputMoeda(this); recalcularForm()"></div>
+          <div class="form-col-1"><label>Prêmio (R$)</label><input type="text" id="inp-premio" value="0,00" oninput="formatarInputMoeda(this); recalcularForm()"></div>
+          <div class="form-col-2"><label>Prêmio Corr.</label><input type="text" id="inp-premio-corr" class="read-only-field" readonly></div>
+          <div class="form-col-2"><label>Imposto (15%)</label><input type="text" id="inp-imposto" class="read-only-field" readonly></div>
+
+          <!-- LINHA 3: RECEBIMENTO (PADRÃO "NÃO") E FECHAMENTO -->
+          <div class="form-col-1">
             <label>Recebido?</label>
             <select id="inp-recebido">
-              <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
+              <option value="NÃO" selected>NÃO</option><option value="SIM">SIM</option>
             </select>
           </div>
-          <div><label>Líquido R$</label><input type="text" id="inp-liquido" class="read-only-field" readonly></div>
-          <div><label>Valor Recebido</label><input type="text" id="inp-val-recebido" value="0,00" oninput="formatarInputMoeda(this)"></div>
-          <div>
+          <div class="form-col-2"><label>Valor Recebido</label><input type="text" id="inp-val-recebido" value="0,00" oninput="formatarInputMoeda(this)"></div>
+          <div class="form-col-2"><label>Líquido R$</label><input type="text" id="inp-liquido" class="read-only-field" readonly></div>
+          <div class="form-col-1">
             <label>Opção</label>
             <select id="inp-opcao">
               <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
             </select>
           </div>
-          <div><label>Taxa Mensal (R$)</label><input type="text" id="inp-taxa" value="0,00" oninput="formatarInputMoeda(this)"></div>
-          <div style="grid-column: span 2;"><label>Observações</label><input type="text" id="inp-obs"></div>
+          <div class="form-col-2"><label>Taxa Mensal (R$)</label><input type="text" id="inp-taxa" value="0,00" oninput="formatarInputMoeda(this)"></div>
+          <div class="form-col-4"><label>Observações</label><input type="text" id="inp-obs"></div>
         </div>
-        <div style="margin-top: 12px; text-align: right;">
+        <div style="margin-top: 14px; text-align: right;">
           <button type="submit" class="btn btn-gold" id="btn-salvar">💾 Salvar Lançamento</button>
         </div>
       </form>
@@ -313,8 +341,8 @@
               <th class="th-filtro">
                 <select id="f-rec" onchange="filtrarTabela()">
                   <option value="">Todos</option>
+                  <option value="NÃO" selected>NÃO</option>
                   <option value="SIM">SIM</option>
-                  <option value="NÃO">NÃO</option>
                 </select>
               </th>
               <th class="th-filtro"><input type="text" id="f-vrec" placeholder="Val. Rec." oninput="filtrarTabela()"></th>
@@ -561,12 +589,16 @@
     const hoje = new Date();
     document.getElementById('inp-ano').value = hoje.getFullYear();
     document.getElementById('inp-mes').selectedIndex = hoje.getMonth();
+    document.getElementById('inp-recebido').value = 'NÃO';
     document.getElementById('inp-opcao').value = 'NÃO';
     document.getElementById('inp-taxa').value = '0,00';
     document.getElementById('inp-valor').value = '0,00';
     document.getElementById('inp-comissao').value = '0,00';
     document.getElementById('inp-premio').value = '0,00';
     document.getElementById('inp-val-recebido').value = '0,00';
+
+    const fRec = document.getElementById('f-rec');
+    if (fRec) fRec.value = 'NÃO';
   }
 
   function calcularFórmulas(item) {
@@ -764,10 +796,11 @@
   }
 
   function limparFiltrosTabela() {
-    ['f-ano', 'f-mes', 'f-nome', 'f-sit', 'f-un', 'f-val', 'f-cor', 'f-fat', 'f-com', 'f-prem', 'f-imp', 'f-rec', 'f-vrec', 'f-liq', 'f-opc', 'f-tax'].forEach(id => {
+    ['f-ano', 'f-mes', 'f-nome', 'f-sit', 'f-un', 'f-val', 'f-cor', 'f-fat', 'f-com', 'f-prem', 'f-imp', 'f-vrec', 'f-liq', 'f-opc', 'f-tax'].forEach(id => {
       document.getElementById(id).value = '';
     });
-    renderizarTabela(dadosDB);
+    document.getElementById('f-rec').value = 'NÃO';
+    filtrarTabela();
   }
 
   async function atualizarItemDireto(id, campo, valorNovo) {
@@ -1715,7 +1748,7 @@
         <div class="card-registro-nome">${reg.nome || 'Cliente sem nome'}</div>
         <div class="card-registro-id">Lançamento #${reg.id}</div>
         <div style="font-size:0.75rem; margin-top:5px; color:#64748b;">${reg.mes}/${reg.ano}</div>
-        ${reg.dados_registro ? '<div style="margin-top:8px; font-size:0.7rem; color:green; font-weight:bold;">✅ Dados Preenchidos</div>' : '<div style="margin-top:8px; font-size:0.7rem; color:orange; font-weight:bold;">⚠️ Pendente</div>'}
+        ${reg.dados_registro ? '<div style="margin-top:8px; font-size:0.7rem; color:green; font-weight:bold;">✅ Dados Preenchidos</div>' : '<div style="margin-top:8px; font-size:0.7rem; color:orange; font-weight:bold;">⚠️️ Pendente</div>'}
       </div>
     `).join('');
   }
