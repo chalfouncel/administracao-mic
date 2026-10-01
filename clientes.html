@@ -213,6 +213,21 @@
   .input-planilha-reg:focus { border-bottom: 2px solid var(--accent); }
   .bg-certidao-reg { background-color: #fff9c4 !important; font-weight: bold; }
   .titulo-secao-reg { background-color: #e2e8f0; font-weight: 900; text-transform: uppercase; font-size: 0.85rem; text-align: center; letter-spacing: 1px; }
+
+  /* CENTRAL DE DOCUMENTAÇÃO E LINKS CARTORÁRIOS */
+  .doc-hub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+  @media(max-width: 900px) { .doc-hub-grid { grid-template-columns: 1fr; } }
+  .doc-block { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+  .doc-block-title { font-size: 0.88rem; font-weight: 800; color: var(--primary); padding-bottom: 8px; margin-bottom: 10px; border-bottom: 2px solid #f1f5f9; display: flex; align-items: center; gap: 6px; }
+  .doc-list { display: flex; flex-direction: column; gap: 7px; }
+  .doc-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 5px; transition: 0.15s; font-size: 0.76rem; }
+  .doc-item:hover { border-color: var(--accent); background: #fdfbf7; }
+  .doc-item-info { display: flex; flex-direction: column; gap: 2px; }
+  .doc-item-title { font-weight: 700; color: #1e293b; }
+  .doc-item-desc { font-size: 0.66rem; color: #64748b; }
+  .doc-link-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.68rem; font-weight: 700; background: #001e60; color: #fff; text-decoration: none; border-radius: 4px; transition: 0.2s; white-space: nowrap; }
+  .doc-link-btn:hover { background: var(--accent); color: #121315; }
+  .doc-tag-fisica { background: #fef3c7; color: #92400e; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.68rem; border: 1px solid #fde68a; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -449,6 +464,144 @@
 
   <!-- ABA 4: REGISTROS -->
   <div id="page-registros" class="tab-page">
+
+    <!-- CENTRAL DE DOCUMENTAÇÃO E LINKS CARTORÁRIOS -->
+    <div class="card" style="border-top: 3px solid var(--accent);">
+      <div class="card-title">
+        <span>🏛️ Central de Documentação & Links Cartorários</span>
+        <span style="font-size:0.75rem; color:#64748b; font-weight: normal;">Acesso rápido para emissão de certidões e procedimentos no RJ</span>
+      </div>
+
+      <div class="doc-hub-grid">
+        <!-- BLOCO 1: VALIDAÇÃO DO NEGÓCIO -->
+        <div class="doc-block">
+          <div class="doc-block-title">
+            <span>📑 Documentos para Validação do Negócio</span>
+          </div>
+          <div class="doc-list">
+            <div class="doc-item">
+              <div class="doc-item-info">
+                <span class="doc-item-title">Certidão de Interdições e Tutelas 1º e 2º Ofício</span>
+                <span class="doc-item-desc">e-Cartório do Brasil</span>
+              </div>
+              <a href="https://e-cartoriodobrasil.com/pedido/interdicoes-e-tutelas/certidao-de-interdicoes-certidao-negativa" target="_blank" rel="noopener noreferrer" class="doc-link-btn">Acessar ↗</a>
+            </div>
+
+            <div class="doc-item">
+              <div class="doc-item-info">
+                <span class="doc-item-title">Emitir Cível e Fazendária dos Vendedores e Fazendária do Imóvel</span>
+                <span class="doc-item-desc">Tribunal de Justiça do Rio de Janeiro (TJRJ - CJE)</span>
+              </div>
+              <a href="https://www3.tjrj.jus.br/CJE/" target="_blank" rel="noopener noreferrer" class="doc-link-btn">Acessar ↗</a>
+            </div>
+
+            <div class="doc-item">
+              <div class="doc-item-info">
+                <span class="doc-item-title">Enfitêutica (Prefeitura)</span>
+                <span class="doc-item-desc">Secretaria Municipal de Fazenda (SMF / IPTU)</span>
+              </div>
+              <a href="https://www2.rio.rj.gov.br/smf/iptucertfiscal/" target="_blank" rel="noopener noreferrer" class="doc-link-btn">Acessar ↗</a>
+            </div>
+
+            <div class="doc-item">
+              <div class="doc-item-info">
+                <span class="doc-item-title">Certidão de Débito Trabalhista (CNDT)</span>
+                <span class="doc-item-desc">Tribunal Superior do Trabalho (TST)</span>
+              </div>
+              <a href="https://www.tst.jus.br/certidao1" target="_blank" rel="noopener noreferrer" class="doc-link-btn">Acessar ↗</a>
+            </div>
+
+            <div class="doc-item">
+              <div class="doc-item-info">
+                <span class="doc-item-title">Justiça Federal (Civil)</span>
+                <span class="doc-item-desc">TRF 2ª Região</span>
+              </div>
+              <a href="https://certidoes.trf2.jus.br/certidoes/#/principal/solicitar" target="_blank" rel="noopener noreferrer" class="doc-link-btn">Acessar ↗</a>
+            </div>
+
+            <div class="doc-item">
+              <div class="doc-item-info">
+                <span class="doc-item-title">Certidão de Débitos Tributários Federais e Dívida Ativa da União</span>
+                <span class="doc-item-desc">Receita Federal / PGFN</span>
+              </div>
+              <a href="https://servicos.receitafederal.gov.br/servico/certidoes/#/home/cpf" target="_blank" rel="noopener noreferrer" class="doc-link-btn">Acessar ↗</a>
+            </div>
+
+            <div class="doc-item">
+              <div class="doc-item-info">
+                <span class="doc-item-title">Taxa de Incêndio (FUNESBOM)</span>
+                <span class="doc-item-desc">Corpo de Bombeiros Militar do Estado do RJ</span>
+              </div>
+              <a href="https://www.funesbom.rj.gov.br/n-cbmerj-do-imovel/" target="_blank" rel="noopener noreferrer" class="doc-link-btn">Acessar ↗</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- BLOCO 2: DOCUMENTOS PARA REGISTRO -->
+        <div class="doc-block">
+          <div class="doc-block-title">
+            <span>🏛️ Documentos para Levar a Registro</span>
+          </div>
+          <div class="doc-list">
+            <div class="doc-item">
+              <div class="doc-item-info">
+                <span class="doc-item-title">Certidão 5º e 6º Ofício (Pesquisa de Bens/Escrituras/Procurações)</span>
+                <span class="doc-item-desc">Data superior à idade do comprador (1º imóvel) • e-Cartório RJ</span>
+              </div>
+              <a href="https://e-cartoriorj.com.br/Home/ListarCertidoes/?categoria=0#" target="_blank" rel="noopener noreferrer" class="doc-link-btn">Acessar ↗</a>
+            </div>
+
+            <div class="doc-item" style="background:#fffbeb; border-color:#fde68a;">
+              <div class="doc-item-info">
+                <span class="doc-item-title">Contrato de Financiamento</span>
+                <span class="doc-item-desc">1 via original com a procuração emitida pelo Banco</span>
+              </div>
+              <span class="doc-tag-fisica">📦 Via Física Original</span>
+            </div>
+
+            <div class="doc-item">
+              <div class="doc-item-info">
+                <span class="doc-item-title">Guia ITBI (Simulação / Emissão)</span>
+                <span class="doc-item-desc">Prefeitura da Cidade do Rio de Janeiro</span>
+              </div>
+              <a href="https://smfonlineitbi.smf.rio.rj.gov.br/cgi-bin/itbi2simulacao_cgi.exe" target="_blank" rel="noopener noreferrer" class="doc-link-btn">Acessar ↗</a>
+            </div>
+
+            <div class="doc-item">
+              <div class="doc-item-info">
+                <span class="doc-item-title">Imprimir Guia ITBI para Pagamento</span>
+                <span class="doc-item-desc">Prefeitura da Cidade do Rio de Janeiro</span>
+              </div>
+              <a href="https://smfonlineitbi.smf.rio.rj.gov.br/cgi-bin/ltbi2ImpGuiasEmitidas_CGI.exe" target="_blank" rel="noopener noreferrer" class="doc-link-btn">Acessar ↗</a>
+            </div>
+
+            <div class="doc-item">
+              <div class="doc-item-info">
+                <span class="doc-item-title">Certidão do ITBI (Quitação)</span>
+                <span class="doc-item-desc">Prefeitura da Cidade do Rio de Janeiro</span>
+              </div>
+              <a href="https://smfonlineitbi.smf.rio.rj.gov.br/cgi-bin/ltbi2ImpCertidao_CGI.exe" target="_blank" rel="noopener noreferrer" class="doc-link-btn">Acessar ↗</a>
+            </div>
+
+            <div class="doc-item">
+              <div class="doc-item-info">
+                <span class="doc-item-title">Isenção de ITBI (Reconhecimento)</span>
+                <span class="doc-item-desc">Portal Carioca Digital</span>
+              </div>
+              <a href="https://carioca.rio/servicos/itbi-processo-de-reconhecimento-de-isencao/" target="_blank" rel="noopener noreferrer" class="doc-link-btn">Acessar ↗</a>
+            </div>
+
+            <div class="doc-item">
+              <div class="doc-item-info">
+                <span class="doc-item-title">Transferência de IPTU</span>
+                <span class="doc-item-desc">DIEF / SMF Rio de Janeiro</span>
+              </div>
+              <a href="https://dief.rio.rj.gov.br/dief/asp/mcriweb/gerar_menu_decl.asp" target="_blank" rel="noopener noreferrer" class="doc-link-btn">Acessar ↗</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- TELA 1: GRID DE QUADRADINHOS -->
     <div id="view-registros-grid">
