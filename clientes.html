@@ -47,19 +47,20 @@
   .btn-danger { background: var(--danger); color: #fff; padding: 3px 6px; font-size: 0.7rem; border-radius: 4px; }
   .btn-success { background: var(--success); color: #fff; }
 
+  /* TABELA COM SCROLL HORIZONTAL FLUIDO E LARGURAS OTIMIZADAS */
   .table-container { width: 100%; max-height: 72vh; overflow-y: auto; overflow-x: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
-  table.table-compact { width: 100%; min-width: 1360px; border-collapse: collapse; font-size: 0.73rem; table-layout: fixed; }
-  table.table-compact th { background: #000; color: #fff; padding: 6px 3px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.69rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  table.table-compact th.th-filtro { background: #1a1c20; padding: 4px 2px; position: sticky; top: 28px; z-index: 10; }
-  table.table-compact th.th-filtro input, table.table-compact th.th-filtro select { width: 100%; padding: 2px 3px; font-size: 0.66rem; background: #fff; border: 1px solid #475569; border-radius: 3px; color: #1e293b; }
+  table.table-compact { width: 100%; min-width: 1720px; border-collapse: collapse; font-size: 0.75rem; table-layout: fixed; }
+  table.table-compact th { background: #000; color: #fff; padding: 7px 4px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.70rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-right: 1px solid #27272a; }
+  table.table-compact th.th-filtro { background: #1a1c20; padding: 4px 3px; position: sticky; top: 29px; z-index: 10; border-right: 1px solid #27272a; }
+  table.table-compact th.th-filtro input, table.table-compact th.th-filtro select { width: 100%; padding: 2px 4px; font-size: 0.67rem; background: #fff; border: 1px solid #475569; border-radius: 3px; color: #1e293b; }
   
-  table.table-compact td { padding: 4px 2px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.72rem; }
+  table.table-compact td { padding: 4px 3px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #f1f5f9; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.74rem; }
   table.table-compact tr:hover { background: #f8fafc; }
   
-  .cell-input { width: 100%; padding: 3px 4px; font-size: 0.72rem; border: 1px solid transparent; background: transparent; border-radius: 3px; }
+  .cell-input { width: 100%; padding: 3px 4px; font-size: 0.73rem; border: 1px solid transparent; background: transparent; border-radius: 3px; }
   .cell-input:hover { border-color: #cbd5e1; background: #fff; }
   .cell-input:focus { border-color: var(--accent); background: #fff; outline: none; }
-  .cell-select { width: 100%; padding: 2px 0px; font-size: 0.71rem; border: 1px solid transparent; background: transparent; cursor: pointer; border-radius: 3px; }
+  .cell-select { width: 100%; padding: 2px 0px; font-size: 0.72rem; border: 1px solid transparent; background: transparent; cursor: pointer; border-radius: 3px; }
   .cell-select:hover { border-color: #cbd5e1; background: #fff; }
   .cell-select:focus { border-color: var(--accent); background: #fff; outline: none; }
   .status-rec-sim { background-color: #dcfce7 !important; color: #166534 !important; font-weight: 800; border-radius: 4px; }
@@ -68,24 +69,24 @@
   td.celula-bloqueada { background-color: #121315 !important; color: #121315 !important; text-align: center !important; }
   td.celula-bloqueada::after { content: "—"; color: #334155; }
 
-  .col-del { width: 28px; text-align: center; }
-  .col-id { width: 34px; text-align: center; font-weight: bold; }
-  .col-ano { width: 44px; text-align: center; }
-  .col-mes { width: 50px; text-align: center; }
-  .col-nome { width: 135px; font-weight: 600; }
-  .col-sit { width: 85px; text-align: center; }
-  .col-un { width: 55px; }
-  .col-val { width: 80px; text-align: right; }
-  .col-cor { width: 75px; }
-  .col-fat { width: 52px; text-align: center; }
-  .col-com { width: 80px; text-align: right; }
-  .col-prem { width: 60px; text-align: right; }
-  .col-imp { width: 70px; text-align: right; }
-  .col-rec { width: 54px; text-align: center; }
-  .col-vrec { width: 80px; text-align: right; font-weight: 600; color: #0369a1; }
-  .col-liq { width: 80px; text-align: right; font-weight: bold; color: var(--success); }
-  .col-opc { width: 52px; text-align: center; }
-  .col-tax { width: 65px; text-align: right; }
+  /* DEFINIÇÃO EXATA DAS COLUNAS */
+  .col-del { width: 32px; text-align: center; }
+  .col-ano { width: 55px; text-align: center; }
+  .col-mes { width: 62px; text-align: center; }
+  .col-nome { width: 280px; font-weight: 600; }     /* GRANDE */
+  .col-sit { width: 95px; text-align: center; }
+  .col-un { width: 290px; }                         /* GRANDE */
+  .col-val { width: 95px; text-align: right; }
+  .col-cor { width: 80px; }
+  .col-fat { width: 56px; text-align: center; }
+  .col-com { width: 90px; text-align: right; }
+  .col-prem { width: 68px; text-align: right; }
+  .col-imp { width: 75px; text-align: right; }
+  .col-rec { width: 58px; text-align: center; }
+  .col-vrec { width: 92px; text-align: right; font-weight: 600; color: #0369a1; }
+  .col-liq { width: 92px; text-align: right; font-weight: bold; color: var(--success); }
+  .col-opc { width: 56px; text-align: center; }
+  .col-tax { width: 75px; text-align: right; }
 
   /* MAPA */
   .mapa-layout { display: grid; grid-template-columns: 140px 1fr; gap: 14px; align-items: start; }
@@ -173,7 +174,7 @@
   <div class="main-tabs" style="display: flex; justify-content: space-between; align-items: center;">
     <div style="display: flex; gap: 8px;">
       <button class="tab-nav-btn active" onclick="trocarAbaPrincipal('producao', this)">📋 Lançamentos e Produção</button>
-      <button class="tab-nav-btn" onclick="trocarAbaPrincipal('mapa', this)">🗺️ MAPA Financeiro</button>
+      <button class="tab-nav-btn" onclick="trocarAbaPrincipal('mapa', this)">🗺️️ MAPA Financeiro</button>
       <button class="tab-nav-btn" onclick="trocarAbaPrincipal('graficos', this)">📊 Gráficos & Metas (BI)</button>
       <button class="tab-nav-btn" onclick="trocarAbaPrincipal('registros', this)">📝 Registros</button>
     </div>
@@ -254,7 +255,6 @@
           <thead>
             <tr>
               <th class="col-del">Del</th>
-              <th class="col-id">ID</th>
               <th class="col-ano">Ano</th>
               <th class="col-mes">Mês</th>
               <th class="col-nome">Nome / Operação</th>
@@ -274,10 +274,9 @@
             </tr>
             <tr style="background: #1a1c20;">
               <th class="th-filtro"></th>
-              <th class="th-filtro"></th>
               <th class="th-filtro"><input type="text" id="f-ano" placeholder="Ano" oninput="filtrarTabela()"></th>
               <th class="th-filtro"><input type="text" id="f-mes" placeholder="Mês" oninput="filtrarTabela()"></th>
-              <th class="th-filtro"><input type="text" id="f-nome" placeholder="Nome..." oninput="filtrarTabela()"></th>
+              <th class="th-filtro"><input type="text" id="f-nome" placeholder="Filtrar Nome..." oninput="filtrarTabela()"></th>
               <th class="th-filtro">
                 <select id="f-sit" onchange="filtrarTabela()">
                   <option value="">Todas</option>
@@ -290,7 +289,7 @@
                   <option value="ASS. DIGITAL">Ass. Digital</option>
                 </select>
               </th>
-              <th class="th-filtro"><input type="text" id="f-un" placeholder="Unid." oninput="filtrarTabela()"></th>
+              <th class="th-filtro"><input type="text" id="f-un" placeholder="Filtrar Unidade..." oninput="filtrarTabela()"></th>
               <th class="th-filtro"><input type="text" id="f-val" placeholder="Valor" oninput="filtrarTabela()"></th>
               <th class="th-filtro">
                 <select id="f-cor" onchange="filtrarTabela()">
@@ -331,7 +330,7 @@
             </tr>
           </thead>
           <tbody id="tabela-corpo">
-            <tr><td colspan="18" style="text-align:center; padding:16px;">Carregando registros...</td></tr>
+            <tr><td colspan="17" style="text-align:center; padding:16px;">Carregando registros...</td></tr>
           </tbody>
         </table>
       </div>
@@ -687,7 +686,7 @@
       : (v || '-');
 
     if (!dados || dados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="18" style="text-align:center; padding:16px;">Nenhum registro encontrado com estes filtros.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center; padding:16px;">Nenhum registro encontrado com estes filtros.</td></tr>';
       return;
     }
 
@@ -703,12 +702,11 @@
 
       return '<tr>' +
         '<td class="col-del"><button class="btn btn-danger" onclick="excluirLinha(' + id + ')">✕</button></td>' +
-        '<td class="col-id">#' + id + '</td>' +
-        '<td class="col-ano"><input type="number" class="cell-input" value="' + item.ano + '" onchange="atualizarItemDireto(' + id + ', \'ano\', parseInt(this.value))"></td>' +
-        '<td class="col-mes"><select class="cell-select" onchange="atualizarItemDireto(' + id + ', \'mes\', this.value)">' + htmlMeses + '</select></td>' +
-        '<td class="col-nome"><input type="text" class="cell-input" value="' + (item.nome || '') + '" onchange="atualizarItemDireto(' + id + ', \'nome\', this.value)"></td>' +
+        '<td class="col-ano"><input type="number" class="cell-input" style="text-align:center;" value="' + item.ano + '" onchange="atualizarItemDireto(' + id + ', \'ano\', parseInt(this.value))"></td>' +
+        '<td class="col-mes"><select class="cell-select" style="text-align:center;" onchange="atualizarItemDireto(' + id + ', \'mes\', this.value)">' + htmlMeses + '</select></td>' +
+        '<td class="col-nome"><input type="text" class="cell-input" value="' + (item.nome || '') + '" title="' + (item.nome || '') + '" onchange="atualizarItemDireto(' + id + ', \'nome\', this.value)"></td>' +
         '<td class="col-sit"><select class="cell-select" onchange="atualizarItemDireto(' + id + ', \'situacao\', this.value)">' + htmlSit + '</select></td>' +
-        '<td class="col-un"><input type="text" class="cell-input" value="' + (item.unidade || '') + '" onchange="atualizarItemDireto(' + id + ', \'unidade\', this.value)"></td>' +
+        '<td class="col-un"><input type="text" class="cell-input" value="' + (item.unidade || '') + '" title="' + (item.unidade || '') + '" onchange="atualizarItemDireto(' + id + ', \'unidade\', this.value)"></td>' +
         '<td class="col-val"><input type="text" class="cell-input" style="text-align:right;" value="' + formatarMoedaInput(item.valor) + '" onchange="atualizarItemDireto(' + id + ', \'valor\', parseMoedaInput(this.value))"></td>' +
         '<td class="col-cor"><select class="cell-select" onchange="atualizarItemDireto(' + id + ', \'corretor\', this.value)">' + htmlCor + '</select></td>' +
         '<td class="col-fat"><select class="cell-select" style="text-align:center;" onchange="atualizarItemDireto(' + id + ', \'faturada\', this.value)"><option value="NÃO" ' + (item.faturada === 'NÃO' ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (item.faturada === 'SIM' ? 'selected' : '') + '>SIM</option></select></td>' +
@@ -718,7 +716,7 @@
         '<td class="col-rec"><select class="cell-select ' + (isRecSim ? 'status-rec-sim' : 'status-rec-nao') + '" onchange="atualizarItemDireto(' + id + ', \'recebido\', this.value)"><option value="NÃO" ' + (!isRecSim ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (isRecSim ? 'selected' : '') + '>SIM</option></select></td>' +
         '<td class="col-vrec"><input type="text" class="cell-input" style="text-align:right;" value="' + formatarMoedaInput(item.valor_recebido) + '" onchange="atualizarItemDireto(' + id + ', \'valor_recebido\', parseMoedaInput(this.value))"></td>' +
         '<td class="col-liq">' + fmt(parseFloat(item.valor_liquido)) + '</td>' +
-        '<td class="col-opc">' + (isX(item.opcao) ? '<span style="color:#94a3b8">—</span>' : '<select class="cell-select" style="font-weight:bold;" onchange="atualizarItemDireto(' + id + ', \'opcao\', this.value)"><option value="NÃO" ' + (!isOpcSim ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (isOpcSim ? 'selected' : '') + '>SIM</option></select>') + '</td>' +
+        '<td class="col-opc">' + (isX(item.opcao) ? '<span style="color:#94a3b8">—</span>' : '<select class="cell-select" style="font-weight:bold; text-align:center;" onchange="atualizarItemDireto(' + id + ', \'opcao\', this.value)"><option value="NÃO" ' + (!isOpcSim ? 'selected' : '') + '>NÃO</option><option value="SIM" ' + (isOpcSim ? 'selected' : '') + '>SIM</option></select>') + '</td>' +
         '<td class="col-tax ' + (isX(item.taxa_mensal) ? 'celula-bloqueada' : '') + '">' + (isX(item.taxa_mensal) ? '' : '<input type="text" class="cell-input" style="text-align:right;" value="' + formatarMoedaInput(item.taxa_mensal) + '" onchange="atualizarItemDireto(' + id + ', \'taxa_mensal\', parseMoedaInput(this.value))">') + '</td>' +
       '</tr>';
     }).join('');
