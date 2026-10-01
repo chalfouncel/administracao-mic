@@ -21,7 +21,7 @@
   .app-header-logo { max-height: 42px; border-radius: 6px; border: 1px solid var(--accent); padding: 2px; background: #000; }
   header h1 { font-size: 1.1rem; color: var(--gold); font-weight: 700; }
   header p { font-size: 0.74rem; color: #cfd4dc; }
-  
+
   .container { max-width: 99%; margin: 14px auto; padding: 0 10px; }
 
   .main-tabs { display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 2px solid var(--border); padding-bottom: 4px; }
@@ -33,31 +33,31 @@
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
   .card-title { font-size: 0.95rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 
-  /* GRID DO FORMULÁRIO COM LARGURAS PROPORCIONAIS */
-  .grid-form { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px; align-items: end; }
-  .form-col-1 { grid-column: span 1; min-width: 70px; }
-  .form-col-2 { grid-column: span 2; min-width: 110px; }
-  .form-col-3 { grid-column: span 3; min-width: 170px; }
-  .form-col-4 { grid-column: span 4; min-width: 240px; }
-  .form-col-5 { grid-column: span 5; min-width: 280px; }
-  .form-col-6 { grid-column: span 6; min-width: 320px; }
+  /* LINHA DO FORMULÁRIO COM LARGURAS EXATAS DO PRINT */
+  .form-scroll-container { width: 100%; overflow-x: auto; padding-bottom: 6px; }
+  .form-row-exact { display: flex; gap: 8px; min-width: 1720px; align-items: flex-end; }
+  .field-col { display: flex; flex-direction: column; }
+  
+  .fc-ano { width: 55px; flex-shrink: 0; }
+  .fc-mes { width: 62px; flex-shrink: 0; }
+  .fc-nome { width: 280px; flex-shrink: 0; }
+  .fc-sit { width: 95px; flex-shrink: 0; }
+  .fc-un { width: 290px; flex-shrink: 0; }
+  .fc-val { width: 95px; flex-shrink: 0; }
+  .fc-cor { width: 80px; flex-shrink: 0; }
+  .fc-fat { width: 56px; flex-shrink: 0; }
+  .fc-com { width: 90px; flex-shrink: 0; }
+  .fc-prem { width: 68px; flex-shrink: 0; }
+  .fc-prem-corr { width: 75px; flex-shrink: 0; }
+  .fc-imp { width: 75px; flex-shrink: 0; }
+  .fc-rec { width: 58px; flex-shrink: 0; }
+  .fc-vrec { width: 92px; flex-shrink: 0; }
+  .fc-liq { width: 92px; flex-shrink: 0; }
+  .fc-opc { width: 56px; flex-shrink: 0; }
+  .fc-tax { width: 75px; flex-shrink: 0; }
+  .fc-obs { width: 220px; flex-shrink: 0; }
 
-  @media(max-width: 1200px) {
-    .grid-form { grid-template-columns: repeat(6, 1fr); }
-    .form-col-1 { grid-column: span 2; }
-    .form-col-2 { grid-column: span 2; }
-    .form-col-3 { grid-column: span 3; }
-    .form-col-4 { grid-column: span 6; }
-    .form-col-5 { grid-column: span 6; }
-    .form-col-6 { grid-column: span 6; }
-  }
-
-  @media(max-width: 768px) {
-    .grid-form { grid-template-columns: 1fr; }
-    .form-col-1, .form-col-2, .form-col-3, .form-col-4, .form-col-5, .form-col-6 { grid-column: span 1; min-width: 100%; }
-  }
-
-  label { display: block; font-size: 0.68rem; font-weight: 700; color: #475569; margin-bottom: 3px; text-transform: uppercase; }
+  label { display: block; font-size: 0.68rem; font-weight: 700; color: #475569; margin-bottom: 3px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   input, select, textarea { width: 100%; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 0.82rem; outline: none; }
   input:focus, select:focus { border-color: var(--accent); }
   .read-only-field { background-color: #f8fafc; font-weight: bold; color: #334155; }
@@ -76,10 +76,10 @@
   table.table-compact th { background: #000; color: #fff; padding: 7px 4px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.70rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-right: 1px solid #27272a; }
   table.table-compact th.th-filtro { background: #1a1c20; padding: 4px 3px; position: sticky; top: 29px; z-index: 10; border-right: 1px solid #27272a; }
   table.table-compact th.th-filtro input, table.table-compact th.th-filtro select { width: 100%; padding: 2px 4px; font-size: 0.67rem; background: #fff; border: 1px solid #475569; border-radius: 3px; color: #1e293b; }
-  
+
   table.table-compact td { padding: 4px 3px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #f1f5f9; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.74rem; }
   table.table-compact tr:hover { background: #f8fafc; }
-  
+
   .cell-input { width: 100%; padding: 3px 4px; font-size: 0.73rem; border: 1px solid transparent; background: transparent; border-radius: 3px; }
   .cell-input:hover { border-color: #cbd5e1; background: #fff; }
   .cell-input:focus { border-color: var(--accent); background: #fff; outline: none; }
@@ -96,9 +96,9 @@
   .col-del { width: 32px; text-align: center; }
   .col-ano { width: 55px; text-align: center; }
   .col-mes { width: 62px; text-align: center; }
-  .col-nome { width: 280px; font-weight: 600; }     /* GRANDE */
+  .col-nome { width: 280px; font-weight: 600; }
   .col-sit { width: 95px; text-align: center; }
-  .col-un { width: 290px; }                         /* GRANDE */
+  .col-un { width: 290px; }
   .col-val { width: 95px; text-align: right; }
   .col-cor { width: 80px; }
   .col-fat { width: 56px; text-align: center; }
@@ -122,7 +122,7 @@
   .pivot-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
   .pivot-header-yellow { background: #ffff00; color: #000; font-weight: 900; font-size: 0.8rem; text-align: center; padding: 8px; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
   .pivot-header-green { background: #70ad47; color: #fff; font-weight: 900; font-size: 0.8rem; text-align: center; padding: 8px; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
-  
+
   table.pivot-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
   table.pivot-table th { background: #f1f5f9; color: #475569; padding: 6px 8px; font-size: 0.7rem; border-bottom: 1px solid #cbd5e1; }
   table.pivot-table td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
@@ -138,11 +138,11 @@
   .kpi-main-info { display: flex; flex-direction: column; }
   .kpi-card-title { font-size: 0.62rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
   .kpi-card-val { font-size: 1.15rem; font-weight: 800; color: var(--primary); }
-  
+
   .kpi-breakdown-right { border-left: 1px dashed #cbd5e1; padding-left: 10px; display: flex; flex-direction: column; gap: 1px; min-width: 95px; }
   .kpi-ano-item { display: flex; justify-content: space-between; font-size: 0.65rem; color: #475569; gap: 6px; padding: 1px 3px; border-radius: 3px; }
   .kpi-ano-item span:last-child { font-weight: 700; color: #1e293b; }
-  
+
   .kpi-ano-melhor { background-color: #dcfce7 !important; color: #166534 !important; font-weight: bold; }
   .kpi-ano-melhor span { color: #166534 !important; }
 
@@ -167,7 +167,7 @@
   .card-registro-box:hover { border-color: var(--accent); box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: translateY(-2px); }
   .card-registro-nome { font-weight: 800; color: var(--primary); font-size: 0.9rem; margin-bottom: 5px; }
   .card-registro-id { font-size: 0.7rem; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 10px; }
-  
+
   .tabela-registro-form { width: 100%; border-collapse: collapse; background: #fff; }
   .tabela-registro-form th, .tabela-registro-form td { border: 1px solid #cbd5e1; padding: 6px; vertical-align: middle; }
   .tabela-registro-form th { background: #f8fafc; font-size: 0.8rem; }
@@ -193,7 +193,7 @@
 </header>
 
 <div class="container">
-  
+
   <div class="main-tabs" style="display: flex; justify-content: space-between; align-items: center;">
     <div style="display: flex; gap: 8px;">
       <button class="tab-nav-btn active" onclick="trocarAbaPrincipal('producao', this)">📋 Lançamentos e Produção</button>
@@ -218,53 +218,50 @@
       </div>
 
       <form id="form-cliente" onsubmit="salvarLinha(event)">
-        <div class="grid-form">
-          <!-- LINHA 1: IDENTIFICAÇÃO COM NOME E UNIDADE AMPLIADOS -->
-          <div class="form-col-1"><label>Ano</label><input type="number" id="inp-ano" required></div>
-          <div class="form-col-1">
-            <label>Mês</label>
-            <select id="inp-mes" required>
-              <option value="Janeiro">Janeiro</option><option value="Fevereiro">Fevereiro</option><option value="Março">Março</option>
-              <option value="Abril">Abril</option><option value="Maio">Maio</option><option value="Junho">Junho</option>
-              <option value="Julho">Julho</option><option value="Agosto">Agosto</option><option value="Setembro">Setembro</option>
-              <option value="Outubro">Outubro</option><option value="Novembro">Novembro</option><option value="Dezembro">Dezembro</option>
-            </select>
+        <div class="form-scroll-container">
+          <div class="form-row-exact">
+            <div class="field-col fc-ano"><label>Ano</label><input type="number" id="inp-ano" required style="text-align:center;"></div>
+            <div class="field-col fc-mes">
+              <label>Mês</label>
+              <select id="inp-mes" required style="text-align:center;">
+                <option value="Janeiro">Janeiro</option><option value="Fevereiro">Fevereiro</option><option value="Março">Março</option>
+                <option value="Abril">Abril</option><option value="Maio">Maio</option><option value="Junho">Junho</option>
+                <option value="Julho">Julho</option><option value="Agosto">Agosto</option><option value="Setembro">Setembro</option>
+                <option value="Outubro">Outubro</option><option value="Novembro">Novembro</option><option value="Dezembro">Dezembro</option>
+              </select>
+            </div>
+            <div class="field-col fc-nome"><label>Nome / Operação</label><input type="text" id="inp-nome" required oninput="recalcularForm()"></div>
+            <div class="field-col fc-sit"><label>Situação</label><select id="inp-situacao" onchange="recalcularForm()"></select></div>
+            <div class="field-col fc-un"><label>Unidade</label><input type="text" id="inp-unidade"></div>
+            <div class="field-col fc-val"><label>Valor (R$)</label><input type="text" id="inp-valor" placeholder="0,00" required oninput="formatarInputMoeda(this); recalcularForm()" style="text-align:right;"></div>
+            <div class="field-col fc-cor"><label>Corretor</label><select id="inp-corretor" onchange="recalcularForm()"></select></div>
+            <div class="field-col fc-fat">
+              <label>Fat.</label>
+              <select id="inp-faturada" onchange="recalcularForm()" style="text-align:center;">
+                <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
+              </select>
+            </div>
+            <div class="field-col fc-com"><label>Comissão (R$)</label><input type="text" id="inp-comissao" placeholder="0,00" required oninput="formatarInputMoeda(this); recalcularForm()" style="text-align:right;"></div>
+            <div class="field-col fc-prem"><label>Prêmio</label><input type="text" id="inp-premio" value="0,00" oninput="formatarInputMoeda(this); recalcularForm()" style="text-align:right;"></div>
+            <div class="field-col fc-prem-corr"><label>Prêmio Corr.</label><input type="text" id="inp-premio-corr" class="read-only-field" readonly style="text-align:right;"></div>
+            <div class="field-col fc-imp"><label>Imposto</label><input type="text" id="inp-imposto" class="read-only-field" readonly style="text-align:right;"></div>
+            <div class="field-col fc-rec">
+              <label>Rec.</label>
+              <select id="inp-recebido" style="text-align:center;">
+                <option value="NÃO" selected>NÃO</option><option value="SIM">SIM</option>
+              </select>
+            </div>
+            <div class="field-col fc-vrec"><label>Val. Rec.</label><input type="text" id="inp-val-recebido" value="0,00" oninput="formatarInputMoeda(this)" style="text-align:right;"></div>
+            <div class="field-col fc-liq"><label>Líquido</label><input type="text" id="inp-liquido" class="read-only-field" readonly style="text-align:right;"></div>
+            <div class="field-col fc-opc">
+              <label>Opção</label>
+              <select id="inp-opcao" style="text-align:center;">
+                <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
+              </select>
+            </div>
+            <div class="field-col fc-tax"><label>Taxa Mês</label><input type="text" id="inp-taxa" value="0,00" oninput="formatarInputMoeda(this)" style="text-align:right;"></div>
+            <div class="field-col fc-obs"><label>Observações</label><input type="text" id="inp-obs"></div>
           </div>
-          <div class="form-col-4"><label>Nome / Operação</label><input type="text" id="inp-nome" required oninput="recalcularForm()"></div>
-          <div class="form-col-2"><label>Situação</label><select id="inp-situacao" onchange="recalcularForm()"></select></div>
-          <div class="form-col-4"><label>Unidade</label><input type="text" id="inp-unidade"></div>
-
-          <!-- LINHA 2: VALORES E COMISSÕES -->
-          <div class="form-col-2"><label>Valor (R$)</label><input type="text" id="inp-valor" placeholder="0,00" required oninput="formatarInputMoeda(this); recalcularForm()"></div>
-          <div class="form-col-2"><label>Corretor</label><select id="inp-corretor" onchange="recalcularForm()"></select></div>
-          <div class="form-col-1">
-            <label>Faturada?</label>
-            <select id="inp-faturada" onchange="recalcularForm()">
-              <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
-            </select>
-          </div>
-          <div class="form-col-2"><label>Comissão (R$)</label><input type="text" id="inp-comissao" placeholder="0,00" required oninput="formatarInputMoeda(this); recalcularForm()"></div>
-          <div class="form-col-1"><label>Prêmio (R$)</label><input type="text" id="inp-premio" value="0,00" oninput="formatarInputMoeda(this); recalcularForm()"></div>
-          <div class="form-col-2"><label>Prêmio Corr.</label><input type="text" id="inp-premio-corr" class="read-only-field" readonly></div>
-          <div class="form-col-2"><label>Imposto (15%)</label><input type="text" id="inp-imposto" class="read-only-field" readonly></div>
-
-          <!-- LINHA 3: RECEBIMENTO (PADRÃO "NÃO") E FECHAMENTO -->
-          <div class="form-col-1">
-            <label>Recebido?</label>
-            <select id="inp-recebido">
-              <option value="NÃO" selected>NÃO</option><option value="SIM">SIM</option>
-            </select>
-          </div>
-          <div class="form-col-2"><label>Valor Recebido</label><input type="text" id="inp-val-recebido" value="0,00" oninput="formatarInputMoeda(this)"></div>
-          <div class="form-col-2"><label>Líquido R$</label><input type="text" id="inp-liquido" class="read-only-field" readonly></div>
-          <div class="form-col-1">
-            <label>Opção</label>
-            <select id="inp-opcao">
-              <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
-            </select>
-          </div>
-          <div class="form-col-2"><label>Taxa Mensal (R$)</label><input type="text" id="inp-taxa" value="0,00" oninput="formatarInputMoeda(this)"></div>
-          <div class="form-col-4"><label>Observações</label><input type="text" id="inp-obs"></div>
         </div>
         <div style="margin-top: 14px; text-align: right;">
           <button type="submit" class="btn btn-gold" id="btn-salvar">💾 Salvar Lançamento</button>
@@ -277,7 +274,7 @@
         <span>Histórico de Lançamentos (Planilha Viva - Edição Direta)</span>
         <button class="btn btn-dark" style="font-size:0.75rem; padding:4px 8px;" onclick="limparFiltrosTabela()">🔄 Limpar Filtros</button>
       </div>
-      
+
       <div class="table-container">
         <table class="table-compact">
           <thead>
@@ -368,7 +365,7 @@
   <!-- ABA 2: MAPA FINANCEIRO -->
   <div id="page-mapa" class="tab-page">
     <div class="mapa-layout">
-      
+
       <aside>
         <div class="slicer-card" style="margin-bottom: 12px;">
           <div class="slicer-title">Ano</div>
@@ -406,7 +403,7 @@
 
   <!-- ABA 4: REGISTROS -->
   <div id="page-registros" class="tab-page">
-    
+
     <!-- TELA 1: GRID DE QUADRADINHOS -->
     <div id="view-registros-grid">
       <div class="card">
@@ -439,7 +436,7 @@
 
         <!-- A TABELA DE PREENCHIMENTO -->
         <div id="container-tabela-registro" style="display: none; overflow-x: auto;">
-          
+
           <!-- BOTOES DE AÇÃO AQUI -->
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; gap: 8px;">
@@ -490,7 +487,7 @@
 
   const MESES_LISTA = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
   const ORDEM_MESES = { "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4, "Maio": 5, "Junho": 6, "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12 };
-  
+
   const ALIQUOTA_IMPOSTO = 0.15;
   let dadosDB = [];
 
@@ -561,7 +558,7 @@
     document.querySelectorAll('.tab-nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('page-' + qual).classList.add('active');
     btn.classList.add('active');
-    
+
     const btnRel = document.getElementById('btn-relatorio-container');
     if (qual === 'mapa') {
       btnRel.style.display = 'block';
@@ -574,7 +571,7 @@
       popularSeletorAnoGraficos();
       renderizarAbaGraficos();
     }
-    
+
     if (qual === 'registros') {
       renderizarGridRegistros();
     }
@@ -585,7 +582,7 @@
     sSit.innerHTML = SITUACOES.map(s => '<option value="' + s + '">' + s + '</option>').join('');
     const sCor = document.getElementById('inp-corretor');
     sCor.innerHTML = Object.keys(TABELA_CORRETORES).map(c => '<option value="' + c + '">' + c + '</option>').join('');
-    
+
     const hoje = new Date();
     document.getElementById('inp-ano').value = hoje.getFullYear();
     document.getElementById('inp-mes').selectedIndex = hoje.getMonth();
@@ -702,7 +699,7 @@
       dadosDB = await res.json();
       filtrarTabela();
       montarSlicers();
-      
+
       if (document.getElementById('page-mapa').classList.contains('active')) renderizarMapa();
       if (document.getElementById('page-graficos').classList.contains('active')) renderizarAbaGraficos();
       if (document.getElementById('page-registros').classList.contains('active')) renderizarGridRegistros();
@@ -893,7 +890,7 @@
         for (let i = 1; i < rows.length; i++) {
           const r = rows[i];
           if (!r || !r[1] || !r[3]) continue;
-          
+
           let valOpcaoExcel = r[17] ? String(r[17]).trim().toUpperCase() : 'NÃO';
           if (valOpcaoExcel !== 'SIM') valOpcaoExcel = 'NÃO';
           let valTaxaExcel = parseFloat(r[18]) || 0;
@@ -1068,7 +1065,7 @@
 
   function renderizarMapa() {
     const fmt = v => (parseFloat(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    
+
     const basePeriodo = dadosDB.filter(d => {
       const matchAno = (mapaFiltroAno === 'TODOS') || (d.ano == mapaFiltroAno);
       const matchMes = (mapaFiltroMes === 'TODOS') || (String(d.mes || '').toLowerCase() === String(mapaFiltroMes).toLowerCase());
@@ -1079,14 +1076,14 @@
       String(d.situacao || '').toUpperCase() === 'VENDA' && 
       String(d.recebido || '').toUpperCase() === 'SIM'
     );
-    
+
     const vgvCorretor = {};
     let totalVGV = 0;
-    
+
     baseVGV.forEach(d => {
       const c = d.corretor || 'Outros';
       const valOriginal = parseFloat(d.valor) || 0;
-      
+
       const isMario = String(c).trim().toLowerCase() === 'mario' || String(c).trim().toLowerCase() === 'mário';
       const valAjustado = isMario ? valOriginal : (valOriginal * 0.5);
 
@@ -1104,13 +1101,13 @@
     aReceberGlobal.forEach(d => {
       const sit = String(d.situacao || '').toUpperCase();
       const label = (sit === 'CRÉDITO') ? d.nome + ' (CRÉDITO)' : d.nome;
-      
+
       const receitaLiq = parseFloat(d.valor_liquido) || 0;
       const recebidoVal = parseFloat(d.valor_recebido) || 0;
-      
+
       let saldo = (sit === 'CRÉDITO' && receitaLiq === 0) ? 0 : (receitaLiq - recebidoVal);
       if (saldo < 0) saldo = 0;
-      
+
       mapaReceberClientes[label] = (mapaReceberClientes[label] || 0) + saldo;
     });
 
@@ -1132,7 +1129,7 @@
         const subTotal = sub.reduce((acc, x) => acc + (parseFloat(x.comissao) || 0), 0);
         totalVenda += subTotal;
         htmlVenda += '<tr class="tree-node"><td>📁 ' + st + '</td><td style="text-align:right;">' + fmt(subTotal) + '</td></tr>';
-        
+
         const porCorretor = {};
         sub.forEach(x => {
           const c = x.corretor || 'Outros';
@@ -1161,7 +1158,7 @@
         const subTotal = sub.reduce((acc, x) => acc + (parseFloat(x.valor_liquido) || 0), 0);
         totalAluguel += subTotal;
         htmlAluguel += '<tr class="tree-node"><td>📁 ' + st + '</td><td style="text-align:right;">' + fmt(subTotal) + '</td></tr>';
-        
+
         const porCorretor = {};
         sub.forEach(x => {
           const c = x.corretor || 'Outros';
@@ -1201,14 +1198,14 @@
       const isAnoExp = !!anosExpandidos[ano];
       const sinalAno = isAnoExp ? '[-] ' : '[+] ';
       htmlOpcoes += '<tr class="tree-node" onclick="toggleExpandirAno(\'' + ano + '\')"><td>' + sinalAno + '📅 ' + ano + '</td><td style="text-align:right;">' + fmt(treeOpcoes[ano].total) + '</td></tr>';
-      
+
       if (isAnoExp) {
         Object.keys(treeOpcoes[ano].meses).forEach(mes => {
           const chaveMes = ano + '-' + mes;
           const isMesExp = !!mesesExpandidos[chaveMes];
           const sinalMes = isMesExp ? '[-] ' : '[+] ';
           htmlOpcoes += '<tr class="tree-subnode" onclick="toggleExpandirMes(\'' + chaveMes + '\')"><td>' + sinalMes + '↳ ' + mes + '</td><td style="text-align:right;">' + fmt(treeOpcoes[ano].meses[mes].total) + '</td></tr>';
-          
+
           if (isMesExp) {
             treeOpcoes[ano].meses[mes].itens.forEach(it => {
               htmlOpcoes += '<tr class="tree-leaf"><td>' + it.nome + '</td><td style="text-align:right;">' + fmt(it.valor) + '</td></tr>';
@@ -1244,11 +1241,11 @@
     const admPorAno = {};
 
     const anosUnicos = [...new Set(dadosDB.map(d => d.ano))].filter(Boolean);
-    
+
     anosUnicos.forEach(ano => {
       const dadosDoAno = dadosDB.filter(d => d.ano === ano && String(d.recebido || '').toUpperCase() === 'SIM');
       let somaAno = dadosDoAno.reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
-      
+
       fatPorAno[ano] = somaAno;
       totalFatHist += somaAno;
     });
@@ -1340,7 +1337,7 @@
 
     MESES_LISTA.forEach(m => {
       const recM = receitaMensal[m];
-      
+
       totalAnoReceita += recM;
       valoresGrafico.push(recM);
 
@@ -1617,7 +1614,7 @@
     const anos = [2022, 2023, 2024, 2025, 2026];
 
     const fatAnual = anos.map(ano => dadosDB.filter(d => d.ano === ano && String(d.recebido || '').toUpperCase() === 'SIM').reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0));
-    
+
     const vgvAnual = anos.map(ano => {
       return dadosDB.filter(d => {
         const matchAno = d.ano === ano;
@@ -1687,7 +1684,7 @@
       const isMario = corr === 'mario' || corr === 'mário';
       return d.ano === ano && sit && isMario;
     }).length);
-    
+
     const qtdAlugueis = anos.map(ano => dadosDB.filter(d => d.ano === ano && String(d.situacao || '').toUpperCase() === 'ALUGUEL').length);
 
     if (chartInstQtdOps) chartInstQtdOps.destroy();
@@ -1732,7 +1729,7 @@
   function renderizarGridRegistros() {
     const container = document.getElementById('container-grid-registros');
     const ULTIMO_ID_ANTIGO = 1716; 
-    
+
     const registros = dadosDB.filter(d => 
       String(d.situacao).toUpperCase() === 'REGISTRO' && 
       d.id > ULTIMO_ID_ANTIGO
@@ -1748,7 +1745,7 @@
         <div class="card-registro-nome">${reg.nome || 'Cliente sem nome'}</div>
         <div class="card-registro-id">Lançamento #${reg.id}</div>
         <div style="font-size:0.75rem; margin-top:5px; color:#64748b;">${reg.mes}/${reg.ano}</div>
-        ${reg.dados_registro ? '<div style="margin-top:8px; font-size:0.7rem; color:green; font-weight:bold;">✅ Dados Preenchidos</div>' : '<div style="margin-top:8px; font-size:0.7rem; color:orange; font-weight:bold;">⚠️️ Pendente</div>'}
+        ${reg.dados_registro ? '<div style="margin-top:8px; font-size:0.7rem; color:green; font-weight:bold;">✅ Dados Preenchidos</div>' : '<div style="margin-top:8px; font-size:0.7rem; color:orange; font-weight:bold;">⚠️ Pendente</div>'}
       </div>
     `).join('');
   }
@@ -1756,7 +1753,7 @@
   function abrirDetalheRegistro(id) {
     idRegistroAberto = id;
     const registro = dadosDB.find(d => d.id === id);
-    
+
     document.getElementById('view-registros-grid').style.display = 'none';
     document.getElementById('view-registros-detalhe').style.display = 'block';
     document.getElementById('titulo-detalhe-registro').innerText = 'Registro: ' + (registro.nome || 'Sem Nome');
@@ -1802,7 +1799,7 @@
     for(let i = 0; i < qtdVendAtual; i++) {
       html += `
         <tr><td colspan="4" class="titulo-secao-reg">VENDEDOR ${i+1}</td></tr>
-        
+
         <tr style="background:#f8fafc;">
           <td colspan="2" style="background:#f1f5f9;"></td>
           <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-data" style="text-align: center;" data-grupo="vend" data-idx="${i}" data-campo="civil" placeholder="Certidão Civil" value="${getVal('vend', i, 'civil')}"></td>
@@ -1866,7 +1863,7 @@
 
   async function salvarDadosDoRegistroDB() {
     if (!idRegistroAberto) return;
-    
+
     document.getElementById('btnSalvarRegistroAtual').innerText = "Salvando...";
     document.getElementById('btnSalvarRegistroAtual').disabled = true;
 
@@ -1900,10 +1897,10 @@
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ dados_registro: jsonDados })
       });
-      
+
       const idx = dadosDB.findIndex(x => x.id === idRegistroAberto);
       if(idx !== -1) dadosDB[idx].dados_registro = jsonDados;
-      
+
       alert("✅ Dados do registro salvos com sucesso!");
       voltarParaGridRegistros();
       renderizarGridRegistros();
@@ -1918,11 +1915,11 @@
 
   async function concluirProcessoRegistro() {
     if (!idRegistroAberto) return;
-    
+
     let novaSit = prompt("Deseja concluir o processo e tirá-lo desta fila de pendências?\nDigite a nova SITUAÇÃO que ele deve receber (Ex: OUTROS, CONTRATO, VENDA):", "OUTROS");
-    
+
     if (novaSit === null) return;
-    
+
     novaSit = novaSit.trim().toUpperCase();
     if (!novaSit) novaSit = "OUTROS";
 
@@ -1932,12 +1929,12 @@
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ situacao: novaSit })
       });
-      
+
       const idx = dadosDB.findIndex(x => x.id === idRegistroAberto);
       if(idx !== -1) dadosDB[idx].situacao = novaSit;
-      
+
       alert("✅ Processo concluído! A situação foi alterada para: " + novaSit);
-      
+
       voltarParaGridRegistros();
       renderizarGridRegistros();
       filtrarTabela();
@@ -1949,19 +1946,19 @@
 
   async function excluirProcessoRegistro() {
     if (!idRegistroAberto) return;
-    
+
     if (!confirm('⚠️ ATENÇÃO: Tem certeza que deseja EXCLUIR este lançamento permanentemente de todo o sistema?')) return;
-    
+
     try {
       await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?id=eq.' + idRegistroAberto, {
         method: 'DELETE',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
       });
-      
+
       dadosDB = dadosDB.filter(x => x.id !== idRegistroAberto);
-      
+
       alert("🗑️ Processo excluído com sucesso!");
-      
+
       voltarParaGridRegistros();
       renderizarGridRegistros();
       filtrarTabela();
