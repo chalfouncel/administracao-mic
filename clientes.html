@@ -281,7 +281,7 @@
               <select id="inp-mes" required style="text-align:center;">
                 <option value="Janeiro">Jan</option><option value="Fevereiro">Fev</option><option value="Março">Mar</option>
                 <option value="Abril">Abr</option><option value="Maio">Mai</option><option value="Junho">Jun</option>
-                <option value="Julho">Julho</option><option value="Agosto">Ago</option><option value="Setembro">Set</option>
+                <option value="Julho">Jul</option><option value="Agosto">Ago</option><option value="Setembro">Set</option>
                 <option value="Outubro">Out</option><option value="Novembro">Nov</option><option value="Dezembro">Dez</option>
               </select>
             </div>
@@ -298,8 +298,8 @@
             </div>
             <div class="field-col fc-com"><label>Comissão (R$)</label><input type="text" id="inp-comissao" placeholder="0,00" required oninput="formatarInputMoeda(this); recalcularComissaoManual()" style="text-align:right;"></div>
             <div class="field-col fc-prem"><label>Prêmio</label><input type="text" id="inp-premio" value="0,00" oninput="formatarInputMoeda(this); recalcularForm()" style="text-align:right;"></div>
-            <div class="field-col fc-prem-corr"><label>Prêmio Corr.</label><input type="text" id="inp-premio-corr" class="read-only-field" readonly style="text-align:right;"></div>
-            <div class="field-col fc-imp"><label>Imposto</label><input type="text" id="inp-imposto" class="read-only-field" readonly style="text-align:right;"></div>
+            <div class="field-col fc-prem-corr"><label>Prêmio Corr.</label><input type="text" id="inp-premio-corr" class="read-only-field input-bloqueado" readonly style="text-align:right;"></div>
+            <div class="field-col fc-imp"><label>Imposto</label><input type="text" id="inp-imposto" class="read-only-field input-bloqueado" readonly style="text-align:right;"></div>
             <div class="field-col fc-rec">
               <label>Rec.</label>
               <select id="inp-recebido" style="text-align:center;">
@@ -314,7 +314,7 @@
                 <option value="NÃO">NÃO</option><option value="SIM">SIM</option>
               </select>
             </div>
-            <div class="field-col fc-tax"><label>Taxa Mês</label><input type="text" id="inp-taxa" class="read-only-field" readonly style="text-align:right;"></div>
+            <div class="field-col fc-tax"><label>Taxa Mês</label><input type="text" id="inp-taxa" class="read-only-field input-bloqueado" readonly style="text-align:right;"></div>
           </div>
 
           <!-- LINHA 2: OBSERVAÇÕES E BOTÃO SALVAR LADO A LADO -->
@@ -778,7 +778,12 @@
     document.getElementById('inp-mes').selectedIndex = hoje.getMonth();
     document.getElementById('inp-recebido').value = 'NÃO';
     document.getElementById('inp-opcao').value = 'NÃO';
-    document.getElementById('inp-taxa').value = 'XXXXXX';
+    document.getElementById('inp-taxa').value = '';
+    document.getElementById('inp-taxa').classList.add('input-bloqueado');
+    document.getElementById('inp-premio-corr').value = '';
+    document.getElementById('inp-premio-corr').classList.add('input-bloqueado');
+    document.getElementById('inp-imposto').value = '';
+    document.getElementById('inp-imposto').classList.add('input-bloqueado');
     document.getElementById('inp-valor').value = '0,00';
     document.getElementById('inp-comissao').value = '0,00';
     document.getElementById('inp-premio').value = '0,00';
@@ -1633,7 +1638,6 @@
       const n = String(d.nome || '').trim().toLowerCase();
       const isAdmNome = n === 'recebimento das administrações' || n === 'recebimento das administracoes' || n.includes('administrações m&ic') || n.includes('administracoes m&ic');
 
-      // Para a soma por ano de administração, considera valores existentes
       if (ano && isAdmNome) {
         admPorAno[ano] = (admPorAno[ano] || 0) + (parseFloat(d.valor_liquido) || 0);
       }
@@ -1834,7 +1838,7 @@
   }
 
   // =================================================================================
-  // CORREÇÃO CRÍTICA DA CURVA DE CRESCIMENTO (ADMINISTRAÇÕES)
+  // CURVA DE CRESCIMENTO (ADMINISTRAÇÕES)
   // =================================================================================
   function renderizarGraficoCurvaAdm() {
     const timelineChaves = [];
@@ -1861,13 +1865,11 @@
       const anoNum = parseInt(partes[0]);
       const mesNome = partes[2];
 
-      // Busca o valor líquido lançado para as Administrações Gerais
       const somaGeral = dadosDB.filter(d => {
         const n = String(d.nome || '').trim().toLowerCase();
         return d.ano === anoNum && d.mes === mesNome && (n === 'recebimento das administrações' || n === 'recebimento das administracoes');
       }).reduce((acc, curr) => acc + (parseFloat(curr.valor_liquido) || 0), 0);
 
-      // Busca o valor líquido lançado para as Administrações M&IC
       const somaMic = dadosDB.filter(d => {
         const n = String(d.nome || '').trim().toLowerCase();
         return d.ano === anoNum && d.mes === mesNome && (n.includes('administrações m&ic') || n.includes('administracoes m&ic'));
@@ -1875,7 +1877,6 @@
 
       const somaTotalPeriodo = somaGeral + somaMic;
 
-      // Só inclui o mês no gráfico se houver valor (evita queda falsa para 0 no mês corrente em aberto)
       if (somaTotalPeriodo > 0 || (somaGeral > 0 || somaMic > 0)) {
         labels.push(`${mesNome.slice(0, 3)}/${String(anoNum).slice(2)}`);
         serieGeral.push(somaGeral);
