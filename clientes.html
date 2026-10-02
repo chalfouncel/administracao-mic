@@ -661,9 +661,8 @@
   const SUPABASE_KEY = 'sb_publishable_nmolEh_G5_hKcfdgy2Xpeg_s4T6ePAz';
 
   const SITUACOES = [
-    'EM ANÁLISE', 'APROVADA', 'LEILÃO', 'REPROVADA', 'CONTRATO', 'COMRES',
-    'VENDA', 'PENDENTE DOC', 'ASS. DIGITAL', 'OUTROS', 'ALUGUEL', 'REGISTRO',
-    'CRÉDITO', 'TAPETE', 'IT ACTION'
+    'EM ANÁLISE', 'APROVADA', 'LEILÃO', 'CONTRATO', 'VENDA',
+    'ASS. DIGITAL', 'OUTROS', 'ALUGUEL', 'REGISTRO', 'CRÉDITO'
   ];
 
   const TABELA_CORRETORES = {
@@ -807,6 +806,9 @@
     const corrNorm = String(corretor || '').trim();
 
     if (isRecebimentoAdm || isRecebimentoMic) {
+      return valor;
+    }
+    if (sitNorm === 'ASS. DIGITAL' || sitNorm === 'REGISTRO' || sitNorm === 'CONTRATO') {
       return valor;
     }
     if (corrNorm.toLowerCase() === 'parceria') {
@@ -1088,7 +1090,12 @@
       const isOpcSim = String(item.opcao || '').toUpperCase() === 'SIM';
 
       let htmlMeses = MESES_LISTA.map(m => '<option value="' + m + '" ' + (item.mes === m ? 'selected' : '') + '>' + m.slice(0,3) + '</option>').join('');
-      let htmlSit = SITUACOES.map(s => '<option value="' + s + '" ' + (item.situacao === s ? 'selected' : '') + '>' + s + '</option>').join('');
+      
+      // Preserva a situação histórica existente do registro caso não esteja na lista de novas seleções
+      const situacoesLinha = (item.situacao && !SITUACOES.includes(item.situacao))
+        ? [item.situacao, ...SITUACOES]
+        : SITUACOES;
+      let htmlSit = situacoesLinha.map(s => '<option value="' + s + '" ' + (item.situacao === s ? 'selected' : '') + '>' + s + '</option>').join('');
       let htmlCor = Object.keys(TABELA_CORRETORES).map(c => '<option value="' + c + '" ' + (item.corretor === c ? 'selected' : '') + '>' + c + '</option>').join('');
 
       return '<tr>' +
