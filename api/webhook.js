@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-    // 1. Verifica se é POST
     if (req.method !== 'POST') {
         return res.status(405).send('Método não permitido');
     }
@@ -20,14 +19,13 @@ export default async function handler(req, res) {
             const [idReg, mesRef] = extRef.split('||');
             console.log(`🔄 Atualizando Locação ID: ${idReg} | Mês: ${mesRef}`);
 
-            const SUPABASE_URL = 'https://dgadztmmarvbjcouvrnp.supabase.co';
-            const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+            const SUPABASE_URL = 'https://uztsmkhlvoemjbbyebcr.supabase.co';
+            const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY;
 
             if (!SUPABASE_KEY) {
                 throw new Error("SUPABASE_SERVICE_KEY não encontrada nas variáveis de ambiente!");
             }
 
-            // 2. Busca a locação
             const resGet = await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
             });
@@ -35,7 +33,6 @@ export default async function handler(req, res) {
             if (!resGet.ok) throw new Error(`Erro ao buscar locação: ${resGet.statusText}`);
             const dataGet = await resGet.json();
 
-            // 3. Atualiza o status se encontrar
             if (dataGet && dataGet.length > 0) {
                 let statusCobranca = {}; 
                 try { 
@@ -44,7 +41,7 @@ export default async function handler(req, res) {
                     console.log("Aviso: status_cobranca anterior não era um JSON válido. Criando um novo.");
                 }
                 
-                statusCobranca[mesRef] = 'recebida'; // Pinta de Verde!
+                statusCobranca[mesRef] = 'recebida';
 
                 const resPatch = await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
                     method: 'PATCH',
@@ -63,13 +60,10 @@ export default async function handler(req, res) {
             }
         }
         
-        // Retorna 200 para o Asaas saber que deu tudo certo e tirar a penalidade
         return res.status(200).json({ received: true });
 
     } catch (error) {
         console.error("🚨 ERRO NO WEBHOOK:", error.message);
-        // Mesmo dando erro no nosso lado, retornamos 200 pro Asaas não travar a fila de novo.
-        // O erro ficará registrado no painel da Vercel para você ver depois.
         return res.status(200).json({ error: "Erro interno tratado", details: error.message });
     }
 }
