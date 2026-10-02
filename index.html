@@ -854,9 +854,9 @@
                   btn.innerText = "Validar Código"; btn.disabled = false;
                   document.getElementById('mfa-codigo').value = '';
               }
-          } catch (e) {
-              alert("Erro na validação: " + e.message);
-              btn.innerText = "Validar Código"; btn.disabled = false;
+          } catch (e) { 
+              alert("Erro na validação: " + e.message); 
+              btn.innerText = "Validar Código"; btn.disabled = false; 
           }
       });
     }
@@ -1697,7 +1697,7 @@
               if (atual < total) {
                   let [ano, mes] = mesRef.split('-');
                   let dataFutura = new Date(parseInt(ano), parseInt(mes) - 1, 1);
-                  for (let k = 1; k <= (total - atual); k++) {
+                  for (let k = 1; k <= (total - atual); k++) { 
                       dataFutura.setMonth(dataFutura.getMonth() + 1);
                       let mF = `${dataFutura.getFullYear()}-${String(dataFutura.getMonth() + 1).padStart(2, '0')}`;
                       if (!lancamentos[mF]) lancamentos[mF] = {};
@@ -1709,7 +1709,7 @@
           } else if (isFixo) {
               let [ano, mes] = mesRef.split('-');
               let dataFutura = new Date(parseInt(ano), parseInt(mes) - 1, 1);
-              for (let k = 1; k <= 12; k++) {
+              for (let k = 1; k <= 12; k++) { 
                   dataFutura.setMonth(dataFutura.getMonth() + 1);
                   let mF = `${dataFutura.getFullYear()}-${String(dataFutura.getMonth() + 1).padStart(2, '0')}`;
                   if (!lancamentos[mF]) lancamentos[mF] = {};
@@ -2013,7 +2013,7 @@
           }
       }
       if (count > 0) { alert(`✅ ${count} transferências executadas com sucesso no Asaas!`); atualizarInterfaceGeral(); } 
-      else { alert('Não hay contratos marcados aguardando transferência para este mês.'); }
+      else { alert('Não há contratos marcados aguardando transferência para este mês.'); }
   }
 
   function gerarTextosRepasse() {
@@ -2111,7 +2111,7 @@
 
            <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
            
-           <div style="margin:bottom: 12px;">${acaoHtml}</div>
+           <div style="margin-bottom: 10px;">${acaoHtml}</div>
            
            <div style="display: flex; gap: 8px;">
               <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.85rem;" onclick="copiarApenasImagem('${idCard}', this)">📸 Copiar Recibo</button>
@@ -2131,32 +2131,32 @@
       let todosRepassesOk = ativos.length > 0;
 
       ativos.forEach(c => {
-         const v = getVariaveisMes(c, mesRef);
-         let pAlug = parseMoedaToFloat(v.alugProp);
-         let pCond = parseMoedaToFloat(v.condProp);
-         let mAlug = parseMoedaToFloat(v.alugMes);
-         let mCond = parseMoedaToFloat(v.condMes);
-         let iptu = parseMoedaToFloat(v.iptu);
-         let bomb = parseMoedaToFloat(v.bombeiro);
-         let seg = parseMoedaToFloat(v.seguro);
-         let out = parseMoedaToFloat(v.outras_taxas);
-         let desc = parseMoedaToFloat(v.desconto);
-         let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa);
+          const v = getVariaveisMes(c, mesRef);
+          let pAlug = parseMoedaToFloat(v.alugProp);
+          let pCond = parseMoedaToFloat(v.condProp);
+          let mAlug = parseMoedaToFloat(v.alugMes);
+          let mCond = parseMoedaToFloat(v.condMes);
+          let iptu = parseMoedaToFloat(v.iptu);
+          let bomb = parseMoedaToFloat(v.bombeiro);
+          let seg = parseMoedaToFloat(v.seguro);
+          let out = parseMoedaToFloat(v.outras_taxas);
+          let desc = parseMoedaToFloat(v.desconto);
+          let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa);
 
-         let repassaCond = c.regra_condominio !== 'N'; let repassaSeguro = c.regra_seguro !== 'N';
-         let baseTotal = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
-         
-         totalArrecadado += (baseTotal + 2.99); 
-         
-         let valCondominioPix = repassaCond ? 0 : (pCond + mCond);
-         let valSeguroMIC = repassaSeguro ? 0 : seg;
-         
-         totalProp += (baseTotal - vTaxaAdm - valCondominioPix - valSeguroMIC);
-         totalMIC += (vTaxaAdm + valSeguroMIC);
-         totalCond += valCondominioPix;
+          let repassaCond = c.regra_condominio !== 'N'; let repassaSeguro = c.regra_seguro !== 'N';
+          let baseTotal = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
+          
+          totalArrecadado += (baseTotal + 2.99); 
+          
+          let valCondominioPix = repassaCond ? 0 : (pCond + mCond);
+          let valSeguroMIC = repassaSeguro ? 0 : seg;
+          
+          totalProp += (baseTotal - vTaxaAdm - valCondominioPix - valSeguroMIC);
+          totalMIC += (vTaxaAdm + valSeguroMIC);
+          totalCond += valCondominioPix;
 
-         let sR = {}; try{ sR=JSON.parse(c.status_repasse||'{}')}catch(e){}
-         if (sR[mesRef] !== 'recebida') todosRepassesOk = false;
+          let sR = {}; try{ sR=JSON.parse(c.status_repasse||'{}')}catch(e){}
+          if (sR[mesRef] !== 'recebida') todosRepassesOk = false;
       });
 
       document.getElementById('ger-ativos').innerText = ativos.length;
@@ -2236,35 +2236,35 @@
       const ativosList = contratosDB.filter(c => c.ativo === 'SIM');
       
       ativosList.forEach(c => {
-         const v = getVariaveisMes(c, mesRef);
-         let pAlug = parseMoedaToFloat(v.alugProp);
-         let pCond = parseMoedaToFloat(v.condProp);
-         let mAlug = parseMoedaToFloat(v.alugMes);
-         let mCond = parseMoedaToFloat(v.condMes);
-         let iptu = parseMoedaToFloat(v.iptu);
-         let bomb = parseMoedaToFloat(v.bombeiro);
-         let seg = parseMoedaToFloat(v.seguro);
-         let out = parseMoedaToFloat(v.outras_taxas);
-         let desc = parseMoedaToFloat(v.desconto);
-         let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa);
+          const v = getVariaveisMes(c, mesRef);
+          let pAlug = parseMoedaToFloat(v.alugProp);
+          let pCond = parseMoedaToFloat(v.condProp);
+          let mAlug = parseMoedaToFloat(v.alugMes);
+          let mCond = parseMoedaToFloat(v.condMes);
+          let iptu = parseMoedaToFloat(v.iptu);
+          let bomb = parseMoedaToFloat(v.bombeiro);
+          let seg = parseMoedaToFloat(v.seguro);
+          let out = parseMoedaToFloat(v.outras_taxas);
+          let desc = parseMoedaToFloat(v.desconto);
+          let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa);
 
-         let repassaCond = c.regra_condominio !== 'N'; let repassaSeguro = c.regra_seguro !== 'N';
-         let baseTotal = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
-         
-         let valCondominioPix = repassaCond ? 0 : (pCond + mCond);
-         let valSeguroMIC = repassaSeguro ? 0 : seg;
-         let valProprietario = baseTotal - vTaxaAdm - valCondominioPix - valSeguroMIC;
-         let valMIC = vTaxaAdm + valSeguroMIC;
+          let repassaCond = c.regra_condominio !== 'N'; let repassaSeguro = c.regra_seguro !== 'N';
+          let baseTotal = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
+          
+          let valCondominioPix = repassaCond ? 0 : (pCond + mCond);
+          let valSeguroMIC = repassaSeguro ? 0 : seg;
+          let valProprietario = baseTotal - vTaxaAdm - valCondominioPix - valSeguroMIC;
+          let valMIC = vTaxaAdm + valSeguroMIC;
 
-         tableData.push([{ content: `Imóvel: ${c.endereco}\nInquilino: ${c.inquilino}\nProprietário: ${c.proprietario}`, colSpan: 6, styles: { fillColor: [244, 246, 249], fontStyle: 'bold', textColor: [15, 23, 42] } }]);
-         tableData.push([
-            'R$ ' + fmtMoeda(baseTotal + 2.99), 
-            'R$ 2.99',                          
-            'R$ ' + fmtMoeda(valMIC),           
-            'R$ ' + fmtMoeda(valProprietario),  
-            'R$ ' + fmtMoeda(valCondominioPix), 
-            '✅ OK'                             
-         ]);
+          tableData.push([{ content: `Imóvel: ${c.endereco}\nInquilino: ${c.inquilino}\nProprietário: ${c.proprietario}`, colSpan: 6, styles: { fillColor: [244, 246, 249], fontStyle: 'bold', textColor: [15, 23, 42] } }]);
+          tableData.push([
+             'R$ ' + fmtMoeda(baseTotal + 2.99), 
+             'R$ 2.99',                          
+             'R$ ' + fmtMoeda(valMIC),            
+             'R$ ' + fmtMoeda(valProprietario),  
+             'R$ ' + fmtMoeda(valCondominioPix), 
+             '✅ OK'                             
+          ]);
       });
 
       doc.autoTable({
