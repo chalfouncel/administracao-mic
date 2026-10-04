@@ -861,9 +861,6 @@
       });
     }
     
-    // DEFINIÇÃO DO MÊS DE REFERÊNCIA:
-    // O mês de referência padrão corresponde ao mês atual (ex: outubro) até o dia 25.
-    // Após o dia 25 (corte de fechamento/repasses), o sistema passa a apontar para o mês seguinte (novembro).
     const hoje = new Date(); 
     let anoRef = hoje.getFullYear();
     let mesRef = hoje.getMonth() + 1; // 1 a 12
@@ -956,7 +953,7 @@
          .replace(/Á(?=[a-z])/g, "ç");
 
     try { s = s.normalize('NFC'); } catch(e) {}
-    return s.replace(/\s+/g, ' ').trim();
+    return s.replace(/[\{\}]/g, '').replace(/\s+/g, ' ').trim();
   }
 
   function isValidPersonName(str) {
@@ -985,6 +982,7 @@
     s = s.replace(/^(?:Nome|Signat[aá]rio|Sr\.|Sra\.)\s*[:\-–]?\s*/i, '');
     s = s.replace(/\s+CPF.*$/i, '');
     s = s.replace(/\s+assinou.*$/i, '');
+    s = s.replace(/[\{\}]/g, '');
     var parts = s.split(',');
     return parts[0].trim();
   }
@@ -996,18 +994,18 @@
 
   function sanitizePdfSpaces(text) {
     if (!text) return "";
-    let t = text.replace(/\s+/g, " ").trim();
+    let t = text.replace(/[\{\}]/g, '').replace(/\s+/g, " ").trim();
     t = t.replace(/\b([A-Z])\s+([a-z]+)\b/g, "$1$2");
     t = t.replace(/\b([a-zA-Z]{2,})\s+(la|lo|ra|ro|na|no|vy|ny|ly|cy|sy|ma|me|mi|mo|mu)\b/gi, function(match, p1, p2) {
         const prep = ['de', 'da', 'do', 'das', 'dos'].includes(p1.toLowerCase());
         if (prep) return match;
         return p1 + p2; 
     });
-    return t;
+    return t.trim();
   }
 
   function toIsoDate(d) {
-    var str = (d || '').replace(/\s+/g, '');
+    var str = (d || '').replace(/[\{\}]/g, '').replace(/\s+/g, '');
     var m = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
     if (m) {
       var ano = m[3].length === 2 ? '20' + m[3] : m[3];
@@ -1050,15 +1048,18 @@
   }
 
   function flash(id, val) {
-    if (val !== null && val !== undefined && String(val).trim() !== '') {
-      const el = document.getElementById(id);
-      if (el) { 
-        el.value = val; 
-        el.classList.add('field-ok'); 
-        el.addEventListener('input', function onEdit() { 
-          el.classList.remove('field-ok'); 
-          el.removeEventListener('input', onEdit); 
-        }); 
+    if (val !== null && val !== undefined) {
+      let cleanVal = String(val).replace(/[\{\}]/g, '').trim();
+      if (cleanVal !== '') {
+        const el = document.getElementById(id);
+        if (el) { 
+          el.value = cleanVal; 
+          el.classList.add('field-ok'); 
+          el.addEventListener('input', function onEdit() { 
+            el.classList.remove('field-ok'); 
+            el.removeEventListener('input', onEdit); 
+          }); 
+        }
       }
     }
   }
@@ -1070,16 +1071,18 @@
     var bloco = blocoMatch[1];
 
     function capturarCampo(nomeCampo) {
-      var regex = new RegExp('(?:\\{\\s*)?' + nomeCampo + '(?:\\s*\\})?[:\\s-]*([^{]+)', 'i');
-      var match = bloco.match(regex);
-      if (match && match[1]) {
-        return match[1].replace(/\s+/g, " ").trim();
-      }
-      
+      // 1. Tenta formato delimitado por chaves completas: {Campo: Valor} ou {Campo=Valor}
       var regexInside = new RegExp('\\{\\s*' + nomeCampo + '\\s*[:=]\\s*([^}]+)\\}', 'i');
       var matchInside = bloco.match(regexInside);
       if (matchInside && matchInside[1]) {
-        return matchInside[1].replace(/\s+/g, " ").trim();
+        return matchInside[1].replace(/[\{\}]/g, '').replace(/\s+/g, " ").trim();
+      }
+
+      // 2. Tenta capturas com ou sem chaves, expurgando o caractere "}" residual do resultado
+      var regex = new RegExp('(?:\\{\\s*)?' + nomeCampo + '(?:\\s*\\})?[:\\s-]*([^\\{\\n\\[\\]]+)', 'i');
+      var match = bloco.match(regex);
+      if (match && match[1]) {
+        return match[1].replace(/[\{\}]/g, '').replace(/\s+/g, " ").trim();
       }
       
       return "";
@@ -1110,7 +1113,7 @@
       flash('telProprietario', telProprietario.replace(/\D/g, ''));
     }
     if (pixProprietario) {
-      flash('pixProprietario', pixProprietario.replace(/\s/g, ''));
+      flash('pixProprietario', pixProprietario.replace(/[\{\}]/g, '').replace(/\s/g, ''));
     }
     if (titularPix) {
       flash('titularPix', sanitizePdfSpaces(titularPix));
@@ -1126,7 +1129,7 @@
       flash('cpfInquilino', cpfInquilino.replace(/\D/g, ''));
     }
     if (emailInquilino) {
-      flash('emailInquilino', emailInquilino.replace(/\s/g, ''));
+      flash('emailInquilino', emailInquilino.replace(/[\{\}]/g, '').replace(/\s/g, ''));
     }
     if (telInquilino) {
       flash('telInquilino', telInquilino.replace(/\D/g, ''));
@@ -1151,7 +1154,7 @@
       }
     }
     if (valorAluguel) {
-      var vClean = valorAluguel.replace(/R\$\s*/gi, '').replace(/\s/g, '');
+      var vClean = valorAluguel.replace(/[\{\}]/g, '').replace(/R\$\s*/gi, '').replace(/\s/g, '');
       var num = 0;
       if (vClean.includes(',')) num = parseFloat(vClean.replace(/\./g, '').replace(',', '.')) || 0;
       else num = parseFloat(vClean) || 0;
@@ -1212,7 +1215,7 @@
       if (!document.getElementById('dataFim').value) flash('dataFim', toIsoDate(dateMatches[1]));
     }
 
-    // CPF DO INQUILINO (busca heurística pelo 2º CPF ou CPF próximo ao locatário)
+    // CPF DO INQUILINO
     if (!document.getElementById('cpfInquilino').value) {
       var cpfs = page1Text.match(/\b\d{3}\.\d{3}\.\d{3}\-\d{2}\b/g);
       if (cpfs && cpfs.length >= 2) {
@@ -1222,7 +1225,7 @@
       }
     }
 
-    // ALUGUEL BASE (busca heurística de valores)
+    // ALUGUEL BASE
     if (!document.getElementById('aluguelBase').value) {
       var mVal = page1Text.match(/R\$\s*([\d\.]+(?:,\d{2})?)/i) || page1Text.match(/(?:aluguel|valor)\s*(?:mensal)?\s*(?:de)?\s*R\$\s*([\d\.]+(?:,\d{2})?)/i);
       if (mVal && mVal[1]) {
