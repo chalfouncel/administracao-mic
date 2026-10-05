@@ -468,16 +468,12 @@
 </div>
 
 <script>
-  // =======================================================
-  // INÍCIO DO SERVICE WORKER E VARIÁVEIS GLOBAIS
-  // =======================================================
   if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
           navigator.serviceWorker.register('sw.js').catch(err => console.log('SW falhou', err));
       });
   }
 
-  // BANCO ATUAL (sitemic)
   const SUPABASE_BASE_URL = 'https://uztsmkhlvoemjbbyebcr.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_nmolEh_G5_hKcfdgy2Xpeg_s4T6ePAz';
 
@@ -486,7 +482,7 @@
   let contratosMarcados = new Set(); 
   let reajusteAtualId = null;
   let isLoadingImoveis = false;
-  let idContratoEdicao = null; // Variável global de edição
+  let idContratoEdicao = null;
 
   window.toggleTipoRepasse = function() {
       const val = document.getElementById('tipo_chave_repasse').value;
@@ -530,9 +526,6 @@
       reader.onerror = error => reject(error);
   });
 
-  // =======================================================
-  // MOTOR DE DATAS: QUINTO DIA ÚTIL
-  // =======================================================
   function getQuintoDiaUtil(mesRef) {
       const [ano, mes] = mesRef.split('-').map(Number);
       let data = new Date(ano, mes - 1, 1);
@@ -563,9 +556,6 @@
       };
   }
 
-  // =======================================================
-  // AUTENTICAÇÃO E COMUNICAÇÃO COM O BANCO DE DADOS
-  // =======================================================
   function getLocalSession() { try { return JSON.parse(localStorage.getItem('mic_auth_session')); } catch(e) { return null; } }
   function setLocalSession(session) { if (session) localStorage.setItem('mic_auth_session', JSON.stringify(session)); else localStorage.removeItem('mic_auth_session'); }
   async function refreshSession() {
@@ -718,7 +708,6 @@
           return; 
       }
 
-      // --- BARREIRA DE APROVAÇÃO MULTI-ADMINISTRADOR ---
       const admins = ['chalfouncorretor@gmail.com', 'ivycarlat817@gmail.com'];
       let isAprovado = admins.includes(email.toLowerCase());
 
@@ -741,7 +730,6 @@
            setLocalSession(null); 
            return;
       }
-      // -------------------------------------------------
 
       status.className = 'auth-msg ok'; 
       status.innerText = '✓ Senha correta!'; 
@@ -863,7 +851,7 @@
     
     const hoje = new Date(); 
     let anoRef = hoje.getFullYear();
-    let mesRef = hoje.getMonth() + 1; // 1 a 12
+    let mesRef = hoje.getMonth() + 1;
     if (hoje.getDate() > 25) {
         mesRef++;
         if (mesRef > 12) { mesRef = 1; anoRef++; }
@@ -931,9 +919,6 @@
     if (tit && tit.value.trim() === '') tit.value = prop;
   }
 
-  // =======================================================
-  // MOTOR DE CAPTURA ROBUSTO V16 (MÉTODO DO INDEX VISTORIA)
-  // =======================================================
   function decodeAddressOnly(text) {
     if (!text) return "";
     var s = text;
@@ -1071,14 +1056,12 @@
     var bloco = blocoMatch[1];
 
     function capturarCampo(nomeCampo) {
-      // 1. Tenta formato delimitado por chaves completas: {Campo: Valor} ou {Campo=Valor}
       var regexInside = new RegExp('\\{\\s*' + nomeCampo + '\\s*[:=]\\s*([^}]+)\\}', 'i');
       var matchInside = bloco.match(regexInside);
       if (matchInside && matchInside[1]) {
         return matchInside[1].replace(/[\{\}]/g, '').replace(/\s+/g, " ").trim();
       }
 
-      // 2. Tenta capturas com ou sem chaves, expurgando o caractere "}" residual do resultado
       var regex = new RegExp('(?:\\{\\s*)?' + nomeCampo + '(?:\\s*\\})?[:\\s-]*([^\\{\\n\\[\\]]+)', 'i');
       var match = bloco.match(regex);
       if (match && match[1]) {
@@ -1105,53 +1088,25 @@
 
     var aplicou = false;
 
-    if (proprietario) {
-      flash('proprietario', sanitizePdfSpaces(proprietario));
-      aplicou = true;
-    }
-    if (telProprietario) {
-      flash('telProprietario', telProprietario.replace(/\D/g, ''));
-    }
-    if (pixProprietario) {
-      flash('pixProprietario', pixProprietario.replace(/[\{\}]/g, '').replace(/\s/g, ''));
-    }
-    if (titularPix) {
-      flash('titularPix', sanitizePdfSpaces(titularPix));
-    } else if (proprietario) {
-      flash('titularPix', sanitizePdfSpaces(proprietario));
-    }
+    if (proprietario) { flash('proprietario', sanitizePdfSpaces(proprietario)); aplicou = true; }
+    if (telProprietario) flash('telProprietario', telProprietario.replace(/\D/g, ''));
+    if (pixProprietario) flash('pixProprietario', pixProprietario.replace(/[\{\}]/g, '').replace(/\s/g, ''));
+    if (titularPix) flash('titularPix', sanitizePdfSpaces(titularPix));
+    else if (proprietario) flash('titularPix', sanitizePdfSpaces(proprietario));
 
-    if (inquilino) {
-      flash('inquilino', sanitizePdfSpaces(inquilino));
-      aplicou = true;
-    }
-    if (cpfInquilino) {
-      flash('cpfInquilino', cpfInquilino.replace(/\D/g, ''));
-    }
-    if (emailInquilino) {
-      flash('emailInquilino', emailInquilino.replace(/[\{\}]/g, '').replace(/\s/g, ''));
-    }
-    if (telInquilino) {
-      flash('telInquilino', telInquilino.replace(/\D/g, ''));
-    }
+    if (inquilino) { flash('inquilino', sanitizePdfSpaces(inquilino)); aplicou = true; }
+    if (cpfInquilino) flash('cpfInquilino', cpfInquilino.replace(/\D/g, ''));
+    if (emailInquilino) flash('emailInquilino', emailInquilino.replace(/[\{\}]/g, '').replace(/\s/g, ''));
+    if (telInquilino) flash('telInquilino', telInquilino.replace(/\D/g, ''));
 
-    if (endereco) {
-      flash('endereco', decodeAddressOnly(sanitizePdfSpaces(endereco)));
-      aplicou = true;
-    }
+    if (endereco) { flash('endereco', decodeAddressOnly(sanitizePdfSpaces(endereco))); aplicou = true; }
     if (dataInicio) {
       var isoIni = toIsoDate(dataInicio);
-      if (isoIni) {
-        flash('dataInicio', isoIni);
-        aplicou = true;
-      }
+      if (isoIni) { flash('dataInicio', isoIni); aplicou = true; }
     }
     if (dataFim) {
       var isoFim = toIsoDate(dataFim);
-      if (isoFim) {
-        flash('dataFim', isoFim);
-        aplicou = true;
-      }
+      if (isoFim) { flash('dataFim', isoFim); aplicou = true; }
     }
     if (valorAluguel) {
       var vClean = valorAluguel.replace(/[\{\}]/g, '').replace(/R\$\s*/gi, '').replace(/\s/g, '');
@@ -1167,7 +1122,6 @@
   function runContractExtractionV16(allLines, page1Lines) {
     var page1Text = page1Lines.join(" ");
 
-    // LOCADOR
     var locadorEncontrado = "";
     var mLoc1 = page1Text.match(/LOCADOR(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
     if (mLoc1 && isValidPersonName(mLoc1[1])) locadorEncontrado = cleanName(mLoc1[1]);
@@ -1186,7 +1140,6 @@
       }
     }
 
-    // LOCATÁRIO
     var locatarioEncontrado = "";
     var mLocat1 = page1Text.match(/LOCAT[AÁ]RIO(?:A)?\s*\(?\s*A\s*\)?\s*[:\-–]?\s*([^,;\n]+)/i);
     if (mLocat1 && isValidPersonName(mLocat1[1])) locatarioEncontrado = cleanName(mLocat1[1]);
@@ -1202,20 +1155,17 @@
       flash('inquilino', sanitizePdfSpaces(locatarioEncontrado));
     }
 
-    // ENDEREÇO
     var addressRaw = extractAddressAfterSituado(page1Text);
     if (addressRaw && !document.getElementById('endereco').value) {
       flash('endereco', decodeAddressOnly(sanitizePdfSpaces(addressRaw)));
     }
 
-    // DATAS DE VIGÊNCIA
     var dateMatches = page1Text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
     if (dateMatches && dateMatches.length >= 2) {
       if (!document.getElementById('dataInicio').value) flash('dataInicio', toIsoDate(dateMatches[0]));
       if (!document.getElementById('dataFim').value) flash('dataFim', toIsoDate(dateMatches[1]));
     }
 
-    // CPF DO INQUILINO
     if (!document.getElementById('cpfInquilino').value) {
       var cpfs = page1Text.match(/\b\d{3}\.\d{3}\.\d{3}\-\d{2}\b/g);
       if (cpfs && cpfs.length >= 2) {
@@ -1225,7 +1175,6 @@
       }
     }
 
-    // ALUGUEL BASE
     if (!document.getElementById('aluguelBase').value) {
       var mVal = page1Text.match(/R\$\s*([\d\.]+(?:,\d{2})?)/i) || page1Text.match(/(?:aluguel|valor)\s*(?:mensal)?\s*(?:de)?\s*R\$\s*([\d\.]+(?:,\d{2})?)/i);
       if (mVal && mVal[1]) {
@@ -1235,9 +1184,6 @@
     }
   }
 
-  // =======================================================
-  // PROCESSAMENTO DO CONTRATO PDF (COMPLETO E ROBUSTO)
-  // =======================================================
   async function processarContratoPDF(event) {
     const file = event.target.files[0];
     if (!file || file.type !== 'application/pdf') return;
@@ -1272,7 +1218,6 @@
 
       var textoInteiro = allRawLines.join(" ");
 
-      // 1. TENTA PRIMEIRO VIA [MIC_DADOS]
       var temBlocoMic = /\[\s*M\s*I\s*C\s*_\s*D\s*A\s*D\s*O\s*S\s*\]/i.test(textoInteiro);
       var usouMicDados = false;
 
@@ -1280,7 +1225,6 @@
         usouMicDados = runMicDadosExtraction(textoInteiro);
       }
 
-      // 2. SE NÃO TIVER BLOCO OU FALTAR CAMPOS CRÍTICOS, COMPLEMENTA COM MOTOR V16
       if (!usouMicDados || !document.getElementById('proprietario').value || !document.getElementById('inquilino').value || !document.getElementById('endereco').value) {
         runContractExtractionV16(allRawLines, page1RawLines);
       }
@@ -1296,9 +1240,6 @@
     }
   }
 
-  // =======================================================
-  // BANCO CENTRAL DO BRASIL E EDIÇÕES
-  // =======================================================
   async function getIndiceAcumulado(serie) {
      try {
          const res = await fetch(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.${serie}/dados/ultimos/12?formato=json`);
@@ -1349,9 +1290,6 @@
     try { await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pix_proprietario: c.pix_proprietario, titular_pix: c.titular_pix }) }); alert('Dados de pagamento atualizados!'); } catch(e) {}
   }
 
-  // =======================================================
-  // CARREGAR CONTRATO PARA EDIÇÃO COMPLETA
-  // =======================================================
   function editarContrato(idReg) {
       const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
       if (!c) return;
@@ -1402,7 +1340,6 @@
       document.getElementById('btn-gravar-novo').innerText = '💾 Salvar Alterações';
       document.getElementById('btn-cancelar-edicao').style.display = 'block';
 
-      // Volta a tela pra primeira aba (Resumo do Contrato)
       setTab('resumo', document.querySelectorAll('.tab-btn')[0]);
   }
 
@@ -1421,7 +1358,6 @@
       document.getElementById('btn-gravar-novo').innerText = '💾 Salvar dados do novo contrato';
       document.getElementById('btn-cancelar-edicao').style.display = 'none';
 
-      // Limpa a thumb do PDF
       const canvas = document.getElementById('pdf-thumb-canvas');
       canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
       canvas.style.display = 'none';
@@ -1471,9 +1407,6 @@
     });
   }
 
-  // =======================================================
-  // BANCO DE DADOS (CARREGAMENTO LEVE E RÁPIDO)
-  // =======================================================
   async function carregarImoveis(forceUI = true) {
     if (isLoadingImoveis) return; isLoadingImoveis = true;
     const tbody = document.getElementById('tabela-imoveis-linear-body');
@@ -1530,7 +1463,6 @@
     let alugBaseVal = parseMoedaToFloat(document.getElementById('aluguelBase').value);
     let condBaseVal = parseMoedaToFloat(document.getElementById('condominioBase').value);
 
-    // Payload de dados que será atualizado em ambas as situações
     const payload = {
       proprietario: document.getElementById('proprietario').value, 
       telefone_proprietario: document.getElementById('telProprietario').value, 
@@ -1538,7 +1470,7 @@
       titular_pix: document.getElementById('titularPix').value || document.getElementById('proprietario').value, 
       inquilino: document.getElementById('inquilino').value, 
       cpf_inquilino: document.getElementById('cpfInquilino').value, 
-      email_inquilino: document.getElementById('emailInquilino').value,
+      email_inquilino: document.getElementById('emailInquilino').value, 
       telefone_inquilino: document.getElementById('telInquilino').value, 
       endereco: document.getElementById('endereco').value, 
       data_inicio: document.getElementById('dataInicio').value || null, 
@@ -1551,11 +1483,10 @@
       regra_seguro: document.getElementById('regraSeguro').value || 'S'
     };
 
-    if (urlPdf) payload.contrato_url = urlPdf; // Se não houver arquivo anexado, mantém o que já estava lá
+    if (urlPdf) payload.contrato_url = urlPdf;
 
     try {
       if (idContratoEdicao) {
-          // ================= EDIÇÃO DE CONTRATO EXISTENTE (PATCH) =================
           const r = await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${idContratoEdicao}`, { 
               method: 'PATCH', 
               headers: { 'Content-Type': 'application/json' }, 
@@ -1567,14 +1498,13 @@
                   Object.assign(contratosDB[idx], payload);
               }
               alert('✓ Contrato atualizado com sucesso!');
-              cancelarEdicao(); // Limpa form e desliga o modo edição
+              cancelarEdicao();
               atualizarInterfaceGeral();
-              setTab('imoveis', document.querySelectorAll('.tab-btn')[1]); // Vai para os imóveis
+              setTab('imoveis', document.querySelectorAll('.tab-btn')[1]);
           } else {
               alert('Erro ao atualizar contrato no banco de dados.');
           }
       } else {
-          // ================= CRIAÇÃO DE NOVO CONTRATO (POST) =================
           const s = getLocalSession(); let emailUser = 'chalfouncorretor@gmail.com'; if (s && s.user && s.user.email) emailUser = s.user.email;
 
           payload.user_email = emailUser;
@@ -1631,7 +1561,7 @@
               atualizarInterfaceGeral(); 
               alert('✓ Novo contrato salvo com sucesso!');
               
-              cancelarEdicao(); // Reutiliza pra limpar a tela
+              cancelarEdicao();
               setTab('imoveis', document.querySelectorAll('.tab-btn')[1]);
           } else { 
               if(r.status === 413) alert('Erro: O arquivo PDF é muito grande para ser salvo diretamente no banco de dados.');
@@ -1645,9 +1575,6 @@
     }
   }
 
-  // =======================================================
-  // LIVRO-RAZÃO: TAXAS CONDOMINIAIS MENSAIS E RECORRÊNCIA
-  // =======================================================
   function getVariaveisMes(c, mesRef) {
       let lancamentos = {}; try { lancamentos = JSON.parse(c.lancamentos_mensais || '{}'); } catch(e){}
       let lMes = lancamentos[mesRef] || {};
@@ -1804,9 +1731,6 @@
     });
   }
 
-  // =======================================================
-  // ASAAS E WPP - COBRANÇA E CÓPIAS E DISPARO DE EMAIL
-  // =======================================================
   async function gerarCobrancaAsaas(idReg, valorTotalBase) {
       const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
       if (!c.cpf_inquilino || !c.email_inquilino) { alert('Erro: Preencha o CPF e o E-mail do Inquilino na aba Imóveis.'); return; }
@@ -1836,7 +1760,7 @@
               body: JSON.stringify({ 
                   nomeInquilino: c.inquilino, 
                   cpfInquilino: c.cpf_inquilino, 
-                  emailInquilino: c.email_inquilino,
+                  emailInquilino: c.email_inquilino, 
                   valor: valorTotal, 
                   vencimento: dataVenc, 
                   descricao: `Aluguel M&IC - ${mesRef} - ${c.endereco}`, 
@@ -1872,9 +1796,19 @@
   }
 
   async function dispararWppMassa(tipo) {
-     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
-     if(marcados.length === 0) return alert('Nenhum imóvel marcado para envio.');
-     if(!confirm(`Deseja abrir o WhatsApp Web em sequência para os ${marcados.length} contatos marcados?\nCertifique-se de que as janelas pop-up estão liberadas no seu navegador.`)) return;
+     const mesRef = document.getElementById('filtro-mes').value;
+     const marcados = contratosDB.filter(c => {
+         if (c.ativo !== 'SIM') return false;
+         const idReg = String(c.id || c._tempId);
+         const isMarcado = contratosMarcados.has(idReg);
+         let sC = {}; try{ sC = JSON.parse(c.status_cobranca || '{}'); }catch(e){}
+         let sR = {}; try{ sR = JSON.parse(c.status_repasse || '{}'); }catch(e){}
+         const emAndamento = (sC[mesRef] === 'aguardando_asaas' || sC[mesRef] === 'recebida') && sR[mesRef] !== 'recebida';
+         return isMarcado || emAndamento;
+     });
+
+     if(marcados.length === 0) return alert('Nenhum imóvel disponível para envio.');
+     if(!confirm(`Deseja abrir o WhatsApp Web em sequência para os ${marcados.length} contatos?\nCertifique-se de que as janelas pop-up estão liberadas no seu navegador.`)) return;
 
      for(let i = 0; i < marcados.length; i++) {
          const c = marcados[i];
@@ -1891,13 +1825,24 @@
 
   function gerarTextosCobranca() {
     const container = document.getElementById('cobrancas-container'); if (!container) return;
-    const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
-    if (marcados.length === 0) { container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:20px;">Nenhum imóvel marcado.</div>'; return; }
-    container.innerHTML = ''; const mesRef = document.getElementById('filtro-mes').value;
+    const mesRef = document.getElementById('filtro-mes').value;
+
+    const contratosExibir = contratosDB.filter(c => {
+      if (c.ativo !== 'SIM') return false;
+      const idReg = String(c.id || c._tempId);
+      const isMarcado = contratosMarcados.has(idReg);
+      let sC = {}; try{ sC = JSON.parse(c.status_cobranca || '{}'); }catch(e){}
+      let sR = {}; try{ sR = JSON.parse(c.status_repasse || '{}'); }catch(e){}
+      const emAndamento = (sC[mesRef] === 'aguardando_asaas' || sC[mesRef] === 'recebida') && sR[mesRef] !== 'recebida';
+      return isMarcado || emAndamento;
+    });
+
+    if (contratosExibir.length === 0) { container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:20px;">Nenhum imóvel pendente de cobrança ou marcado.</div>'; return; }
+    container.innerHTML = '';
 
     const vencimento = getQuintoDiaUtil(mesRef);
 
-    marcados.forEach(c => {
+    contratosExibir.forEach(c => {
       const idReg = c.id || c._tempId; const v = getVariaveisMes(c, mesRef);
       let vTarifaBancaria = 2.99; 
       
@@ -1973,9 +1918,6 @@
     });
   }
 
-  // =======================================================
-  // TRANSFERÊNCIAS (SPLIT 3 VIAS) E REPASSE DETALHADO
-  // =======================================================
   async function realizarTransferencias(idReg, alertSuccess = true) {
       const btn = document.getElementById(`btn-transf-${idReg}`);
       if(btn) { btn.innerText = 'Processando...'; btn.disabled = true; }
@@ -2003,30 +1945,42 @@
   }
 
   async function transferirTodas() {
-      const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
       const mesRef = document.getElementById('filtro-mes').value;
+      const contratosParaTransferir = contratosDB.filter(c => {
+          if (c.ativo !== 'SIM') return false;
+          let sC = {}; try{ sC = JSON.parse(c.status_cobranca || '{}'); }catch(e){}
+          let sR = {}; try{ sR = JSON.parse(c.status_repasse || '{}'); }catch(e){}
+          return sC[mesRef] === 'recebida' && sR[mesRef] !== 'recebida';
+      });
+
       let count = 0;
-      
-      for (let c of marcados) {
-          let sC = {}; try{ sC=JSON.parse(c.status_cobranca||'{}')}catch(e){}
-          let sR = {}; try{ sR=JSON.parse(c.status_repasse||'{}')}catch(e){}
-          if (sC[mesRef] === 'recebida' && sR[mesRef] !== 'recebida') {
-              await realizarTransferencias(c.id || c._tempId, false);
-              count++;
-          }
+      for (let c of contratosParaTransferir) {
+          await realizarTransferencias(c.id || c._tempId, false);
+          count++;
       }
       if (count > 0) { alert(`✅ ${count} transferências executadas com sucesso no Asaas!`); atualizarInterfaceGeral(); } 
-      else { alert('Não há contratos marcados aguardando transferência para este mês.'); }
+      else { alert('Não há contratos aguardando transferência para este mês.'); }
   }
 
   function gerarTextosRepasse() {
     const container = document.getElementById('repasses-container'); if (!container) return;
-    const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
-    if (marcados.length === 0) { container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:20px;">Nenhum imóvel ativo marcado.</div>'; return; }
-    container.innerHTML = ''; const mesRef = document.getElementById('filtro-mes').value;
+    const mesRef = document.getElementById('filtro-mes').value;
     const repasseMesTexto = formatarMesAno(mesRef);
 
-    marcados.forEach(c => {
+    const contratosExibir = contratosDB.filter(c => {
+      if (c.ativo !== 'SIM') return false;
+      const idReg = String(c.id || c._tempId);
+      const isMarcado = contratosMarcados.has(idReg);
+      let sC = {}; try{ sC = JSON.parse(c.status_cobranca || '{}'); }catch(e){}
+      let sR = {}; try{ sR = JSON.parse(c.status_repasse || '{}'); }catch(e){}
+      const emAndamento = (sC[mesRef] === 'aguardando_asaas' || sC[mesRef] === 'recebida') && sR[mesRef] !== 'recebida';
+      return isMarcado || emAndamento;
+    });
+
+    if (contratosExibir.length === 0) { container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:20px;">Nenhum imóvel pendente de repasse ou marcado.</div>'; return; }
+    container.innerHTML = '';
+
+    contratosExibir.forEach(c => {
       const idReg = c.id || c._tempId; const v = getVariaveisMes(c, mesRef);
       
       let pAlug = parseMoedaToFloat(v.alugProp);
@@ -2124,9 +2078,6 @@
     });
   }
 
-  // =======================================================
-  // GERENCIAL E EXPORTAÇÃO (FECHO DE CAIXA)
-  // =======================================================
   function renderizarGerencial() {
       const mesRef = document.getElementById('filtro-mes').value;
       const ativos = contratosDB.filter(c => c.ativo === 'SIM');
@@ -2261,12 +2212,12 @@
 
           tableData.push([{ content: `Imóvel: ${c.endereco}\nInquilino: ${c.inquilino}\nProprietário: ${c.proprietario}`, colSpan: 6, styles: { fillColor: [244, 246, 249], fontStyle: 'bold', textColor: [15, 23, 42] } }]);
           tableData.push([
-             'R$ ' + fmtMoeda(baseTotal + 2.99), 
-             'R$ 2.99',                          
-             'R$ ' + fmtMoeda(valMIC),            
-             'R$ ' + fmtMoeda(valProprietario),  
-             'R$ ' + fmtMoeda(valCondominioPix), 
-             '✅ OK'                             
+              'R$ ' + fmtMoeda(baseTotal + 2.99), 
+              'R$ 2.99',                          
+              'R$ ' + fmtMoeda(valMIC),            
+              'R$ ' + fmtMoeda(valProprietario),  
+              'R$ ' + fmtMoeda(valCondominioPix), 
+              '✅ OK'                             
           ]);
       });
 
