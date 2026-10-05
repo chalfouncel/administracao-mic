@@ -734,10 +734,11 @@
   const ALIQUOTA_IMPOSTO = 0.15;
   let dadosDB = [];
 
-  let mapaFiltroAno = '2026';
-  let mapaFiltroMes = 'Setembro';
-  let anosExpandidos = { '2026': true };
-  let mesesExpandidos = { '2026-Setembro': true };
+  const dataAtual = new Date();
+  let mapaFiltroAno = String(dataAtual.getFullYear());
+  let mapaFiltroMes = MESES_LISTA[dataAtual.getMonth()];
+  let anosExpandidos = { [mapaFiltroAno]: true };
+  let mesesExpandidos = { [`${mapaFiltroAno}-${mapaFiltroMes}`]: true };
 
   const IPCA_HISTORICO = { 2022: 0.0579, 2023: 0.0462, 2024: 0.0483, 2025: 0.0450, 2026: 0.0420 };
 
