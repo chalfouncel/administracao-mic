@@ -14,59 +14,111 @@
 <style>
   :root { --primary: #121315; --secondary: #1a1c20; --accent: #c59b27; --gold: #d4af37; --border: #cbd5e1; --bg: #f4f6f9; --card: #ffffff; --text: #1e293b; --success: #16a34a; --danger: #dc2626; }
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  body { background: var(--bg); color: var(--text); padding-bottom: 40px; overflow-x: hidden; }
+  
+  html, body { 
+    height: 100vh; 
+    height: 100dvh; 
+    overflow: hidden; 
+    background: var(--bg); 
+    color: var(--text); 
+  }
 
-  header { background: linear-gradient(135deg, #0d0e10 0%, #1a1c20 70%, #2b261b 100%); border-bottom: 3px solid var(--accent); color: #fff; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; }
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  header { 
+    background: linear-gradient(135deg, #0d0e10 0%, #1a1c20 70%, #2b261b 100%); 
+    border-bottom: 3px solid var(--accent); 
+    color: #fff; 
+    padding: 10px 18px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    flex-shrink: 0;
+  }
   .brand-area { display: flex; align-items: center; gap: 12px; }
-  .app-header-logo { max-height: 42px; border-radius: 6px; border: 1px solid var(--accent); padding: 2px; background: #000; }
-  header h1 { font-size: 1.1rem; color: var(--gold); font-weight: 700; }
-  header p { font-size: 0.74rem; color: #cfd4dc; }
+  .app-header-logo { max-height: 40px; border-radius: 6px; border: 1px solid var(--accent); padding: 2px; background: #000; }
+  header h1 { font-size: 1.05rem; color: var(--gold); font-weight: 700; }
+  header p { font-size: 0.72rem; color: #cfd4dc; }
 
-  .container { max-width: 99%; margin: 14px auto; padding: 0 10px; }
+  .container { 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
+    width: 100%; 
+    max-width: 99.4%; 
+    margin: 8px auto 6px auto; 
+    padding: 0 8px; 
+    min-height: 0; 
+  }
 
-  .main-tabs { display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 2px solid var(--border); padding-bottom: 4px; }
-  .tab-nav-btn { background: #fff; border: 1px solid var(--border); border-radius: 8px 8px 0 0; padding: 10px 18px; font-size: 0.88rem; font-weight: 700; color: #64748b; cursor: pointer; transition: 0.2s; }
+  .main-tabs { 
+    display: flex; 
+    gap: 8px; 
+    margin-bottom: 8px; 
+    border-bottom: 2px solid var(--border); 
+    padding-bottom: 3px; 
+    flex-shrink: 0;
+  }
+  .tab-nav-btn { background: #fff; border: 1px solid var(--border); border-radius: 8px 8px 0 0; padding: 8px 16px; font-size: 0.84rem; font-weight: 700; color: #64748b; cursor: pointer; transition: 0.2s; }
   .tab-nav-btn.active { background: var(--secondary); color: var(--gold); border-color: var(--secondary); border-bottom: 2px solid var(--accent); }
-  .tab-page { display: none; }
-  .tab-page.active { display: block; }
+  
+  .tab-page { 
+    display: none; 
+    flex: 1; 
+    min-height: 0; 
+  }
+  .tab-page.active { 
+    display: flex; 
+    flex-direction: column; 
+  }
 
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
-  .card-title { font-size: 0.95rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  /* ROLAGEM ESPECÍFICA PARA AS ABAS QUE TÊM MUITO CONTEÚDO */
+  #page-mapa, #page-graficos, #page-registros {
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+  .card-header-fixo { flex-shrink: 0; margin-bottom: 8px; }
+  .card-title { font-size: 0.90rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
 
   /* LINHA DO FORMULÁRIO SEM SCROLL HORIZONTAL */
   .form-scroll-container { width: 100%; }
-  .form-row-exact { display: flex; gap: 6px; width: 100%; align-items: flex-end; }
+  .form-row-exact { display: flex; gap: 5px; width: 100%; align-items: flex-end; }
   .field-col { display: flex; flex-direction: column; }
 
-  .fc-ano { width: 52px; flex-shrink: 0; }
-  .fc-mes { width: 58px; flex-shrink: 0; }
-  .fc-nome { flex: 2.2; min-width: 140px; }
-  .fc-sit { width: 90px; flex-shrink: 0; }
-  .fc-un { flex: 2.4; min-width: 150px; }
-  .fc-val { width: 85px; flex-shrink: 0; }
+  .fc-ano { width: 50px; flex-shrink: 0; }
+  .fc-mes { width: 56px; flex-shrink: 0; }
+  .fc-nome { flex: 2.2; min-width: 130px; }
+  .fc-sit { width: 88px; flex-shrink: 0; }
+  .fc-un { flex: 2.3; min-width: 140px; }
+  .fc-val { width: 84px; flex-shrink: 0; }
   .fc-cor { width: 75px; flex-shrink: 0; }
-  .fc-fat { width: 52px; flex-shrink: 0; }
-  .fc-com { width: 82px; flex-shrink: 0; }
+  .fc-fat { width: 50px; flex-shrink: 0; }
+  .fc-com { width: 80px; flex-shrink: 0; }
   .fc-prem { width: 62px; flex-shrink: 0; }
-  .fc-prem-corr { width: 70px; flex-shrink: 0; }
-  .fc-imp { width: 70px; flex-shrink: 0; }
-  .fc-rec { width: 54px; flex-shrink: 0; }
-  .fc-vrec { width: 82px; flex-shrink: 0; }
-  .fc-liq { width: 85px; flex-shrink: 0; }
-  .fc-opc { width: 52px; flex-shrink: 0; }
-  .fc-tax { width: 70px; flex-shrink: 0; }
+  .fc-prem-corr { width: 68px; flex-shrink: 0; }
+  .fc-imp { width: 68px; flex-shrink: 0; }
+  .fc-rec { width: 52px; flex-shrink: 0; }
+  .fc-vrec { width: 80px; flex-shrink: 0; }
+  .fc-liq { width: 82px; flex-shrink: 0; }
+  .fc-opc { width: 50px; flex-shrink: 0; }
+  .fc-tax { width: 68px; flex-shrink: 0; }
 
   /* LINHA DE BAIXO: OBSERVAÇÕES E SALVAR */
-  .form-row-bottom { display: flex; gap: 12px; align-items: flex-end; margin-top: 10px; width: 100%; }
+  .form-row-bottom { display: flex; gap: 10px; align-items: flex-end; margin-top: 8px; width: 100%; }
   .form-row-bottom .field-col { flex: 1; }
 
   .form-row-exact label,
   .form-row-bottom label { 
     display: block; 
-    font-size: 0.63rem; 
+    font-size: 0.62rem; 
     font-weight: 700; 
     color: #475569; 
-    margin-bottom: 3px; 
+    margin-bottom: 2px; 
     text-transform: uppercase; 
     white-space: nowrap; 
     overflow: hidden; 
@@ -77,19 +129,19 @@
   .form-row-exact select,
   .form-row-bottom input { 
     width: 100%; 
-    padding: 3px 4px; 
+    padding: 2px 4px; 
     border: 1.5px solid #cbd5e1; 
     border-radius: 4px; 
-    font-size: 0.70rem; 
+    font-size: 0.69rem; 
     outline: none; 
-    height: 26px;
+    height: 25px;
     background-color: #fff;
   }
 
   .form-row-exact select {
-    padding-left: 2px;
+    padding-left: 1px;
     padding-right: 1px;
-    font-size: 0.68rem;
+    font-size: 0.67rem;
   }
 
   .form-row-exact input:focus, 
@@ -101,27 +153,46 @@
   .read-only-field { background-color: #f8fafc; font-weight: bold; color: #334155; }
   .input-bloqueado { background-color: #121315 !important; border-color: #000 !important; color: #121315 !important; cursor: not-allowed; }
 
-  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 6px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; border: none; transition: 0.15s; font-size: 0.8rem; height: 26px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 5px 12px; border-radius: 6px; font-weight: 700; cursor: pointer; border: none; transition: 0.15s; font-size: 0.78rem; height: 25px; }
   .btn-gold { background: linear-gradient(135deg, #c59b27, #dfba48); color: #121315; }
   .btn-dark { background: var(--secondary); color: #fff; }
   .btn-light { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
-  .btn-danger { background: var(--danger); color: #fff; padding: 3px 6px; font-size: 0.7rem; border-radius: 4px; }
+  .btn-danger { background: var(--danger); color: #fff; padding: 2px 6px; font-size: 0.68rem; border-radius: 4px; }
   .btn-success { background: var(--success); color: #fff; }
 
-  /* TABELA COM SCROLL HORIZONTAL FLUIDO E LARGURAS OTIMIZADAS */
-  .table-container { width: 100%; max-height: 72vh; overflow-y: auto; overflow-x: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
-  table.table-compact { width: 100%; min-width: 1720px; border-collapse: collapse; font-size: 0.75rem; table-layout: fixed; }
-  table.table-compact th { background: #000; color: #fff; padding: 7px 4px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.70rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-right: 1px solid #27272a; }
-  table.table-compact th.th-filtro { background: #1a1c20; padding: 4px 3px; position: sticky; top: 29px; z-index: 10; border-right: 1px solid #27272a; }
-  table.table-compact th.th-filtro input, table.table-compact th.th-filtro select { width: 100%; padding: 2px 4px; font-size: 0.67rem; background: #fff; border: 1px solid #475569; border-radius: 3px; color: #1e293b; height: 24px; }
+  /* CARD DA TABELA QUE OCUPA O RESTANTE DO ESPAÇO SEM ROLAR A TELA */
+  .card-table-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin-bottom: 0;
+  }
 
-  table.table-compact td { padding: 4px 3px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #f1f5f9; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.74rem; }
+  /* TABELA COM SCROLL INTERNO VERTICAL E HORIZONTAL */
+  .table-container { 
+    flex: 1; 
+    width: 100%; 
+    overflow-y: auto; 
+    overflow-x: auto; 
+    background: #fff; 
+    border: 1px solid #cbd5e1; 
+    border-radius: 6px; 
+    min-height: 0;
+  }
+
+  table.table-compact { width: 100%; min-width: 1720px; border-collapse: collapse; font-size: 0.74rem; table-layout: fixed; }
+  table.table-compact th { background: #000; color: #fff; padding: 6px 4px; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 0.69rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-right: 1px solid #27272a; }
+  table.table-compact th.th-filtro { background: #1a1c20; padding: 3px 3px; position: sticky; top: 27px; z-index: 10; border-right: 1px solid #27272a; }
+  table.table-compact th.th-filtro input, table.table-compact th.th-filtro select { width: 100%; padding: 2px 4px; font-size: 0.67rem; background: #fff; border: 1px solid #475569; border-radius: 3px; color: #1e293b; height: 23px; }
+
+  table.table-compact td { padding: 3px 3px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #f1f5f9; color: #1e293b; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.73rem; }
   table.table-compact tr:hover { background: #f8fafc; }
 
-  .cell-input { width: 100%; padding: 3px 4px; font-size: 0.73rem; border: 1px solid transparent; background: transparent; border-radius: 3px; height: 24px; }
+  .cell-input { width: 100%; padding: 2px 4px; font-size: 0.72rem; border: 1px solid transparent; background: transparent; border-radius: 3px; height: 23px; }
   .cell-input:hover { border-color: #cbd5e1; background: #fff; }
   .cell-input:focus { border-color: var(--accent); background: #fff; outline: none; }
-  .cell-select { width: 100%; padding: 2px 0px; font-size: 0.70rem; border: 1px solid transparent; background: transparent; cursor: pointer; border-radius: 3px; height: 24px; }
+  .cell-select { width: 100%; padding: 1px 0px; font-size: 0.69rem; border: 1px solid transparent; background: transparent; cursor: pointer; border-radius: 3px; height: 23px; }
   .cell-select:hover { border-color: #cbd5e1; background: #fff; }
   .cell-select:focus { border-color: var(--accent); background: #fff; outline: none; }
   .status-rec-sim { background-color: #dcfce7 !important; color: #166534 !important; font-weight: 800; border-radius: 4px; }
@@ -214,7 +285,7 @@
   .bg-certidao-reg { background-color: #fff9c4 !important; font-weight: bold; }
   .titulo-secao-reg { background-color: #e2e8f0; font-weight: 900; text-transform: uppercase; font-size: 0.85rem; text-align: center; letter-spacing: 1px; }
 
-  /* NOVO LAYOUT DIVIDIDO 50 / 50 NA ABA REGISTROS */
+  /* LAYOUT DIVIDIDO 50 / 50 NA ABA REGISTROS */
   .registros-split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
   @media(max-width: 1050px) { .registros-split-layout { grid-template-columns: 1fr; } }
 
@@ -260,9 +331,9 @@
     </div>
   </div>
 
-  <!-- ABA 1: PRODUÇÃO -->
+  <!-- ABA 1: PRODUÇÃO (CABEÇALHO E FORMULÁRIO FIXOS, ROLAGEM SÓ NA TABELA) -->
   <div id="page-producao" class="tab-page active">
-    <div class="card">
+    <div class="card card-header-fixo">
       <div class="card-title">
         <span>Novo Lançamento</span>
         <div>
@@ -273,7 +344,6 @@
 
       <form id="form-cliente" onsubmit="salvarLinha(event)">
         <div class="form-scroll-container">
-          <!-- LINHA 1: TODOS OS CAMPOS PROPORCIONAIS NA LARGURA DA TELA SEM SCROLL -->
           <div class="form-row-exact">
             <div class="field-col fc-ano"><label>Ano</label><input type="number" id="inp-ano" required style="text-align:center;"></div>
             <div class="field-col fc-mes">
@@ -317,7 +387,6 @@
             <div class="field-col fc-tax"><label>Taxa Mês</label><input type="text" id="inp-taxa" class="read-only-field input-bloqueado" readonly style="text-align:right;"></div>
           </div>
 
-          <!-- LINHA 2: OBSERVAÇÕES E BOTÃO SALVAR LADO A LADO -->
           <div class="form-row-bottom">
             <div class="field-col">
               <label>Observações</label>
@@ -331,10 +400,11 @@
       </form>
     </div>
 
-    <div class="card">
+    <!-- TABELA DENTRO DE CONTAINER FLEXÍVEL -->
+    <div class="card card-table-wrap">
       <div class="card-title">
         <span>Histórico de Lançamentos (Planilha Viva - Edição Direta)</span>
-        <button class="btn btn-dark" style="font-size:0.75rem; padding:4px 8px;" onclick="limparFiltrosTabela()">🔄 Limpar Filtros</button>
+        <button class="btn btn-dark" style="font-size:0.75rem; padding:3px 8px;" onclick="limparFiltrosTabela()">🔄 Limpar Filtros</button>
       </div>
 
       <div class="table-container">
@@ -427,7 +497,6 @@
   <!-- ABA 2: MAPA FINANCEIRO -->
   <div id="page-mapa" class="tab-page">
     <div class="mapa-layout">
-
       <aside>
         <div class="slicer-card" style="margin-bottom: 12px;">
           <div class="slicer-title">Ano</div>
@@ -463,25 +532,19 @@
     <div class="graficos-grid-2col"><div class="chart-box"><div class="chart-title"><span>Faturamento vs VGV Anual (R$)</span></div><div class="chart-container"><canvas id="chart-fat-vgv-anual"></canvas></div></div><div class="chart-box"><div class="chart-title"><span>Volume Anual de Negócios (Qtd Vendas vs Qtd Aluguéis)</span></div><div class="chart-container"><canvas id="chart-qtd-ops-anual"></canvas></div></div></div>
   </div>
 
-  <!-- ABA 4: REGISTROS (LAYOUT DIVIDIDO 50 / 50) -->
+  <!-- ABA 4: REGISTROS -->
   <div id="page-registros" class="tab-page">
-
     <div class="registros-split-layout">
-      <!-- LADO ESQUERDO: MÓDULO DE REGISTROS -->
       <div class="registros-col-esquerda">
-        <!-- TELA 1: GRID DE QUADRADINHOS -->
         <div id="view-registros-grid">
           <div class="card" style="border-top: 3px solid var(--accent); margin-bottom: 0;">
             <div class="card-title">
               <span>Módulo de Registros (Apenas Novas Entradas)</span>
             </div>
-            <div id="container-grid-registros" class="grid-registros">
-              <!-- Os cards serão injetados aqui via JS -->
-            </div>
+            <div id="container-grid-registros" class="grid-registros"></div>
           </div>
         </div>
 
-        <!-- TELA 2: DETALHE DO REGISTRO (FORMULÁRIO) -->
         <div id="view-registros-detalhe" style="display: none;">
           <div class="card" style="border-top: 3px solid var(--accent); margin-bottom: 0;">
             <div class="card-title">
@@ -489,7 +552,6 @@
               <button class="btn btn-light" onclick="voltarParaGridRegistros()">⬅ Voltar para Lista</button>
             </div>
 
-            <!-- SETUP INICIAL SE NÃO TIVER DADOS -->
             <div id="setup-form-registro" style="max-width: 400px; margin: 20px auto; text-align: center;">
               <p>Informe as quantidades para gerar a estrutura de campos:</p>
               <div style="display: flex; gap: 15px; margin-bottom: 15px;">
@@ -499,9 +561,7 @@
               <button class="btn btn-dark w-100" style="width: 100%;" onclick="gerarTabelaRegistroDinamicamente()">Gerar Formulário</button>
             </div>
 
-            <!-- A TABELA DE PREENCHIMENTO -->
             <div id="container-tabela-registro" style="display: none; overflow-x: auto;">
-              <!-- BOTOES DE AÇÃO AQUI -->
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; gap: 8px;">
                   <button class="btn btn-success" style="font-size: 0.8rem; padding: 8px 14px;" onclick="concluirProcessoRegistro()">✅ Processo Concluído</button>
@@ -519,16 +579,13 @@
                     <th style="width: 25%; text-align: center;">Certidão Fazendária</th>
                   </tr>
                 </thead>
-                <tbody id="tbody-tabela-registro">
-                  <!-- JS Injeta as linhas aqui -->
-                </tbody>
+                <tbody id="tbody-tabela-registro"></tbody>
               </table>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- LADO DIREITO: CENTRAL DE DOCUMENTAÇÃO & LINKS CARTORÁRIOS -->
       <div class="doc-hub-column">
         <div class="doc-block" style="border-top: 3px solid var(--accent);">
           <div class="doc-block-title">
@@ -649,7 +706,6 @@
         </div>
       </div>
     </div>
-
   </div>
 
 </div>
@@ -694,7 +750,6 @@
 
   let comissaoEditadaManualmente = false;
 
-  // VARIÁVEIS DO MÓDULO DE REGISTRO
   let idRegistroAberto = null;
   let qtdVendAtual = 1;
   let qtdCompAtual = 1;
@@ -945,9 +1000,6 @@
     document.getElementById('inp-liquido').value = fmt(c.valor_liquido);
   }
 
-  // =================================================================================
-  // AUTOMAÇÃO MENSAL: RECEBIMENTO DAS ADMINISTRAÇÕES E ADMINISTRAÇÕES M&IC
-  // =================================================================================
   async function verificarEGerarLancamentosMensaisAutomaticos() {
     const hoje = new Date();
     const anoAtual = hoje.getFullYear();
@@ -1091,7 +1143,6 @@
 
       let htmlMeses = MESES_LISTA.map(m => '<option value="' + m + '" ' + (item.mes === m ? 'selected' : '') + '>' + m.slice(0,3) + '</option>').join('');
       
-      // Preserva a situação histórica existente do registro caso não esteja na lista de novas seleções
       const situacoesLinha = (item.situacao && !SITUACOES.includes(item.situacao))
         ? [item.situacao, ...SITUACOES]
         : SITUACOES;
@@ -1844,9 +1895,6 @@
     });
   }
 
-  // =================================================================================
-  // CURVA DE CRESCIMENTO (ADMINISTRAÇÕES)
-  // =================================================================================
   function renderizarGraficoCurvaAdm() {
     const timelineChaves = [];
     dadosDB.forEach(d => {
@@ -2093,10 +2141,6 @@
       }
     });
   }
-
-  // =================================================================================
-  // FUNÇÕES DO MÓDULO "REGISTROS"
-  // =================================================================================
 
   function renderizarGridRegistros() {
     const container = document.getElementById('container-grid-registros');
