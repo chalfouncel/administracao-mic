@@ -151,14 +151,14 @@ export default async function handler(req, res) {
 
         let errors = [];
         
-        let resProp = await executeTransfer(valProprietario, c.pix_proprietario, c.titular_pix || c.proprietario, `Repasse M&IC - ${c.inquilino}`);
+        let resProp = await executeTransfer(valProprietario, c.pix_proprietario, c.titular_pix || c.proprietario, `Repasse M&IC ${mesRef} - ${c.inquilino}`);
         if (!resProp.success) errors.push(`Proprietário: ${resProp.error}`);
         
-        let resMIC = await executeTransfer(valMIC, 'chalfouncorretor@gmail.com', 'M&IC Corretores', `Taxa Adm + Seguro - ${c.inquilino}`);
+        let resMIC = await executeTransfer(valMIC, 'chalfouncorretor@gmail.com', 'M&IC Corretores', `Taxa Adm + Seguro ${mesRef} - ${c.inquilino}`);
         if (!resMIC.success) errors.push(`M&IC: ${resMIC.error}`);
         
         if (!repassaCond && valCondominioPix > 0) {
-            let resCond = await executeTransfer(valCondominioPix, c.pix_condominio, 'Condomínio', `Condomínio M&IC - ${c.endereco}`);
+            let resCond = await executeTransfer(valCondominioPix, c.pix_condominio, 'Condomínio', `Condomínio M&IC ${mesRef} - ${c.id}`);
             if (!resCond.success) errors.push(`Condomínio: ${resCond.error}`);
         }
 
