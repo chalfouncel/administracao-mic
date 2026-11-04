@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     }
 
     const ASAAS_KEY = process.env.ASAAS_API_KEY;
-    const SUPABASE_KEY = process.env.SUPABASE_KEY;
+    const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY;
     const SUPABASE_URL = 'https://uztsmkhlvoemjbbyebcr.supabase.co'; // URL extraída dos seus outros códigos
 
     try {
@@ -71,8 +71,9 @@ export default async function handler(req, res) {
                 statusCobranca = JSON.parse(dataLoc[0].status_cobranca || '{}'); 
             } catch(e) {}
 
-            // Remove o mês específico do JSON de controle
+            // Remove o status e a URL do mês específico do JSON de controle
             delete statusCobranca[mes_ref];
+            delete statusCobranca[`${mes_ref}_url`];
 
             // Atualiza o banco salvando o JSON sem esse mês
             await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${locacao_id}`, {
