@@ -431,24 +431,24 @@
 
   <!-- ABA: GERENCIAL REFORMULADA -->
   <div id="tab-resumo_gerencial" class="tab-content">
-    <div class="grid-2" style="margin-bottom: 16px;">
-        <div class="gerencial-metric">
-            <h3>Contratos Ativos</h3>
-            <div class="value" id="ger-ativos">0</div>
-        </div>
-        <div class="gerencial-metric">
-            <h3>Volume Total Arrecadado</h3>
-            <div class="value" style="color:#0284c7;" id="ger-volume">R$ 0,00</div>
-        </div>
-        <div class="gerencial-metric">
-            <h3>Faturamento M&IC (Taxa + Seguros)</h3>
-            <div class="value" style="color:var(--success);" id="ger-faturamento">R$ 0,00</div>
-        </div>
-        <div class="gerencial-metric">
-            <h3>Repassado a Proprietários</h3>
-            <div class="value" style="color:#a16207;" id="ger-prop">R$ 0,00</div>
-        </div>
-    </div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+          <div class="gerencial-metric" style="padding: 16px;">
+              <h3 style="font-size: 12px; margin-bottom: 8px;">Contratos Ativos</h3>
+              <div class="value" id="ger-ativos" style="font-size: 22px;">0</div>
+          </div>
+          <div class="gerencial-metric" style="padding: 16px;">
+              <h3 style="font-size: 12px; margin-bottom: 8px;">Volume Total Arrecadado</h3>
+              <div class="value" style="color:#0284c7; font-size: 22px;" id="ger-volume">R$ 0,00</div>
+          </div>
+          <div class="gerencial-metric" style="padding: 16px;">
+              <h3 style="font-size: 12px; margin-bottom: 8px;">Faturamento M&IC (Taxa + Seguros)</h3>
+              <div class="value" style="color:var(--success); font-size: 22px;" id="ger-faturamento">R$ 0,00</div>
+          </div>
+          <div class="gerencial-metric" style="padding: 16px;">
+              <h3 style="font-size: 12px; margin-bottom: 8px;">Repassado a Proprietários</h3>
+              <div class="value" style="color:#a16207; font-size: 22px;" id="ger-prop">R$ 0,00</div>
+          </div>
+      </div>
 
     <!-- TABELA DETALHADA DE FLUXO E STATUS POR IMÓVEL -->
     <div class="card" style="padding: 10px; margin-bottom: 16px;">
