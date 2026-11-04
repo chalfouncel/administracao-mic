@@ -2268,9 +2268,26 @@
           if (cobStatus === 'aguardando_asaas') badgeCob = `<span style="background:#fef08a; color:#a16207; padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">⏳ Link Gerado (Asaas)</span>`;
           if (cobStatus === 'recebida') badgeCob = `<span style="background:#dcfce7; color:#166534; padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">✅ Pago pelo Inquilino</span>`;
 
-          let badgeRep = `<span style="background:#f1f5f9; color:#64748b; padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">Aguardando Pagamento</span>`;
-          if (cobStatus === 'recebida' && repStatus !== 'recebida') badgeRep = `<span style="background:#fef08a; color:#a16207; padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">Liberado p/ Repasse</span>`;
-          if (repStatus === 'recebida') badgeRep = `<span style="background:#dcfce7; color:#166534; padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">✅ Repassado com Sucesso</span>`;
+let repGeralStatus = 'Aguardando Inquilino';
+let bgGeral = '#f1f5f9'; let corGeral = '#64748b'; let iconeRep = '⏳';
+
+if (cobStatus === 'recebida' && repStatus !== 'recebida') { 
+    repGeralStatus = 'Liberado p/ Repasse'; bgGeral = '#fef08a'; corGeral = '#a16207'; 
+}
+if (repStatus === 'recebida') { 
+    repGeralStatus = 'Concluído no Asaas'; bgGeral = '#dcfce7'; corGeral = '#166534'; iconeRep = '✅'; 
+}
+
+let badgeRep = `
+<div style="background:${bgGeral}; color:${corGeral}; padding:4px; border-radius:4px; font-size:0.75rem; font-weight:bold; margin-bottom: 6px;">
+    ${iconeRep} ${repGeralStatus}
+</div>
+<div style="text-align: left; font-size: 0.7rem; line-height: 1.4; color: #475569; background: #f8fafc; padding: 4px; border: 1px solid #e2e8f0; border-radius: 4px;">
+    <div style="display:flex; justify-content:space-between;"><span>Proprietário:</span> <strong>${fmtMoeda(valProprietario)}</strong></div>
+    <div style="display:flex; justify-content:space-between;"><span>M&IC (Taxa+Seg):</span> <strong>${fmtMoeda(valMIC)}</strong></div>
+    ${valCondominioPix > 0 ? `<div style="display:flex; justify-content:space-between;"><span>Síndico/Cond.:</span> <strong>${fmtMoeda(valCondominioPix)}</strong></div>` : ''}
+</div>
+`;
 
           let acaoOuErroHtml = `<span style="color:#64748b; font-size:0.75rem;">Nenhum alerta</span>`;
           if (erroMsg) {
