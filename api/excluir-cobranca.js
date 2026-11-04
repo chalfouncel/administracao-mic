@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         // ETAPA 1: EXCLUIR NO ASAAS (Se existir)
         // ==========================================
         // Busca a cobrança no Asaas pelo externalReference
-        const searchRes = await fetch(`https://api.asaas.com/v3/payments?externalReference=${externalReference}`, {
+        const searchRes = await fetch(`https://api.asaas.com/v3/payments?externalReference=${encodeURIComponent(externalReference)}`, {
             headers: { 'access_token': ASAAS_KEY }
         });
         const searchData = await searchRes.json();
