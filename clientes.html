@@ -270,7 +270,7 @@
   .filter-pill-btn { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 4px 12px; font-size: 0.72rem; font-weight: 700; color: #475569; cursor: pointer; transition: 0.15s; }
   .filter-pill-btn.active { background: var(--secondary); color: var(--gold); border-color: var(--secondary); }
 
-  /* ESTILOS EXCLUSIVOS DO MÓDULO REGISTROS */
+  /* ESTILOS EXCLUSIVOS DO MÓDULO CERTIDÕES */
   .grid-registros { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
   .card-registro-box { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s; min-height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
   .card-registro-box:hover { border-color: var(--accent); box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: translateY(-2px); }
@@ -285,7 +285,7 @@
   .bg-certidao-reg { background-color: #fff9c4 !important; font-weight: bold; }
   .titulo-secao-reg { background-color: #e2e8f0; font-weight: 900; text-transform: uppercase; font-size: 0.85rem; text-align: center; letter-spacing: 1px; }
 
-  /* LAYOUT DIVIDIDO 50 / 50 NA ABA REGISTROS */
+  /* LAYOUT DIVIDIDO 50 / 50 NA ABA CERTIDÕES */
   .registros-split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
   @media(max-width: 1050px) { .registros-split-layout { grid-template-columns: 1fr; } }
 
@@ -324,7 +324,7 @@
       <button class="tab-nav-btn active" onclick="trocarAbaPrincipal('producao', this)">📋 Lançamentos e Produção</button>
       <button class="tab-nav-btn" onclick="trocarAbaPrincipal('mapa', this)">🗺️ MAPA Financeiro</button>
       <button class="tab-nav-btn" onclick="trocarAbaPrincipal('graficos', this)">📊 Gráficos & Metas (BI)</button>
-      <button class="tab-nav-btn" onclick="trocarAbaPrincipal('registros', this)">📝 Registros</button>
+      <button class="tab-nav-btn" onclick="trocarAbaPrincipal('registros', this)">📝 Certidões</button>
     </div>
     <div id="btn-relatorio-container" style="display: none;">
       <button class="btn btn-gold" onclick="gerarRelatorioPDF()">📄 Gerar Relatório ADM (PDF)</button>
@@ -532,14 +532,14 @@
     <div class="graficos-grid-2col"><div class="chart-box"><div class="chart-title"><span>Faturamento vs VGV Anual (R$)</span></div><div class="chart-container"><canvas id="chart-fat-vgv-anual"></canvas></div></div><div class="chart-box"><div class="chart-title"><span>Volume Anual de Negócios (Qtd Vendas vs Qtd Aluguéis)</span></div><div class="chart-container"><canvas id="chart-qtd-ops-anual"></canvas></div></div></div>
   </div>
 
-  <!-- ABA 4: REGISTROS -->
+  <!-- ABA 4: CERTIDÕES -->
   <div id="page-registros" class="tab-page">
     <div class="registros-split-layout">
       <div class="registros-col-esquerda">
         <div id="view-registros-grid">
           <div class="card" style="border-top: 3px solid var(--accent); margin-bottom: 0;">
             <div class="card-title">
-              <span>Módulo de Registros (Apenas Novas Entradas)</span>
+              <span>Módulo de Certidões (Vendas Pendentes)</span>
             </div>
             <div id="container-grid-registros" class="grid-registros"></div>
           </div>
@@ -548,7 +548,7 @@
         <div id="view-registros-detalhe" style="display: none;">
           <div class="card" style="border-top: 3px solid var(--accent); margin-bottom: 0;">
             <div class="card-title">
-              <span id="titulo-detalhe-registro">Detalhes do Registro</span>
+              <span id="titulo-detalhe-registro">Detalhes das Certidões</span>
               <button class="btn btn-light" onclick="voltarParaGridRegistros()">⬅ Voltar para Lista</button>
             </div>
 
@@ -558,16 +558,19 @@
                 <div style="flex: 1;"><label>Vendedores</label><input type="number" id="qtdVendSetup" value="1" min="1"></div>
                 <div style="flex: 1;"><label>Compradores</label><input type="number" id="qtdCompSetup" value="1" min="1"></div>
               </div>
-              <button class="btn btn-dark w-100" style="width: 100%;" onclick="gerarTabelaRegistroDinamicamente()">Gerar Formulário</button>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button class="btn btn-dark w-100" style="width: 100%;" onclick="gerarTabelaRegistroDinamicamente()">Gerar Formulário</button>
+                <button class="btn btn-danger w-100" style="width: 100%; height: 28px;" onclick="excluirProcessoRegistro()">🗑️ Finalizar / Remover Card</button>
+              </div>
             </div>
 
             <div id="container-tabela-registro" style="display: none; overflow-x: auto;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; gap: 8px;">
-                  <button class="btn btn-success" style="font-size: 0.8rem; padding: 8px 14px;" onclick="concluirProcessoRegistro()">✅ Processo Concluído</button>
-                  <button class="btn btn-danger" style="font-size: 0.8rem; padding: 8px 14px;" onclick="excluirProcessoRegistro()">🗑️ Excluir Processo</button>
+                  <button class="btn btn-success" style="font-size: 0.8rem; padding: 8px 14px;" onclick="concluirProcessoRegistro()">✅ Concluir Certidões</button>
+                  <button class="btn btn-danger" style="font-size: 0.8rem; padding: 8px 14px;" onclick="excluirProcessoRegistro()">🗑️ Remover Card</button>
                 </div>
-                <button class="btn btn-gold" onclick="salvarDadosDoRegistroDB()" id="btnSalvarRegistroAtual">💾 Salvar Dados do Registro</button>
+                <button class="btn btn-gold" onclick="salvarDadosDoRegistroDB()" id="btnSalvarRegistroAtual">💾 Salvar Dados das Certidões</button>
               </div>
 
               <table class="tabela-registro-form">
@@ -2143,28 +2146,54 @@
     });
   }
 
+  function obterObjetoDadosCertidao(item) {
+    if (!item || !item.dados_registro) return null;
+    let d = item.dados_registro;
+    if (typeof d === 'string') {
+      try { d = JSON.parse(d); } catch(e) { return null; }
+    }
+    return d;
+  }
+
   function renderizarGridRegistros() {
     const container = document.getElementById('container-grid-registros');
-    const ULTIMO_ID_ANTIGO = 1716; 
 
-    const registros = dadosDB.filter(d => 
-      String(d.situacao).toUpperCase() === 'REGISTRO' && 
-      d.id > ULTIMO_ID_ANTIGO
-    );
+    const registros = dadosDB.filter(d => {
+      const sit = String(d.situacao || '').toUpperCase();
+      const rec = String(d.recebido || '').toUpperCase();
+      const dadosCert = obterObjetoDadosCertidao(d);
+
+      // Se já foi concluído/removido manualmente, nunca mais aparece
+      if (dadosCert && dadosCert.concluido === true) return false;
+
+      const temDadosSalvos = !!(dadosCert && (dadosCert.vend || dadosCert.comp || dadosCert.imovel));
+
+      // Nasce se for VENDA com Recebido = NÃO, ou permanece na tela se já tiver dados preenchidos (mesmo após passar para Recebido = SIM)
+      if (sit === 'VENDA' && (rec === 'NÃO' || temDadosSalvos)) return true;
+
+      // Mantém visíveis os cards que já tinham dados preenchidos anteriormente
+      if (temDadosSalvos) return true;
+
+      return false;
+    });
 
     if (registros.length === 0) {
-      container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#64748b;">Nenhuma nova entrada com situação "REGISTRO" encontrada.</div>';
+      container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#64748b;">Nenhuma venda pendente de certidões encontrada.</div>';
       return;
     }
 
-    container.innerHTML = registros.map(reg => `
-      <div class="card-registro-box" onclick="abrirDetalheRegistro(${reg.id})">
-        <div class="card-registro-nome">${reg.nome || 'Cliente sem nome'}</div>
-        <div class="card-registro-id">Lançamento #${reg.id}</div>
-        <div style="font-size:0.75rem; margin-top:5px; color:#64748b;">${reg.mes}/${reg.ano}</div>
-        ${reg.dados_registro ? '<div style="margin-top:8px; font-size:0.7rem; color:green; font-weight:bold;">✅ Dados Preenchidos</div>' : '<div style="margin-top:8px; font-size:0.7rem; color:orange; font-weight:bold;">⚠️ Pendente</div>'}
-      </div>
-    `).join('');
+    container.innerHTML = registros.map(reg => {
+      const dadosCert = obterObjetoDadosCertidao(reg);
+      const preenchido = !!(dadosCert && (dadosCert.vend || dadosCert.comp || dadosCert.imovel));
+      return `
+        <div class="card-registro-box" onclick="abrirDetalheRegistro(${reg.id})">
+          <div class="card-registro-nome">${reg.nome || 'Cliente sem nome'}</div>
+          <div class="card-registro-id">Lançamento #${reg.id}</div>
+          <div style="font-size:0.75rem; margin-top:5px; color:#64748b;">${reg.mes}/${reg.ano}</div>
+          ${preenchido ? '<div style="margin-top:8px; font-size:0.7rem; color:green; font-weight:bold;">✅ Dados Preenchidos</div>' : '<div style="margin-top:8px; font-size:0.7rem; color:orange; font-weight:bold;">⚠️ Pendente</div>'}
+        </div>
+      `;
+    }).join('');
   }
 
   function abrirDetalheRegistro(id) {
@@ -2173,14 +2202,11 @@
 
     document.getElementById('view-registros-grid').style.display = 'none';
     document.getElementById('view-registros-detalhe').style.display = 'block';
-    document.getElementById('titulo-detalhe-registro').innerText = 'Registro: ' + (registro.nome || 'Sem Nome');
+    document.getElementById('titulo-detalhe-registro').innerText = 'Certidões: ' + (registro.nome || 'Sem Nome');
 
-    if (registro.dados_registro) {
+    const dados = obterObjetoDadosCertidao(registro);
+    if (dados && (dados.vend || dados.comp || dados.imovel)) {
       document.getElementById('setup-form-registro').style.display = 'none';
-      let dados = registro.dados_registro;
-      if (typeof dados === 'string') {
-        try { dados = JSON.parse(dados); } catch(e) {}
-      }
       qtdVendAtual = dados.qtdVend || 1;
       qtdCompAtual = dados.qtdComp || 1;
       gerarTabelaRegistroDinamicamente(dados);
@@ -2263,7 +2289,7 @@
 
     const valItbi = dadosPreenchidos ? (dadosPreenchidos.itbi || '') : '';
     html += `
-      <tr><td colspan="4" class="titulo-secao-reg">SITUAÇÃO DO REGISTRO</td></tr>
+      <tr><td colspan="4" class="titulo-secao-reg">SITUAÇÃO DAS CERTIDÕES / REGISTRO</td></tr>
       <tr>
         <td><strong>POSIÇÃO ITBI</strong></td>
         <td colspan="3"><input type="text" id="reg-itbi" class="input-planilha-reg" style="text-transform:uppercase; font-weight:bold;" value="${valItbi}"></td>
@@ -2315,14 +2341,14 @@
       const idx = dadosDB.findIndex(x => x.id === idRegistroAberto);
       if(idx !== -1) dadosDB[idx].dados_registro = jsonDados;
 
-      alert("✅ Dados do registro salvos com sucesso!");
+      alert("✅ Dados das certidões salvos com sucesso!");
       voltarParaGridRegistros();
       renderizarGridRegistros();
 
     } catch (err) {
       alert("Erro ao salvar: " + err);
     } finally {
-      document.getElementById('btnSalvarRegistroAtual').innerText = "💾 Salvar Dados do Registro";
+      document.getElementById('btnSalvarRegistroAtual').innerText = "💾 Salvar Dados das Certidões";
       document.getElementById('btnSalvarRegistroAtual').disabled = false;
     }
   }
@@ -2330,55 +2356,55 @@
   async function concluirProcessoRegistro() {
     if (!idRegistroAberto) return;
 
-    let novaSit = prompt("Deseja concluir o processo e tirá-lo desta fila de pendências?\nDigite a nova SITUAÇÃO que ele deve receber (Ex: OUTROS, CONTRATO, VENDA):", "OUTROS");
+    if (!confirm("Deseja concluir e remover este card da fila de Certidões? (O lançamento da VENDA continuará intacto na planilha e relatórios)")) return;
 
-    if (novaSit === null) return;
-
-    novaSit = novaSit.trim().toUpperCase();
-    if (!novaSit) novaSit = "OUTROS";
+    const idx = dadosDB.findIndex(x => x.id === idRegistroAberto);
+    let dadosAtuais = idx !== -1 ? (obterObjetoDadosCertidao(dadosDB[idx]) || {}) : {};
+    dadosAtuais.concluido = true;
 
     try {
       await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?id=eq.' + idRegistroAberto, {
         method: 'PATCH',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ situacao: novaSit })
+        body: JSON.stringify({ dados_registro: dadosAtuais })
       });
 
-      const idx = dadosDB.findIndex(x => x.id === idRegistroAberto);
-      if(idx !== -1) dadosDB[idx].situacao = novaSit;
+      if(idx !== -1) dadosDB[idx].dados_registro = dadosAtuais;
 
-      alert("✅ Processo concluído! A situação foi alterada para: " + novaSit);
+      alert("✅ Card de certidões concluído e finalizado!");
 
       voltarParaGridRegistros();
       renderizarGridRegistros();
-      filtrarTabela();
 
     } catch (err) {
-      alert("Erro ao concluir o processo: " + err);
+      alert("Erro ao concluir: " + err);
     }
   }
 
   async function excluirProcessoRegistro() {
     if (!idRegistroAberto) return;
 
-    if (!confirm('⚠️ ATENÇÃO: Tem certeza que deseja EXCLUIR este lançamento permanentemente de todo o sistema?')) return;
+    if (!confirm('Deseja remover este card da aba de Certidões? (O lançamento da Venda na planilha principal NÃO será apagado)')) return;
+
+    const idx = dadosDB.findIndex(x => x.id === idRegistroAberto);
+    const dadosAtuais = { concluido: true };
 
     try {
       await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?id=eq.' + idRegistroAberto, {
-        method: 'DELETE',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dados_registro: dadosAtuais })
       });
 
-      dadosDB = dadosDB.filter(x => x.id !== idRegistroAberto);
+      if(idx !== -1) dadosDB[idx].dados_registro = dadosAtuais;
 
-      alert("🗑️ Processo excluído com sucesso!");
+      alert("🗑️ Card removido da fila de Certidões!");
 
       voltarParaGridRegistros();
       renderizarGridRegistros();
-      filtrarTabela();
 
     } catch (err) {
-      alert("Erro ao excluir o processo: " + err);
+      alert("Erro ao remover o card: " + err);
     }
   }
 
