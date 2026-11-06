@@ -77,9 +77,16 @@ export default async function handler(req, res) {
             const somaSaidas = Math.round((valProprietario + valMIC + valCondominioPix) * 100) / 100;
 
             if (Math.abs(somaSaidas - valorPagoLiquidoCob) > 0.05) {
-                return res.status(400).json({ 
-                    error: `BLOQUEIO DE SEGURANÇA: Soma dos repasses (R$ ${somaSaidas.toFixed(2)}) diverge do valor pago pelo inquilino sem tarifa (R$ ${valorPagoLiquidoCob.toFixed(2)}). Verifique a aba Taxas Condominiais.` 
+                const msgDiv = `BLOQUEIO DE SEGURANÇA: Soma dos repasses (R$ ${somaSaidas.toFixed(2)}) diverge do valor pago pelo inquilino sem tarifa (R$ ${valorPagoLiquidoCob.toFixed(2)}). Verifique a aba Taxas Condominiais.`;
+                let sRepErro = {};
+                try { sRepErro = JSON.parse(c.status_repasse || '{}'); } catch(e){}
+                sRepErro[`${mesRef}_erro`] = msgDiv;
+                await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+                    body: JSON.stringify({ status_repasse: JSON.stringify(sRepErro) })
                 });
+                return res.status(400).json({ error: msgDiv, statusRepasse: sRepErro });
             }
         }
 
