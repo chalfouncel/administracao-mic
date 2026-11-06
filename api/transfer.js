@@ -34,13 +34,18 @@ export default async function handler(req, res) {
         try { lanc = JSON.parse(c.lancamentos_mensais || '{}'); } catch(e){}
         let lMes = lanc[mesRef] || {};
         
-        let vAlugPropStr = lMes.aluguel_prop !== undefined ? lMes.aluguel_prop : ""; 
-        let isPropActive = vAlugPropStr && String(vAlugPropStr).toLowerCase() !== 'não' && String(vAlugPropStr).toLowerCase() !== 'nao';
+        let vAlugPropStr = lMes.aluguel_prop !== undefined ? lMes.aluguel_prop : "Não"; 
+        let isPropActive = vAlugPropStr !== '' && String(vAlugPropStr).toLowerCase() !== 'não' && String(vAlugPropStr).toLowerCase() !== 'nao';
         
+        let mesInicioContrato = c.data_inicio ? c.data_inicio.slice(0, 7) : '';
+        let isMesDeEntrada = (mesInicioContrato && mesRef <= mesInicioContrato);
+
         let vAlugProp = pM(vAlugPropStr);
         let vCondProp = pM(lMes.cond_prop);
-        let vAlugMes = lMes.aluguel_mes !== undefined ? pM(lMes.aluguel_mes) : (isPropActive ? 0 : pM(c.aluguel_base));
-        let vCondMes = lMes.cond_mes !== undefined ? pM(lMes.cond_mes) : pM(c.condominio_base);
+        let vAlugMes = lMes.aluguel_mes !== undefined 
+            ? pM(lMes.aluguel_mes) 
+            : ((isMesDeEntrada || isPropActive) ? 0 : pM(c.aluguel_base));
+        let vCondMes = lMes.cond_mes !== undefined ? pM(lMes.cond_mes) : 0;
         let vIptu = pM(lMes.iptu);
         let vBombeiro = pM(lMes.bombeiro);
         let vSeguro = pM(lMes.seguro);
@@ -54,10 +59,29 @@ export default async function handler(req, res) {
         let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
         let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
         
-        let totalReceitas = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+        let totalReceitas = Math.round((vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto) * 100) / 100;
         
         let valProprietario = Math.round((totalReceitas - vTaxaAdm - valCondominioPix - valSeguroMIC) * 100) / 100;
         let valMIC = Math.round((vTaxaAdm + valSeguroMIC) * 100) / 100;
+
+        // TRAVA DE SEGURANÇA BANCÁRIA: Verifica a fatura paga no Asaas antes de transferir
+        const extRef = `${idReg}||${mesRef}`;
+        const paySearchRes = await fetch(`https://api.asaas.com/v3/payments?externalReference=${encodeURIComponent(extRef)}`, {
+            headers: { 'access_token': ASAAS_KEY }
+        });
+        const paySearchData = await paySearchRes.json();
+        const faturasPagas = (paySearchData.data || []).filter(p => p.status === 'RECEIVED' || p.status === 'CONFIRMED');
+
+        if (faturasPagas.length > 0) {
+            const valorPagoLiquidoCob = Math.round((faturasPagas[0].value - 2.99) * 100) / 100;
+            const somaSaidas = Math.round((valProprietario + valMIC + valCondominioPix) * 100) / 100;
+
+            if (Math.abs(somaSaidas - valorPagoLiquidoCob) > 0.05) {
+                return res.status(400).json({ 
+                    error: `BLOQUEIO DE SEGURANÇA: Soma dos repasses (R$ ${somaSaidas.toFixed(2)}) diverge do valor pago pelo inquilino sem tarifa (R$ ${valorPagoLiquidoCob.toFixed(2)}). Verifique a aba Taxas Condominiais.` 
+                });
+            }
+        }
 
         async function executeTransfer(value, rawKey, titular, desc) {
             if (value <= 0 || !rawKey) return { success: true };
