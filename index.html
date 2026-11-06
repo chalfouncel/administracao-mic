@@ -2312,7 +2312,12 @@ let badgeRep = `
 
           let acaoOuErroHtml = `<span style="color:#64748b; font-size:0.75rem;">Nenhum alerta</span>`;
           if (erroMsg) {
-              acaoOuErroHtml = `<span style="color:#dc2626; font-weight:bold; font-size:0.75rem;" title="${erroMsg}">❌ Erro: ${erroMsg}</span>`;
+              acaoOuErroHtml = `
+                <div style="color:#dc2626; font-weight:bold; font-size:0.72rem; margin-bottom:6px; max-width:260px; margin-left:auto; margin-right:auto; white-space:normal; line-height:1.3;" title="${erroMsg}">
+                  ❌ ${erroMsg}
+                </div>
+                <button class="btn btn-gold" style="padding: 4px 8px; font-size:0.72rem;" onclick="setTab('repasse', document.querySelectorAll('.tab-btn')[4])">Ir para Repasses</button>
+              `;
           } else if (cobStatus === 'recebida' && repStatus !== 'recebida') {
               acaoOuErroHtml = `<button class="btn btn-gold" style="padding: 4px 8px; font-size:0.75rem;" onclick="setTab('repasse', document.querySelectorAll('.tab-btn')[4])">Ir para Repasses</button>`;
           }
