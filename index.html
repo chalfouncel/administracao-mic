@@ -1640,12 +1640,18 @@
 
   async function updateLancamentoMensal(index, field, value) {
       const mesRef = document.getElementById('filtro-mes').value; const c = contratosDB[index];
+      const vAtuais = getVariaveisMes(c, mesRef);
       let lancamentos = {}; try { lancamentos = JSON.parse(c.lancamentos_mensais || '{}'); } catch(e){}
       
       let valorAntigo = '';
       if (lancamentos[mesRef]) valorAntigo = lancamentos[mesRef][field] || '';
 
       if (!lancamentos[mesRef]) lancamentos[mesRef] = {};
+      if (lancamentos[mesRef].aluguel_prop === undefined) lancamentos[mesRef].aluguel_prop = vAtuais.alugProp;
+      if (lancamentos[mesRef].cond_prop === undefined) lancamentos[mesRef].cond_prop = vAtuais.condProp;
+      if (lancamentos[mesRef].aluguel_mes === undefined) lancamentos[mesRef].aluguel_mes = vAtuais.alugMes;
+      if (lancamentos[mesRef].cond_mes === undefined) lancamentos[mesRef].cond_mes = vAtuais.condMes;
+
       lancamentos[mesRef][field] = value;
 
       const limpaFuturo = (baseField, descField) => {
