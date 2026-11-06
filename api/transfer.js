@@ -173,25 +173,86 @@ export default async function handler(req, res) {
             return { success: true };
         }
 
-        let errors = [];
-        
-        let resProp = await executeTransfer(valProprietario, c.pix_proprietario, c.titular_pix || c.proprietario, `Repasse M&IC ${mesRef} - ${c.inquilino}`);
-        if (!resProp.success) errors.push(`Proprietário: ${resProp.error}`);
-        
-        let resMIC = await executeTransfer(valMIC, 'chalfouncorretor@gmail.com', 'M&IC Corretores', `Taxa Adm + Seguro ${mesRef} - ${c.inquilino}`);
-        if (!resMIC.success) errors.push(`M&IC: ${resMIC.error}`);
-        
-        if (!repassaCond && valCondominioPix > 0) {
-            let resCond = await executeTransfer(valCondominioPix, c.pix_condominio, 'Condomínio', `Condomínio M&IC ${mesRef} - ${c.id}`);
-            if (!resCond.success) errors.push(`Condomínio: ${resCond.error}`);
-        }
-
-        if (errors.length > 0) return res.status(400).json({ error: errors.join(" | ") });
-
         let statusRepasse = {}; 
         try { statusRepasse = JSON.parse(c.status_repasse || '{}'); } catch(e){}
-        statusRepasse[mesRef] = 'recebida';
 
+        // Verifica quais destinos deste mês já foram pagos anteriormente (evita duplicidade no "Tentar Novamente")
+        let propJaPago = statusRepasse[`${mesRef}_prop`] === 'pago' || valProprietario <= 0;
+        let micJaPago = statusRepasse[`${mesRef}_mic`] === 'pago' || valMIC <= 0;
+        let condJaPago = statusRepasse[`${mesRef}_cond`] === 'pago' || repassaCond || valCondominioPix <= 0;
+
+        // Soma apenas o que ainda falta transferir neste contrato
+        let totalPendenteTransferir = 0;
+        if (!propJaPago) totalPendenteTransferir += valProprietario;
+        if (!micJaPago) totalPendenteTransferir += valMIC;
+        if (!condJaPago) totalPendenteTransferir += valCondominioPix;
+        totalPendenteTransferir = Math.round(totalPendenteTransferir * 100) / 100;
+
+        // TRAVA DE SALDO DISPONÍVEL NO ASAAS: Só inicia se houver saldo para cobrir TODAS as transferências pendentes deste imóvel
+        if (totalPendenteTransferir > 0) {
+            const balRes = await fetch('https://api.asaas.com/v3/finance/balance', {
+                headers: { 'access_token': ASAAS_KEY }
+            });
+            if (balRes.ok) {
+                const balData = await balRes.json();
+                const saldoConta = typeof balData.balance === 'number' ? balData.balance : 0;
+                if (saldoConta < totalPendenteTransferir) {
+                    const msgSaldo = `BLOQUEIO PREVENTIVO: Saldo disponível no Asaas (R$ ${saldoConta.toFixed(2)}) insuficiente para cobrir o repasse total pendente deste imóvel (R$ ${totalPendenteTransferir.toFixed(2)}). Nenhuma transferência foi feita.`;
+                    statusRepasse[`${mesRef}_erro`] = msgSaldo;
+                    await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+                        body: JSON.stringify({ status_repasse: JSON.stringify(statusRepasse) })
+                    });
+                    return res.status(400).json({ error: msgSaldo, statusRepasse });
+                }
+            }
+        }
+
+        let errors = [];
+        
+        // 1. Transferência do Proprietário (só executa se ainda não foi paga)
+        if (!propJaPago) {
+            let resProp = await executeTransfer(valProprietario, c.pix_proprietario, c.titular_pix || c.proprietario, `Repasse M&IC ${mesRef} - ${c.inquilino}`);
+            if (resProp.success) {
+                statusRepasse[`${mesRef}_prop`] = 'pago';
+                propJaPago = true;
+            } else {
+                errors.push(`Proprietário: ${resProp.error}`);
+            }
+        }
+        
+        // 2. Transferência da M&IC (só executa se ainda não foi paga E se o Proprietário já estiver pago, evitando descontar comissão se o repasse principal falhar)
+        if (!micJaPago && propJaPago) {
+            let resMIC = await executeTransfer(valMIC, 'chalfouncorretor@gmail.com', 'M&IC Corretores', `Taxa Adm + Seguro ${mesRef} - ${c.inquilino}`);
+            if (resMIC.success) {
+                statusRepasse[`${mesRef}_mic`] = 'pago';
+                micJaPago = true;
+            } else {
+                errors.push(`M&IC: ${resMIC.error}`);
+            }
+        }
+        
+        // 3. Transferência do Condomínio (só executa se ainda não foi paga E se o Proprietário já estiver pago)
+        if (!condJaPago && propJaPago) {
+            let resCond = await executeTransfer(valCondominioPix, c.pix_condominio, 'Condomínio', `Condomínio M&IC ${mesRef} - ${c.id}`);
+            if (resCond.success) {
+                statusRepasse[`${mesRef}_cond`] = 'pago';
+                condJaPago = true;
+            } else {
+                errors.push(`Condomínio: ${resCond.error}`);
+            }
+        }
+
+        // Se todas as pontas estiverem pagas, marca o mês como concluído; caso contrário, registra o erro mas preserva no banco o que já foi pago
+        if (propJaPago && micJaPago && condJaPago && errors.length === 0) {
+            statusRepasse[mesRef] = 'recebida';
+            delete statusRepasse[`${mesRef}_erro`];
+        } else if (errors.length > 0) {
+            statusRepasse[`${mesRef}_erro`] = errors.join(" | ");
+        }
+
+        // Salva SEMPRE no Supabase (mesmo em caso de erro parcial) para nunca repetir um PIX já feito
         const resPatch = await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
@@ -200,8 +261,10 @@ export default async function handler(req, res) {
 
         if (!resPatch.ok) throw new Error(`Falha ao atualizar status no banco: ${resPatch.statusText}`);
 
-        return res.status(200).json({ success: true });
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
+        if (errors.length > 0) {
+            return res.status(400).json({ error: errors.join(" | "), statusRepasse });
+        }
+
+        return res.status(200).json({ success: true, statusRepasse });
     }
 }
