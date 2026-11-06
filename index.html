@@ -2031,28 +2031,43 @@
               const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg));
               if (idx > -1) {
                   let sR = {}; try { sR = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e){}
-                  sR[mesRef] = 'recebida'; contratosDB[idx].status_repasse = JSON.stringify(sR);
-              }
-              if(alertSuccess) { alert('✅ Transferências automáticas concluídas!'); atualizarInterfaceGeral(); }
-          } else {
-              // Salva o erro no contrato para auditoria visual na aba gerencial
-              const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg));
-              if (idx > -1) {
-                  let sErro = {}; try { sErro = JSON.parse(contratosDB[idx].status_erro_transferencia || '{}'); } catch(e){}
-                  sErro[mesRef] = data.error;
-                  contratosDB[idx].status_erro_transferencia = JSON.stringify(sErro);
+                  sR[mesRef] = 'recebida';
+                  delete sR[`${mesRef}_erro`];
+                  contratosDB[idx].status_repasse = JSON.stringify(sR);
                   await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${idReg}`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ status_erro_transferencia: JSON.stringify(sErro) })
+                      body: JSON.stringify({ status_repasse: JSON.stringify(sR) })
+                  });
+              }
+              if(!alertSuccess && btn) btn.innerText = '✅ Feito';
+              if(alertSuccess) { alert('✅ Transferências automáticas concluídas!'); atualizarInterfaceGeral(); }
+              return true;
+          } else {
+              // Salva o erro dentro de status_repasse (coluna já existente no banco)
+              const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg));
+              if (idx > -1) {
+                  let sR = {}; try { sR = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e){}
+                  sR[`${mesRef}_erro`] = data.error;
+                  contratosDB[idx].status_repasse = JSON.stringify(sR);
+                  await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${idReg}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ status_repasse: JSON.stringify(sR) })
                   });
               }
 
-              alert('Erro na transferência do Asaas: ' + data.error);
               if(btn) { btn.innerText = '💸 Tentar Novamente'; btn.disabled = false; }
+              if(alertSuccess) { alert('Erro na transferência do Asaas: ' + data.error); atualizarInterfaceGeral(); }
+              else { throw new Error(data.error); }
+              return false;
           }
-      } catch(e) { alert('Falha no servidor: ' + e.message); if(btn) { btn.innerText = '💸 Tentar Novamente'; btn.disabled = false; } }
-      finally { if(!alertSuccess && btn) btn.innerText = '✅ Feito'; }
+      } catch(e) {
+          if(btn) { btn.innerText = '💸 Tentar Novamente'; btn.disabled = false; }
+          if(alertSuccess) alert('Falha no servidor: ' + e.message);
+          else throw e;
+          return false;
+      }
   }
 
   async function transferirTodas() {
@@ -2262,11 +2277,10 @@
 
           let sC = {}; try { sC = JSON.parse(c.status_cobranca || '{}'); } catch(e){}
           let sR = {}; try { sR = JSON.parse(c.status_repasse || '{}'); } catch(e){}
-          let sErro = {}; try { sErro = JSON.parse(c.status_erro_transferencia || '{}'); } catch(e){}
 
           let cobStatus = sC[mesRef] || 'pendente';
           let repStatus = sR[mesRef] || 'pendente';
-          let erroMsg = sErro[mesRef] || '';
+          let erroMsg = sR[`${mesRef}_erro`] || '';
 
           if (repStatus !== 'recebida') todosRepassesOk = false;
 
