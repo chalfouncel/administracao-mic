@@ -2030,31 +2030,28 @@
           if (data.success) {
               const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg));
               if (idx > -1) {
-                  let sR = {}; try { sR = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e){}
-                  sR[mesRef] = 'recebida';
-                  delete sR[`${mesRef}_erro`];
-                  contratosDB[idx].status_repasse = JSON.stringify(sR);
-                  await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${idReg}`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ status_repasse: JSON.stringify(sR) })
-                  });
+                  if (data.statusRepasse) {
+                      contratosDB[idx].status_repasse = JSON.stringify(data.statusRepasse);
+                  } else {
+                      let sR = {}; try { sR = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e){}
+                      sR[mesRef] = 'recebida';
+                      delete sR[`${mesRef}_erro`];
+                      contratosDB[idx].status_repasse = JSON.stringify(sR);
+                  }
               }
               if(!alertSuccess && btn) btn.innerText = '✅ Feito';
               if(alertSuccess) { alert('✅ Transferências automáticas concluídas!'); atualizarInterfaceGeral(); }
               return true;
           } else {
-              // Salva o erro dentro de status_repasse (coluna já existente no banco)
               const idx = contratosDB.findIndex(x => String(x.id || x._tempId) === String(idReg));
               if (idx > -1) {
-                  let sR = {}; try { sR = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e){}
-                  sR[`${mesRef}_erro`] = data.error;
-                  contratosDB[idx].status_repasse = JSON.stringify(sR);
-                  await supabaseFetchWithRefresh(`/rest/v1/locacoes?id=eq.${idReg}`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ status_repasse: JSON.stringify(sR) })
-                  });
+                  if (data.statusRepasse) {
+                      contratosDB[idx].status_repasse = JSON.stringify(data.statusRepasse);
+                  } else {
+                      let sR = {}; try { sR = JSON.parse(contratosDB[idx].status_repasse || '{}'); } catch(e){}
+                      sR[`${mesRef}_erro`] = data.error;
+                      contratosDB[idx].status_repasse = JSON.stringify(sR);
+                  }
               }
 
               if(btn) { btn.innerText = '💸 Tentar Novamente'; btn.disabled = false; }
@@ -2298,14 +2295,18 @@ if (repStatus === 'recebida') {
     repGeralStatus = 'Concluído no Asaas'; bgGeral = '#dcfce7'; corGeral = '#166534'; iconeRep = '✅'; 
 }
 
+let stPropIcon = (repStatus === 'recebida' || sR[`${mesRef}_prop`] === 'pago') ? '✅' : '⏳';
+let stMicIcon = (repStatus === 'recebida' || sR[`${mesRef}_mic`] === 'pago') ? '✅' : '⏳';
+let stCondIcon = (repStatus === 'recebida' || sR[`${mesRef}_cond`] === 'pago') ? '✅' : '⏳';
+
 let badgeRep = `
 <div style="background:${bgGeral}; color:${corGeral}; padding:4px; border-radius:4px; font-size:0.75rem; font-weight:bold; margin-bottom: 6px;">
     ${iconeRep} ${repGeralStatus}
 </div>
 <div style="text-align: left; font-size: 0.7rem; line-height: 1.4; color: #475569; background: #f8fafc; padding: 4px; border: 1px solid #e2e8f0; border-radius: 4px;">
-    <div style="display:flex; justify-content:space-between;"><span>Proprietário:</span> <strong>${fmtMoeda(valProprietario)}</strong></div>
-    <div style="display:flex; justify-content:space-between;"><span>M&IC (Taxa+Seg):</span> <strong>${fmtMoeda(valMIC)}</strong></div>
-    ${valCondominioPix > 0 ? `<div style="display:flex; justify-content:space-between;"><span>Síndico/Cond.:</span> <strong>${fmtMoeda(valCondominioPix)}</strong></div>` : ''}
+    <div style="display:flex; justify-content:space-between;"><span>${stPropIcon} Proprietário:</span> <strong>${fmtMoeda(valProprietario)}</strong></div>
+    <div style="display:flex; justify-content:space-between;"><span>${stMicIcon} M&IC (Taxa+Seg):</span> <strong>${fmtMoeda(valMIC)}</strong></div>
+    ${valCondominioPix > 0 ? `<div style="display:flex; justify-content:space-between;"><span>${stCondIcon} Síndico/Cond.:</span> <strong>${fmtMoeda(valCondominioPix)}</strong></div>` : ''}
 </div>
 `;
 
