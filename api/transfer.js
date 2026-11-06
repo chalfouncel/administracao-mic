@@ -266,5 +266,7 @@ export default async function handler(req, res) {
         }
 
         return res.status(200).json({ success: true, statusRepasse });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
     }
 }
