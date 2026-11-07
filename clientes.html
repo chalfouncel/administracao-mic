@@ -714,6 +714,17 @@
 </div>
 
 <script>
+  (function verificarAutenticacaoClientes() {
+    try {
+      const s = JSON.parse(localStorage.getItem('mic_auth_session'));
+      if (!s || !s.access_token) { window.location.href = '/'; return; }
+      const payload = JSON.parse(atob(s.access_token.split('.')[1]));
+      if (payload.aal !== 'aal2') { window.location.href = '/'; return; }
+    } catch (e) {
+      window.location.href = '/';
+    }
+  })();
+
   Chart.register(ChartDataLabels);
 
   const SUPABASE_URL = 'https://uztsmkhlvoemjbbyebcr.supabase.co';
