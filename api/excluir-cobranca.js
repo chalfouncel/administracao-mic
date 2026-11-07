@@ -30,18 +30,17 @@ export default async function handler(req, res) {
         const searchData = await searchRes.json();
 
         if (searchData.data && searchData.data.length > 0) {
-            const pagamentoAsaas = searchData.data[0];
-            
-            // Trava de segurança: Se já estiver pago, NÃO DEIXA EXCLUIR!
-            if (pagamentoAsaas.status === 'RECEIVED' || pagamentoAsaas.status === 'CONFIRMED') {
+            const jaPago = searchData.data.some(p => p.status === 'RECEIVED' || p.status === 'CONFIRMED');
+            if (jaPago) {
                 return res.status(403).json({ error: 'Esta cobrança já foi paga e não pode ser excluída.' });
             }
 
-            // Exclui a cobrança no Asaas
-            await fetch(`https://api.asaas.com/v3/payments/${pagamentoAsaas.id}`, {
-                method: 'DELETE',
-                headers: { 'access_token': ASAAS_KEY }
-            });
+            for (const pagamentoAsaas of searchData.data) {
+                await fetch(`https://api.asaas.com/v3/payments/${pagamentoAsaas.id}`, {
+                    method: 'DELETE',
+                    headers: { 'access_token': ASAAS_KEY }
+                });
+            }
         }
 
         // ==========================================
