@@ -10,9 +10,22 @@ export default async function handler(req, res) {
     const { nomeInquilino, cpfInquilino, emailInquilino, valor, vencimento, descricao, externalReference, reciboBase64 } = req.body;
     
     const API_KEY = process.env.ASAAS_API_KEY; 
-    const SUPABASE_KEY = process.env.SUPABASE_KEY;
+    const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY;
 
     try {
+        // 0. Trava contra duplicidade: verifica se já existe fatura ativa para este imóvel/mês
+        const checkExisting = await fetch(`https://api.asaas.com/v3/payments?externalReference=${encodeURIComponent(externalReference)}`, {
+            method: 'GET',
+            headers: { 'access_token': API_KEY }
+        });
+        const existingData = await checkExisting.json();
+        if (existingData.data && existingData.data.length > 0) {
+            const faturaAtiva = existingData.data.find(p => !p.deleted && p.status !== 'REFUNDED');
+            if (faturaAtiva && faturaAtiva.invoiceUrl) {
+                return res.status(200).json({ urlFatura: faturaAtiva.invoiceUrl });
+            }
+        }
+
         // 1. Procurar ou Criar o Cliente no Asaas (Para não duplicar cadastros)
         let asaasCustomerId;
         const searchCustomer = await fetch(`https://api.asaas.com/v3/customers?cpfCnpj=${cpfInquilino}`, {
