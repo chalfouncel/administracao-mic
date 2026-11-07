@@ -1,12 +1,12 @@
 export default async function handler(req, res) {
-    // 1. Fechadura de segurança da Vercel (impede execuções externas não autorizadas)
     const authHeader = req.headers.authorization;
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && process.env.NODE_ENV === 'production') {
         return res.status(401).json({ error: 'Não autorizado' });
     }
 
     try {
-        const SUPABASE_KEY = process.env.SUPABASE_KEY;
+        const SUPABASE_URL = 'https://uztsmkhlvoemjbbyebcr.supabase.co';
+        const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY;
         const RESEND_API_KEY = process.env.RESEND_API_KEY;
         const ASAAS_API_KEY = process.env.ASAAS_API_KEY;
 
@@ -14,8 +14,7 @@ export default async function handler(req, res) {
             throw new Error("Falta configurar variáveis de ambiente na Vercel (SUPABASE_KEY, RESEND_API_KEY ou ASAAS_API_KEY).");
         }
 
-        // 2. Buscar no Supabase os e-mails que ainda não foram totalmente enviados
-        const supabaseUrl = `https://dgadztmmarvbjcouvrnp.supabase.co/rest/v1/disparos_email?or=(status_disparo_1.eq.false,status_disparo_2.eq.false,status_disparo_3.eq.false)`;
+        const supabaseUrl = `${SUPABASE_URL}/rest/v1/disparos_email?or=(status_disparo_1.eq.false,status_disparo_2.eq.false,status_disparo_3.eq.false)`;
         const resDb = await fetch(supabaseUrl, {
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
         });
@@ -33,10 +32,8 @@ export default async function handler(req, res) {
         hoje.setHours(0, 0, 0, 0);
         let disparosFeitos = 0;
 
-        // 3. Analisar cada inquilino pendente
         for (const item of pendentes) {
-            // Verificar no Asaas se a fatura JÁ FOI PAGA
-            const asaasRes = await fetch(`https://api.asaas.com/v3/payments?externalReference=${item.locacao_id}||${item.mes_ref}`, {
+            const asaasRes = await fetch(`https://api.asaas.com/v3/payments?externalReference=${encodeURIComponent(item.locacao_id + '||' + item.mes_ref)}`, {
                 headers: { 'access_token': ASAAS_API_KEY }
             });
             const asaasData = await asaasRes.json();
@@ -44,8 +41,7 @@ export default async function handler(req, res) {
             if (asaasData.data && asaasData.data.length > 0) {
                 const statusFatura = asaasData.data[0].status;
                 if (statusFatura === 'RECEIVED' || statusFatura === 'CONFIRMED') {
-                    // Cancela envios futuros atualizando tudo para TRUE
-                    await fetch(`https://dgadztmmarvbjcouvrnp.supabase.co/rest/v1/disparos_email?id=eq.${item.id}`, {
+                    await fetch(`${SUPABASE_URL}/rest/v1/disparos_email?id=eq.${item.id}`, {
                         method: 'PATCH',
                         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ status_disparo_1: true, status_disparo_2: true, status_disparo_3: true })
@@ -54,8 +50,8 @@ export default async function handler(req, res) {
                 }
             }
 
-            // Calcular a diferença de dias para o vencimento
-            const dataVenc = new Date(item.data_vencimento);
+            const [anoV, mesV, diaV] = String(item.data_vencimento).split('-').map(Number);
+            const dataVenc = new Date(anoV, mesV - 1, diaV);
             dataVenc.setHours(0, 0, 0, 0);
             const diffDias = Math.ceil((dataVenc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
 
@@ -63,7 +59,6 @@ export default async function handler(req, res) {
             let campoAtualizar = '';
             let assuntoEmail = '';
 
-            // Lógica dos 3 Momentos de Disparo
             if (item.status_disparo_1 === false) {
                 deveEnviar = true;
                 campoAtualizar = 'status_disparo_1';
@@ -78,13 +73,12 @@ export default async function handler(req, res) {
                 assuntoEmail = 'Aviso de Vencimento: O seu aluguel vence HOJE - M&IC';
             }
 
-            // 4. Disparar e-mail via Resend
             if (deveEnviar) {
                 const resendRes = await fetch('https://api.resend.com/emails', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        from: 'M&IC Corretores de Imóveis <onboarding@resend.dev>', // Email de remetente obrigatório no plano gratuito
+                        from: 'M&IC Cobrança <cobranca@miccorretores.com.br>',
                         to: item.email_inquilino,
                         subject: assuntoEmail,
                         html: `
@@ -107,8 +101,7 @@ export default async function handler(req, res) {
                     throw new Error("Erro na API da Resend: " + JSON.stringify(resendErro));
                 }
 
-                // 5. Marcar no Supabase que este momento de aviso já foi enviado
-                await fetch(`https://dgadztmmarvbjcouvrnp.supabase.co/rest/v1/disparos_email?id=eq.${item.id}`, {
+                await fetch(`${SUPABASE_URL}/rest/v1/disparos_email?id=eq.${item.id}`, {
                     method: 'PATCH',
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ [campoAtualizar]: true })
