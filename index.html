@@ -2111,121 +2111,144 @@
     atualizarInterfaceGeral();
 }
 
-  function gerarTextosRepasse() {
-    const container = document.getElementById('repasses-container'); if (!container) return;
-    const mesRef = document.getElementById('filtro-mes').value;
-    const repasseMesTexto = formatarMesAno(mesRef);
-
-    const contratosExibir = contratosDB.filter(c => {
-      if (c.ativo !== 'SIM') return false;
-      const idReg = String(c.id || c._tempId);
-      const isMarcado = contratosMarcados.has(idReg);
-      let sC = {}; try{ sC = JSON.parse(c.status_cobranca || '{}'); }catch(e){}
-      let sR = {}; try{ sR = JSON.parse(c.status_repasse || '{}'); }catch(e){}
-      const emAndamento = (sC[mesRef] === 'aguardando_asaas' || sC[mesRef] === 'recebida') && sR[mesRef] !== 'recebida';
-      return isMarcado || emAndamento;
-    });
-
-    if (contratosExibir.length === 0) { container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:20px;">Nenhum imóvel pendente de repasse ou marcado.</div>'; return; }
+    async function gerarTextosRepasse() {
+    const container = document.getElementById('repasses-container');
+    if (!container) return;
     container.innerHTML = '';
+    const mesRef = document.getElementById('filtro-mes').value;
 
-    contratosExibir.forEach(c => {
-      const idReg = c.id || c._tempId; const v = getVariaveisMes(c, mesRef);
-      
-      let pAlug = parseMoedaToFloat(v.alugProp);
-      let pCond = parseMoedaToFloat(v.condProp);
-      let mAlug = parseMoedaToFloat(v.alugMes);
-      let mCond = parseMoedaToFloat(v.condMes);
-      let iptu = parseMoedaToFloat(v.iptu);
-      let bomb = parseMoedaToFloat(v.bombeiro);
-      let seg = parseMoedaToFloat(v.seguro);
-      let out = parseMoedaToFloat(v.outras_taxas);
-      let desc = parseMoedaToFloat(v.desconto);
-      let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa); 
-      
-      let repassaCond = c.regra_condominio !== 'N'; 
-      let repassaSeguro = c.regra_seguro !== 'N';
+    const ativos = contratosDB.filter(c => c.status === 'ativo' || c.ativo === 'SIM');
+    
+    if (ativos.length === 0) {
+        container.innerHTML = '<p style="color:#64748b;">Nenhum contrato ativo para exibir.</p>';
+        return;
+    }
 
-      let totalReceitas = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
-      
-      let valCondominioPix = repassaCond ? 0 : (pCond + mCond);
-      let valSeguroMIC = repassaSeguro ? 0 : seg;
-      let valProprietario = totalReceitas - vTaxaAdm - valCondominioPix - valSeguroMIC;
-      let valMIC = vTaxaAdm + valSeguroMIC; 
+    for (const c of ativos) {
+        // Leitura dos valores lançados no mês
+        let lanc = {}; try { lanc = JSON.parse(c.lancamentos_mensais || '{}'); } catch(e){}
+        let lMes = lanc[mesRef] || {};
+        
+        let vAlugProp = parseMoedaToFloat(lMes.aluguel_prop !== undefined ? lMes.aluguel_prop : "Não");
+        let vCondProp = parseMoedaToFloat(lMes.cond_prop);
+        let vAlugMes = parseMoedaToFloat(lMes.aluguel_mes !== undefined ? lMes.aluguel_mes : c.aluguel_base);
+        let vCondMes = parseMoedaToFloat(lMes.cond_mes !== undefined ? lMes.cond_mes : 0);
+        let vIptu = parseMoedaToFloat(lMes.iptu);
+        let vBombeiro = parseMoedaToFloat(lMes.bombeiro);
+        let vSeguro = parseMoedaToFloat(lMes.seguro);
+        let vOutras = parseMoedaToFloat(lMes.outras_taxas);
+        let vDesconto = parseMoedaToFloat(lMes.desconto);
+        let vTaxaAdm = parseMoedaToFloat(c.taxa_adm_fixa);
+        
+        let repassaCond = c.regra_condominio !== 'N'; 
+        let repassaSeguro = c.regra_seguro !== 'N';
+        
+        // Cálculos dos repasses
+        let valCondominioPix = repassaCond ? 0 : (vCondProp + vCondMes);
+        let valSeguroMIC = repassaSeguro ? 0 : vSeguro;
+        
+        let totalReceitas = vAlugProp + vAlugMes + vCondProp + vCondMes + vIptu + vBombeiro + vSeguro + vOutras - vDesconto;
+        let valProprietario = totalReceitas - vTaxaAdm - valCondominioPix - valSeguroMIC;
 
-      let pixBruto = c.pix_proprietario || 'Não informada';
-      let txtChaveWpp = pixBruto;
-      if (pixBruto.startsWith('TED|')) {
-          let p = pixBruto.split('|');
-          txtChaveWpp = `Banco ${p[1]} | Ag: ${p[2]} | Conta: ${p[3]} | CPF: ${p[5]}`;
-      } else {
-          txtChaveWpp = `PIX: ${pixBruto}`;
-      }
+        // Se não tem nada para repassar neste imóvel, pula
+        if (valProprietario <= 0 && valCondominioPix <= 0) continue;
 
-      let texto = `Prezado(a) ${c.proprietario},\nSegue repasse de *${repasseMesTexto}*:\n`;
-      let titularStr = c.titular_pix ? `\nTitular: ${c.titular_pix}` : `\nTitular: ${c.proprietario}`;
-      texto += `\n💰 *TOTAL REPASSADO: ${fmtMoeda(valProprietario)}*\nO valor foi transferido para: ${txtChaveWpp}${titularStr}`;
-      
-      if (!repassaCond && valCondominioPix > 0) { texto += `\n📌 *Nota:* O Condomínio (${fmtMoeda(valCondominioPix)}) foi transferido direto ao Síndico (PIX: ${c.pix_condominio}).`; }
-      if (!repassaSeguro && seg > 0) { texto += `\n📌 *Nota:* O Seguro (${fmtMoeda(seg)}) foi retido para pagamento pela corretora.`; }
+        // IDs únicos para as imagens invisíveis geradas no HTML
+        const idImgProp = `img-rep-prop-${c.id || c._tempId}`;
+        const idImgSind = `img-rep-sind-${c.id || c._tempId}`;
 
-      let statusCob = {}; try { statusCob = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
-      let statusRep = {}; try { statusRep = JSON.parse(c.status_repasse || '{}'); } catch(e) {} 
-      
-      let isCobrancaPaga = statusCob[mesRef] === 'recebida';
-      let isRepasseFeito = statusRep[mesRef] === 'recebida';
+        let htmlCard = `<div class="card" style="width: 100%; max-width: 420px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px;">`;
+        htmlCard += `<h4 style="color:var(--primary); margin-bottom: 12px; font-size: 0.9rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">📍 ${c.endereco}</h4>`;
 
-      let bgPainel = isRepasseFeito ? '#dcfce7' : '#f8fafc'; 
-      let borderCor = isRepasseFeito ? '#22c55e' : '#cbd5e1'; 
-      let acaoHtml = '';
-      
-      if (!isCobrancaPaga) {
-          acaoHtml = `<div style="text-align:center; padding:10px; color:#a16207; background:#fef9c3; border-radius:6px; font-size:0.8rem;">⏳ Aguardando Inquilino pagar no Asaas para liberar repasse.</div>`;
-      } else if (isCobrancaPaga && !isRepasseFeito) {
-          acaoHtml = `<button id="btn-transf-${idReg}" class="btn btn-gold" style="width:100%; padding: 12px; font-size: 0.9rem;" onclick="realizarTransferencias('${idReg}')">💸 Realizar Transferências Automáticas</button>`;
-      } else {
-          acaoHtml = `<div style="text-align:center; padding:12px; color:#166534; font-size:0.9rem; font-weight:bold; border-top: 1px dashed #22c55e; margin-top: 10px;">✅ Transferências Concluídas!</div>`;
-      }
+        // ==========================================
+        // BLOCO 1: PROPRIETÁRIO
+        // ==========================================
+        if (valProprietario > 0) {
+            const telPropLimpo = String(c.telefone_proprietario || '').replace(/\D/g, '');
+            const msgProp = encodeURIComponent(`Olá ${c.proprietario}, o repasse no valor de ${fmtMoeda(valProprietario)} referente ao aluguel de ${c.inquilino} foi efetuado. Segue o demonstrativo na imagem!`);
+            const linkWppProp = `https://api.whatsapp.com/send?phone=55${telPropLimpo}&text=${msgProp}`;
 
-      let breakdownProp = "";
-      if (pAlug > 0) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ Alug. Prop.: ${fmtMoeda(pAlug)}<br>`;
-      if (pCond > 0 && repassaCond) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ Cond. Prop.: ${fmtMoeda(pCond)}<br>`;
-      if (mAlug > 0) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ Aluguel: ${fmtMoeda(mAlug)}<br>`;
-      if (mCond > 0 && repassaCond) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ Condomínio: ${fmtMoeda(mCond)}<br>`;
-      if (iptu > 0) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ IPTU: ${fmtMoeda(iptu)}<br>`;
-      if (bomb > 0) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ Bombeiro: ${fmtMoeda(bomb)}<br>`;
-      if (seg > 0 && repassaSeguro) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ Seguro: ${fmtMoeda(seg)}<br>`;
-      if (out > 0) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ Outras Taxas: ${fmtMoeda(out)}<br>`;
-      if (desc > 0) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ (-) Desconto: -${fmtMoeda(desc)}<br>`;
-      breakdownProp += `&nbsp;&nbsp;&nbsp;↳ (-) Taxa Adm: -${fmtMoeda(vTaxaAdm)}<br>`;
+            htmlCard += `
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+                <div style="font-size: 0.8rem; font-weight: bold; color: #475569; margin-bottom: 8px;">👑 Proprietário: <span style="color:#166534;">${fmtMoeda(valProprietario)}</span></div>
+                
+                <!-- RECIBO INVISÍVEL (Para virar imagem) -->
+                <div id="${idImgProp}" class="receipt-box" style="position: absolute; left: -9999px; width: 350px;">
+                    <h3 style="text-align:center; color:#c59b27; margin-bottom:10px; font-size: 1.1rem;">DEMONSTRATIVO DE REPASSE</h3>
+                    <div class="comp-line"><span>Proprietário:</span> <strong>${c.proprietario}</strong></div>
+                    <div class="comp-line"><span>Inquilino:</span> <strong>${c.inquilino}</strong></div>
+                    <div class="comp-line"><span>Competência:</span> <strong>${mesRef}</strong></div>
+                    <div class="comp-total"><span>Total Repassado:</span> <span>${fmtMoeda(valProprietario)}</span></div>
+                </div>
 
-      const idTextArea = `txt-rep-${idReg}`; const idCard = `img-rep-${idReg}`;
-      container.innerHTML += `
-        <div style="background: ${bgPainel}; border: 2px solid ${borderCor}; border-radius: 8px; padding: 16px; max-width: 460px; margin: 0 auto; width: 100%;">
-           <div id="${idCard}" class="receipt-box"><div style="font-weight:900; font-size:1.1rem; color:var(--primary);">REPASSE</div>
-              <p style="font-size:0.9rem; margin-bottom:12px;"><strong>Proprietário:</strong> ${c.proprietario}</p><hr>
-              <div class="comp-total"><span>TOTAL REPASSADO:</span> <span>${fmtMoeda(valProprietario)}</span></div>
-           </div>
-           
-           <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin: 16px 0 10px 0; font-size:0.75rem; color:#475569; text-align: left; border: 1px solid #e2e8f0;">
-               <strong>Auditoria de Destinos (PIX/TED):</strong><br>
-               1. Proprietário: <strong>${fmtMoeda(valProprietario)}</strong><br>
-               ${breakdownProp}
-               2. M&IC (Taxa Administração): <strong>${fmtMoeda(valMIC)}</strong><br>
-               ${valCondominioPix > 0 ? `3. Síndico/Condomínio: <strong>${fmtMoeda(valCondominioPix)}</strong><br>` : ''}
-           </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-dark" style="flex: 1; font-size: 0.7rem; padding: 6px;" onclick="copiarImagemRepasseApp('${idImgProp}')">🖼️ 1. Copiar Imagem</button>
+                    <a href="${linkWppProp}" target="_blank" class="btn btn-whatsapp" style="flex: 1; font-size: 0.7rem; padding: 6px; text-decoration: none; text-align: center;">💬 2. Abrir WhatsApp</a>
+                </div>
+            </div>`;
+        }
 
-           <textarea id="${idTextArea}" style="display:none;">${texto}</textarea>
-           
-           <div style="margin-bottom: 10px;">${acaoHtml}</div>
-           
-           <div style="display: flex; gap: 8px;">
-              <button class="btn btn-gold" style="flex: 1; padding: 8px; font-size: 0.85rem;" onclick="copiarApenasImagem('${idCard}', this)">📸 Copiar Recibo</button>
-              <a class="btn btn-whatsapp" style="flex: 1; padding: 8px; text-decoration: none; text-align: center; font-size: 0.85rem;" href="https://api.whatsapp.com/send?phone=55${String(c.telefone_proprietario).replace(/\D/g,'')}&text=${encodeURIComponent(texto)}" target="_blank">📲 Enviar WPP</a>
-           </div>
-        </div>`;
-    });
+        // ==========================================
+        // BLOCO 2: SÍNDICO / CONDOMÍNIO
+        // ==========================================
+        if (valCondominioPix > 0) {
+            // Nota: Se não houver telefone salvo, abre o web wpp genérico para você escolher o contato
+            const telCondLimpo = String(c.telefone_condominio || '').replace(/\D/g, ''); 
+            const msgSind = encodeURIComponent(`Olá, o repasse de condomínio no valor de ${fmtMoeda(valCondominioPix)} referente à unidade ${c.endereco} foi efetuado. Segue o comprovante detalhado na imagem!`);
+            const linkWppSind = telCondLimpo ? `https://api.whatsapp.com/send?phone=55${telCondLimpo}&text=${msgSind}` : `https://api.whatsapp.com/send?text=${msgSind}`;
+
+            htmlCard += `
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+                <div style="font-size: 0.8rem; font-weight: bold; color: #475569; margin-bottom: 8px;">🏢 Síndico/Cond.: <span style="color:#0284c7;">${fmtMoeda(valCondominioPix)}</span></div>
+                
+                <!-- RECIBO INVISÍVEL (Para virar imagem) -->
+                <div id="${idImgSind}" class="receipt-box" style="position: absolute; left: -9999px; width: 350px; border-top-color: #0284c7;">
+                    <h3 style="text-align:center; color:#0284c7; margin-bottom:10px; font-size: 1.1rem;">REPASSE DE CONDOMÍNIO</h3>
+                    <div class="comp-line"><span>Unidade:</span> <strong>${c.endereco}</strong></div>
+                    <div class="comp-line"><span>Competência:</span> <strong>${mesRef}</strong></div>
+                    <div class="comp-line"><span>Chave PIX:</span> <strong>${c.pix_condominio || 'Não informada'}</strong></div>
+                    <div class="comp-total" style="color: #0284c7;"><span>Total Repassado:</span> <span>${fmtMoeda(valCondominioPix)}</span></div>
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-dark" style="flex: 1; font-size: 0.7rem; padding: 6px; background: #0284c7;" onclick="copiarImagemRepasseApp('${idImgSind}')">🖼️ 1. Copiar Imagem</button>
+                    <a href="${linkWppSind}" target="_blank" class="btn btn-whatsapp" style="flex: 1; font-size: 0.7rem; padding: 6px; text-decoration: none; text-align: center;">💬 2. Abrir WhatsApp</a>
+                </div>
+            </div>`;
+        }
+
+        htmlCard += `</div>`;
+        container.innerHTML += htmlCard;
+    }
   }
+
+  // Função auxiliar para copiar a imagem oculta
+  async function copiarImagemRepasseApp(idElemento) {
+      const el = document.getElementById(idElemento);
+      if (!el) return;
+      
+      // Traz para a tela rapidamente só para o html2canvas conseguir ler
+      el.style.left = '0';
+      el.style.position = 'relative';
+      
+      try {
+          const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff" });
+          canvas.toBlob(async (blob) => {
+              try {
+                  const item = new ClipboardItem({ "image/png": blob });
+                  await navigator.clipboard.write([item]);
+                  alert("✅ Imagem copiada com sucesso! \\n\\nAgora clique em 'Abrir WhatsApp' e cole (Ctrl+V) na conversa.");
+              } catch (err) {
+                  alert("Seu navegador bloqueou a cópia direta. Tente usar o Google Chrome ou Edge.");
+              }
+          });
+      } finally {
+          // Esconde de novo
+          el.style.left = '-9999px';
+          el.style.position = 'absolute';
+      }
+  }
+
 
   // NOVA FUNÇÃO GERENCIAL REFORMULADA COM AUDITORIA INDIVIDUAL E LOGS DE ERRO
   function renderizarGerencial() {
