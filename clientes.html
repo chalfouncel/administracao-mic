@@ -283,7 +283,7 @@
   .input-planilha-reg { width: 100%; border: 1px solid transparent; padding: 4px; font-size: 0.8rem; outline: none; }
   .input-planilha-reg:focus { border-bottom: 2px solid var(--accent); }
   .bg-certidao-reg { background-color: #fff9c4 !important; font-weight: bold; }
-  .bg-certidao-ok { background-color: #dcfce7 !important; font-weight: bold; color: #166534; }
+  .bg-certidao-ok { background-color: #bbf7d0 !important; font-weight: bold; color: #166534 !important; }
   .titulo-secao-reg { background-color: #e2e8f0; font-weight: 900; text-transform: uppercase; font-size: 0.85rem; text-align: center; letter-spacing: 1px; }
 
   /* LAYOUT DIVIDIDO 50 / 50 NA ABA CERTIDÕES */
@@ -715,19 +715,31 @@
 </div>
 
 <script>
-  // Função para alternar a cor da certidão (Amarelo / Verde)
-  window.toggleCertidao = function(btn) {
-    const input = btn.previousElementSibling;
-    if (input.classList.contains('bg-certidao-reg')) {
-      input.classList.remove('bg-certidao-reg');
-      input.classList.add('bg-certidao-ok');
-      input.setAttribute('data-ok', 'true');
-    } else {
-      input.classList.remove('bg-certidao-ok');
-      input.classList.add('bg-certidao-reg');
-      input.setAttribute('data-ok', 'false');
-    }
-  };
+// Alterna entre Amarelo e Verde Claro direto no estilo do input
+window.toggleCertidao = function(btn) {
+  const input = btn.previousElementSibling;
+  const isOk = input.getAttribute('data-ok') === 'true';
+  if (!isOk) {
+    input.classList.remove('bg-certidao-reg');
+    input.classList.add('bg-certidao-ok');
+    input.style.setProperty('background-color', '#bbf7d0', 'important');
+    input.setAttribute('data-ok', 'true');
+  } else {
+    input.classList.remove('bg-certidao-ok');
+    input.classList.add('bg-certidao-reg');
+    input.style.setProperty('background-color', '#fff9c4', 'important');
+    input.setAttribute('data-ok', 'false');
+  }
+};
+
+// Abre os botões "Acessar ↗" em uma NOVA JANELA separada
+document.addEventListener('click', function(e) {
+  const link = e.target.closest('.doc-link-btn');
+  if (link && link.href) {
+    e.preventDefault();
+    window.open(link.href, '_blank', 'width=1100,height=800,top=60,left=100,scrollbars=yes,resizable=yes');
+  }
+});
 
   (function verificarAutenticacaoClientes() {
     try {
@@ -2274,13 +2286,13 @@
           <td colspan="2" style="background:#f1f5f9;"></td>
           <td>
             <div style="display:flex; align-items:center; gap:5px; padding:2px;">
-              <input type="text" class="input-planilha-reg ${civilOk ? 'bg-certidao-ok' : 'bg-certidao-reg'} reg-data" data-ok="${civilOk}" style="text-align: center; flex:1;" data-grupo="vend" data-idx="${i}" data-campo="civil" placeholder="Certidão Civil" value="${getVal('vend', i, 'civil')}">
+              <input type="text" class="input-planilha-reg ${civilOk ? 'bg-certidao-ok' : 'bg-certidao-reg'} reg-data" data-ok="${civilOk}" style="text-align: center; flex:1; background-color: ${civilOk ? '#bbf7d0' : '#fff9c4'} !important;" data-grupo="vend" data-idx="${i}" data-campo="civil" placeholder="Certidão Civil" value="${getVal('vend', i, 'civil')}">
               <button type="button" class="btn btn-light" style="padding: 2px 6px; font-size:0.7rem;" onclick="toggleCertidao(this)" title="Marcar como emitida">✅</button>
             </div>
           </td>
           <td>
             <div style="display:flex; align-items:center; gap:5px; padding:2px;">
-              <input type="text" class="input-planilha-reg ${fazOk ? 'bg-certidao-ok' : 'bg-certidao-reg'} reg-data" data-ok="${fazOk}" style="text-align: center; flex:1;" data-grupo="vend" data-idx="${i}" data-campo="fazenda" placeholder="Certidão Fazendária" value="${getVal('vend', i, 'fazenda')}">
+              <input type="text" class="input-planilha-reg ${fazOk ? 'bg-certidao-ok' : 'bg-certidao-reg'} reg-data" data-ok="${fazOk}" style="text-align: center; flex:1; background-color: ${fazOk ? '#bbf7d0' : '#fff9c4'} !important;" data-grupo="vend" data-idx="${i}" data-campo="fazenda" placeholder="Certidão Fazendária" value="${getVal('vend', i, 'fazenda')}">
               <button type="button" class="btn btn-light" style="padding: 2px 6px; font-size:0.7rem;" onclick="toggleCertidao(this)" title="Marcar como emitida">✅</button>
             </div>
           </td>
@@ -2304,7 +2316,7 @@
           <td style="background:#f1f5f9"></td>
           <td>
             <div style="display:flex; align-items:center; gap:5px; padding:2px;">
-              <input type="text" class="input-planilha-reg ${imovFazOk ? 'bg-certidao-ok' : 'bg-certidao-reg'} reg-imovel" data-ok="${imovFazOk}" style="text-align: center; flex:1;" data-campo="fazenda" placeholder="Certidão Fazendária" value="${imovelGet('fazenda')}">
+              <input type="text" class="input-planilha-reg ${imovFazOk ? 'bg-certidao-ok' : 'bg-certidao-reg'} reg-imovel" data-ok="${imovFazOk}" style="text-align: center; flex:1; background-color: ${imovFazOk ? '#bbf7d0' : '#fff9c4'} !important;" data-campo="fazenda" placeholder="Certidão Fazendária" value="${imovelGet('fazenda')}">
               <button type="button" class="btn btn-light" style="padding: 2px 6px; font-size:0.7rem;" onclick="toggleCertidao(this)" title="Marcar como emitida">✅</button>
             </div>
           </td>
