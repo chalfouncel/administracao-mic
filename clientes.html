@@ -283,6 +283,7 @@
   .input-planilha-reg { width: 100%; border: 1px solid transparent; padding: 4px; font-size: 0.8rem; outline: none; }
   .input-planilha-reg:focus { border-bottom: 2px solid var(--accent); }
   .bg-certidao-reg { background-color: #fff9c4 !important; font-weight: bold; }
+  .bg-certidao-ok { background-color: #dcfce7 !important; font-weight: bold; color: #166534; }
   .titulo-secao-reg { background-color: #e2e8f0; font-weight: 900; text-transform: uppercase; font-size: 0.85rem; text-align: center; letter-spacing: 1px; }
 
   /* LAYOUT DIVIDIDO 50 / 50 NA ABA CERTIDÕES */
@@ -2264,10 +2265,26 @@
     };
 
     for(let i = 0; i < qtdVendAtual; i++) {
+      const civilOk = getVal('vend', i, 'civil_ok') === true;
+      const fazOk = getVal('vend', i, 'fazenda_ok') === true;
       html += `
         <tr><td colspan="4" class="titulo-secao-reg">VENDEDOR ${i+1}</td></tr>
 
-        <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-data" style="text-align: center;" data-grupo="vend" data-idx="${i}" data-campo="civil" placeholder="Certidão Civil" value="${getVal('vend', i, 'civil')}"></td>
+        <tr style="background:#f8fafc;">
+          <td colspan="2" style="background:#f1f5f9;"></td>
+          <td>
+            <div style="display:flex; align-items:center; gap:5px; padding:2px;">
+              <input type="text" class="input-planilha-reg ${civilOk ? 'bg-certidao-ok' : 'bg-certidao-reg'} reg-data" data-ok="${civilOk}" style="text-align: center; flex:1;" data-grupo="vend" data-idx="${i}" data-campo="civil" placeholder="Certidão Civil" value="${getVal('vend', i, 'civil')}">
+              <button type="button" class="btn btn-light" style="padding: 2px 6px; font-size:0.7rem;" onclick="toggleCertidao(this)" title="Marcar como emitida">✅</button>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex; align-items:center; gap:5px; padding:2px;">
+              <input type="text" class="input-planilha-reg ${fazOk ? 'bg-certidao-ok' : 'bg-certidao-reg'} reg-data" data-ok="${fazOk}" style="text-align: center; flex:1;" data-grupo="vend" data-idx="${i}" data-campo="fazenda" placeholder="Certidão Fazendária" value="${getVal('vend', i, 'fazenda')}">
+              <button type="button" class="btn btn-light" style="padding: 2px 6px; font-size:0.7rem;" onclick="toggleCertidao(this)" title="Marcar como emitida">✅</button>
+            </div>
+          </td>
+        </tr>
 
         <tr><td><strong>Nome</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="nome" value="${getVal('vend', i, 'nome')}"></td></tr>
         <tr><td><strong>CPF</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="cpf" value="${getVal('vend', i, 'cpf')}"></td></tr>
@@ -2278,6 +2295,7 @@
     }
 
     const imovelGet = campo => dadosPreenchidos && dadosPreenchidos.imovel ? (dadosPreenchidos.imovel[campo] || '') : '';
+    const imovFazOk = imovelGet('fazenda_ok') === true;
     html += `
         <tr><td colspan="4" class="titulo-secao-reg">DADOS DO IMÓVEL</td></tr>
 
@@ -2286,8 +2304,8 @@
           <td style="background:#f1f5f9"></td>
           <td>
             <div style="display:flex; align-items:center; gap:5px; padding:2px;">
-              <input type="text" class="input-planilha-reg bg-certidao-reg reg-imovel" style="text-align: center; flex:1;" data-campo="fazenda" placeholder="Certidão Fazendária" value="${imovelGet('fazenda')}">
-              <button class="btn btn-light" style="padding: 2px 6px; font-size:0.7rem;" onclick="toggleCertidao(this)" title="Marcar como concluída">✅</button>
+              <input type="text" class="input-planilha-reg ${imovFazOk ? 'bg-certidao-ok' : 'bg-certidao-reg'} reg-imovel" data-ok="${imovFazOk}" style="text-align: center; flex:1;" data-campo="fazenda" placeholder="Certidão Fazendária" value="${imovelGet('fazenda')}">
+              <button type="button" class="btn btn-light" style="padding: 2px 6px; font-size:0.7rem;" onclick="toggleCertidao(this)" title="Marcar como emitida">✅</button>
             </div>
           </td>
         </tr>
@@ -2350,11 +2368,17 @@
       const idx = parseInt(inp.getAttribute('data-idx'));
       const c = inp.getAttribute('data-campo');
       jsonDados[g][idx][c] = inp.value;
+      if (inp.hasAttribute('data-ok')) {
+        jsonDados[g][idx][c + '_ok'] = inp.getAttribute('data-ok') === 'true';
+      }
     });
 
     document.querySelectorAll('.reg-imovel').forEach(inp => {
       const c = inp.getAttribute('data-campo');
       jsonDados.imovel[c] = inp.value;
+      if (inp.hasAttribute('data-ok')) {
+        jsonDados.imovel[c + '_ok'] = inp.getAttribute('data-ok') === 'true';
+      }
     });
 
     try {
