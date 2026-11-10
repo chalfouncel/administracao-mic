@@ -714,6 +714,18 @@
 </div>
 
 <script>
+  // Função para alternar a cor da certidão (Amarelo / Verde)
+  window.toggleCertidao = function(btn) {
+    const input = btn.previousElementSibling;
+    if (input.classList.contains('bg-certidao-reg')) {
+      input.classList.remove('bg-certidao-reg');
+      input.style.backgroundColor = '#dcfce7'; // verde claro
+    } else {
+      input.style.backgroundColor = ''; 
+      input.classList.add('bg-certidao-reg');
+    }
+  }
+
   (function verificarAutenticacaoClientes() {
     try {
       const s = JSON.parse(localStorage.getItem('mic_auth_session'));
@@ -2253,11 +2265,7 @@
       html += `
         <tr><td colspan="4" class="titulo-secao-reg">VENDEDOR ${i+1}</td></tr>
 
-        <tr style="background:#f8fafc;">
-          <td colspan="2" style="background:#f1f5f9;"></td>
-          <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-data" style="text-align: center;" data-grupo="vend" data-idx="${i}" data-campo="civil" placeholder="Certidão Civil" value="${getVal('vend', i, 'civil')}"></td>
-          <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-data" style="text-align: center;" data-grupo="vend" data-idx="${i}" data-campo="fazenda" placeholder="Certidão Fazendária" value="${getVal('vend', i, 'fazenda')}"></td>
-        </tr>
+        <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-data" style="text-align: center;" data-grupo="vend" data-idx="${i}" data-campo="civil" placeholder="Certidão Civil" value="${getVal('vend', i, 'civil')}"></td>
 
         <tr><td><strong>Nome</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="nome" value="${getVal('vend', i, 'nome')}"></td></tr>
         <tr><td><strong>CPF</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-data" data-grupo="vend" data-idx="${i}" data-campo="cpf" value="${getVal('vend', i, 'cpf')}"></td></tr>
@@ -2274,7 +2282,12 @@
         <tr style="background:#f8fafc;">
           <td colspan="2" style="background:#f1f5f9;"></td>
           <td style="background:#f1f5f9"></td>
-          <td><input type="text" class="input-planilha-reg bg-certidao-reg reg-imovel" style="text-align: center;" data-campo="fazenda" placeholder="Certidão Fazendária" value="${imovelGet('fazenda')}"></td>
+          <td>
+            <div style="display:flex; align-items:center; gap:5px; padding:2px;">
+              <input type="text" class="input-planilha-reg bg-certidao-reg reg-imovel" style="text-align: center; flex:1;" data-campo="fazenda" placeholder="Certidão Fazendária" value="${imovelGet('fazenda')}">
+              <button class="btn btn-light" style="padding: 2px 6px; font-size:0.7rem;" onclick="toggleCertidao(this)" title="Marcar como concluída">✅</button>
+            </div>
+          </td>
         </tr>
 
         <tr><td><strong>Endereço</strong></td><td colspan="3"><input type="text" class="input-planilha-reg reg-imovel" data-campo="end" value="${imovelGet('end')}"></td></tr>
