@@ -384,8 +384,10 @@
         <table class="table-linear" style="min-width: 1400px;">
           <thead>
             <tr>
+              <tr>
               <th style="min-width:180px;">Inquilino</th>
               <th style="min-width:250px;">Endereço do Imóvel</th>
+              <th class="fit" style="text-align:center;">Vencimento</th>
               <th class="fit">Alug. Prop.</th>
               <th class="fit">Cond. Prop.</th>
               <th class="fit">Aluguel</th>
@@ -398,7 +400,7 @@
               <th class="fit" style="background-color: var(--primary);">Valor da Cobrança</th>
             </tr>
           </thead>
-          <tbody id="tabela-taxas-body"><tr><td colspan="12" style="text-align: center; padding: 20px; color: #64748b;">Nenhum imóvel ativo marcado.</td></tr></tbody>
+          <tbody id="tabela-taxas-body"><tr><td colspan="13" style="text-align: center; padding: 20px; color: #64748b;">Nenhum imóvel ativo marcado.</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1635,7 +1637,9 @@
       let seguro = lMes.seguro !== undefined ? lMes.seguro : ''; let outras_taxas = lMes.outras_taxas !== undefined ? lMes.outras_taxas : '';
       let desc_outras = lMes.desc_outras !== undefined ? lMes.desc_outras : ''; let desconto = lMes.desconto !== undefined ? lMes.desconto : '';
       let desc_desconto = lMes.desc_desconto !== undefined ? lMes.desc_desconto : '';
-      return { alugProp, condProp, alugMes, condMes, iptu, bombeiro, seguro, outras_taxas, desc_outras, desconto, desc_desconto };
+      let vencPadrao = getQuintoDiaUtil(mesRef).iso;
+      let vencimentoCustom = lMes.vencimento_custom || vencPadrao;
+      return { alugProp, condProp, alugMes, condMes, iptu, bombeiro, seguro, outras_taxas, desc_outras, desconto, desc_desconto, vencimentoCustom };
   }
 
   async function updateLancamentoMensal(index, field, value) {
@@ -1741,7 +1745,7 @@
   function renderizarTaxasCondominiais() {
     const tbody = document.getElementById('tabela-taxas-body'); if(!tbody) return;
     const marcados = contratosDB.filter(c => contratosMarcados.has(String(c.id || c._tempId)) && c.ativo === 'SIM');
-    if (marcados.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel ativo marcado na aba anterior.</td></tr>'; return; }
+    if (marcados.length === 0) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; padding:20px; color:#64748b;">Nenhum imóvel ativo marcado na aba anterior.</td></tr>'; return; }
     tbody.innerHTML = ''; const mesRef = document.getElementById('filtro-mes').value;
 
     marcados.forEach(c => {
@@ -1764,6 +1768,7 @@
 
       tbody.innerHTML += `<tr>
           <td><strong style="font-size:0.85rem;">${c.inquilino}</strong></td><td style="font-size:0.75rem;">${c.endereco}</td>
+          <td class="fit"><input type="date" value="${v.vencimentoCustom}" onchange="updateLancamentoMensal(${i}, 'vencimento_custom', this.value)" class="input-calc" style="width:128px; text-align:center; font-weight:bold; color:var(--primary);"></td>
           <td class="fit"><input type="text" value="${v.alugProp}" onchange="updateLancamentoMensal(${i}, 'aluguel_prop', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
           <td class="fit"><input type="text" value="${v.condProp}" onchange="updateLancamentoMensal(${i}, 'cond_prop', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
           <td class="fit"><input type="text" value="${v.alugMes}" onchange="updateLancamentoMensal(${i}, 'aluguel_mes', this.value)" onkeyup="formatarMoedaInput(this)" class="input-calc"></td>
@@ -1789,8 +1794,8 @@
 
       const valorTotal = valorTotalBase + 2.99; 
       const mesRef = document.getElementById('filtro-mes').value; 
-      const vencimento = getQuintoDiaUtil(mesRef);
-      const dataVenc = vencimento.iso;
+      const vMes = getVariaveisMes(c, mesRef);
+      const dataVenc = vMes.vencimentoCustom || getQuintoDiaUtil(mesRef).iso;
 
       const btn = document.getElementById(`btn-asaas-${idReg}`);
       btn.innerText = 'Gerando...'; btn.disabled = true;
@@ -1929,10 +1934,12 @@
     if (contratosExibir.length === 0) { container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:20px;">Nenhum imóvel pendente de cobrança ou marcado.</div>'; return; }
     container.innerHTML = '';
 
-    const vencimento = getQuintoDiaUtil(mesRef);
+    const vencPadraoObj = getQuintoDiaUtil(mesRef);
 
     contratosExibir.forEach(c => {
       const idReg = c.id || c._tempId; const v = getVariaveisMes(c, mesRef);
+      const isoVenc = v.vencimentoCustom || vencPadraoObj.iso;
+      const vencimento = { iso: isoVenc, formatada: isoVenc.split('-').reverse().join('/') };
       let vTarifaBancaria = 2.99; 
       
       let pAlug = parseMoedaToFloat(v.alugProp);
