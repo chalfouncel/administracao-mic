@@ -28,9 +28,13 @@
             border-bottom: 2px solid #0d6efd;
             background-color: #f8f9fa;
         }
-        /* O fundo amarelo que você usou no Excel */
+        /* O fundo amarelo e verde claro */
         .bg-certidao {
             background-color: #fff9c4 !important;
+            font-weight: 500;
+        }
+        .bg-verde-claro {
+            background-color: #d1e7dd !important; /* Verde claro do Bootstrap */
             font-weight: 500;
         }
         .titulo-secao {
@@ -38,6 +42,13 @@
             font-weight: bold;
             text-transform: uppercase;
             font-size: 0.9rem;
+        }
+        /* Ajuste para o grupo do input ficar alinhado */
+        .grupo-certidao {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background-color: white;
         }
     </style>
 </head>
@@ -67,7 +78,7 @@
             </div>
         </div>
 
-        <!-- PASSO 2: O FORMULÁRIO DINÂMICO (Fica escondido até clicar em Gerar) -->
+        <!-- PASSO 2: O FORMULÁRIO DINÂMICO -->
         <div id="formularioContainer" style="display: none;">
             <div class="d-flex justify-content-between mb-2">
                 <button class="btn btn-outline-secondary btn-sm" onclick="voltarSetup()">← Voltar e Refazer</button>
@@ -94,6 +105,18 @@
     </div>
 
     <script>
+        // Função para alternar entre amarelo e verde
+        function toggleVerde(botao) {
+            const input = botao.previousElementSibling; // Pega o input que está antes do botão
+            if (input.classList.contains('bg-certidao')) {
+                input.classList.remove('bg-certidao');
+                input.classList.add('bg-verde-claro');
+            } else {
+                input.classList.remove('bg-verde-claro');
+                input.classList.add('bg-certidao');
+            }
+        }
+
         function gerarFormulario() {
             const qtdVend = parseInt(document.getElementById('qtdVendedores').value) || 1;
             const qtdComp = parseInt(document.getElementById('qtdCompradores').value) || 1;
@@ -107,8 +130,20 @@
                     <tr>
                         <td><strong>Nome</strong></td>
                         <td><input type="text" class="input-planilha" placeholder="Nome do vendedor..."></td>
-                        <td><input type="text" class="input-planilha bg-certidao" placeholder="Nº Certidão Civil"></td>
-                        <td><input type="text" class="input-planilha bg-certidao" placeholder="Nº Cert. Fazendária"></td>
+                        <td>
+                            <div class="grupo-certidao">
+                                <input type="text" class="input-planilha bg-certidao" placeholder="Nº Certidão Civil">
+                                <button type="button" class="btn btn-sm btn-light border" onclick="toggleVerde(this)" title="Marcar como concluída">✅</button>
+                                <a href="#" target="_blank" class="btn btn-sm" style="background-color: #0b194d; color: white;">Acessar ↗</a>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="grupo-certidao">
+                                <input type="text" class="input-planilha bg-certidao" placeholder="Nº Cert. Fazendária">
+                                <button type="button" class="btn btn-sm btn-light border" onclick="toggleVerde(this)" title="Marcar como concluída">✅</button>
+                                <a href="#" target="_blank" class="btn btn-sm" style="background-color: #0b194d; color: white;">Acessar ↗</a>
+                            </div>
+                        </td>
                     </tr>
                     <tr>
                         <td><strong>CPF</strong></td>
@@ -140,7 +175,13 @@
                     <td><strong>End</strong></td>
                     <td><input type="text" class="input-planilha" placeholder="Rua..."></td>
                     <td class="bg-light"></td>
-                    <td><input type="text" class="input-planilha bg-certidao" placeholder="Nº Cert. Fazendária"></td>
+                    <td>
+                        <div class="grupo-certidao">
+                            <input type="text" class="input-planilha bg-certidao" placeholder="Nº Cert. Fazendária">
+                            <button type="button" class="btn btn-sm btn-light border" onclick="toggleVerde(this)" title="Marcar como concluída">✅</button>
+                            <a href="#" target="_blank" class="btn btn-sm" style="background-color: #0b194d; color: white;">Acessar ↗</a>
+                        </div>
+                    </td>
                 </tr>
                 <tr>
                     <td><strong>Num</strong></td><td><input type="text" class="input-planilha"></td>
