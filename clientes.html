@@ -719,12 +719,14 @@
     const input = btn.previousElementSibling;
     if (input.classList.contains('bg-certidao-reg')) {
       input.classList.remove('bg-certidao-reg');
-      input.style.backgroundColor = '#dcfce7'; // verde claro
+      input.classList.add('bg-certidao-ok');
+      input.setAttribute('data-ok', 'true');
     } else {
-      input.style.backgroundColor = ''; 
+      input.classList.remove('bg-certidao-ok');
       input.classList.add('bg-certidao-reg');
+      input.setAttribute('data-ok', 'false');
     }
-  }
+  };
 
   (function verificarAutenticacaoClientes() {
     try {
