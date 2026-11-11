@@ -27,20 +27,97 @@ export default async function handler(req, res) {
         const searchRes = await fetch(`https://api.asaas.com/v3/payments?externalReference=${encodeURIComponent(externalReference)}`, {
             headers: { 'access_token': ASAAS_KEY }
         });
+
+        if (!searchRes.ok) {
+            return res.status(502).json({
+                error: 'Falha ao consultar a cobrança no Asaas. O registro foi mantido no painel.'
+            });
+        }
+
         const searchData = await searchRes.json();
 
-        if (searchData.data && searchData.data.length > 0) {
-            const jaPago = searchData.data.some(p => p.status === 'RECEIVED' || p.status === 'CONFIRMED');
-            if (jaPago) {
-                return res.status(403).json({ error: 'Esta cobrança já foi paga e não pode ser excluída.' });
-            }
+        if (!Array.isArray(searchData?.data) || searchData.hasMore) {
+            return res.status(409).json({
+                error: 'A consulta não identificou a cobrança com segurança. Confira no Asaas antes de excluir.'
+            });
+        }
 
-            for (const pagamentoAsaas of searchData.data) {
-                await fetch(`https://api.asaas.com/v3/payments/${pagamentoAsaas.id}`, {
-                    method: 'DELETE',
-                    headers: { 'access_token': ASAAS_KEY }
+        const faturas = searchData.data.filter(p => !p.deleted);
+
+        if (faturas.length !== 1) {
+            return res.status(409).json({
+                error: faturas.length === 0
+                    ? 'Nenhuma fatura ativa foi localizada no Asaas. O registro foi mantido no painel.'
+                    : 'Há mais de uma fatura para este imóvel e mês. Confira no Asaas antes de excluir.'
+            });
+        }
+
+        const fatura = faturas[0];
+
+        if (!fatura.id || fatura.externalReference !== externalReference) {
+            return res.status(409).json({
+                error: 'A fatura encontrada não corresponde à referência esperada. Confira no Asaas.'
+            });
+        }
+
+        if (!['PENDING', 'OVERDUE'].includes(fatura.status)) {
+            return res.status(409).json({
+                error: `Exclusão bloqueada. Situação da fatura no Asaas: ${fatura.status}.`
+            });
+        }
+
+        if (req.body.acao === 'consultar_vencida') {
+            const hoje = new Intl.DateTimeFormat('sv-SE', {
+                timeZone: 'America/Sao_Paulo',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(new Date());
+
+            const vencimento = fatura.dueDate;
+
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(vencimento) || hoje <= vencimento) {
+                return res.status(409).json({
+                    error: 'A fatura ainda não venceu ou está sem vencimento válido no Asaas.'
                 });
             }
+
+            const valorFatura = fatura.value;
+            const tarifaCentavos = 299;
+
+            if (typeof valorFatura !== 'number' || !Number.isFinite(valorFatura)) {
+                return res.status(409).json({
+                    error: 'O Asaas não informou um valor válido para esta fatura.'
+                });
+            }
+
+            const totalCentavos = Math.round(valorFatura * 100);
+            const saldoCentavos = totalCentavos - tarifaCentavos;
+
+            if (!Number.isSafeInteger(saldoCentavos) || saldoCentavos <= 0) {
+                return res.status(409).json({
+                    error: 'O valor da fatura não permite separar a tarifa bancária de R$ 2,99.'
+                });
+            }
+
+            return res.status(200).json({
+                faturaId: fatura.id,
+                vencimento,
+                totalCentavos,
+                tarifaCentavos,
+                saldoCentavos
+            });
+        }
+
+        const exclusao = await fetch(`https://api.asaas.com/v3/payments/${encodeURIComponent(fatura.id)}`, {
+            method: 'DELETE',
+            headers: { 'access_token': ASAAS_KEY }
+        });
+
+        if (!exclusao.ok) {
+            return res.status(502).json({
+                error: 'O Asaas não confirmou a exclusão. O registro foi mantido no painel.'
+            });
         }
 
         // ==========================================
