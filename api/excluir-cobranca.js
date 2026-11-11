@@ -7,27 +7,36 @@ export default async function handler(req, res) {
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
 
-        const { locacao_id, mes_ref, acao } = req.body || {};
-
-    if (acao === 'preparar_revisao' || acao === 'confirmar_revisao') {
-        return revisarFatura(req, res);
-    }
-
-    if (!['consultar_vencida', 'conferir_previa', 'excluir'].includes(acao)) {
-        return res.status(400).json({
-            error: 'Ação de cobrança desconhecida. Nenhuma cobrança foi alterada.'
-        });
-    }
-
-    if (!locacao_id || !mes_ref) {
-        return res.status(400).json({ error: 'Faltam parâmetros (locacao_id ou mes_ref)' });
-    }
-
+    const { locacao_id, mes_ref, acao } = req.body || {};
+    const revisao = acao === 'preparar_revisao' || acao === 'confirmar_revisao';
+    if (!revisao && !['consultar_vencida', 'conferir_previa', 'excluir'].includes(acao))
+        return res.status(400).json({error:'Ação desconhecida.'});
+    if (!/^[\w-]+$/.test(String(locacao_id ?? '')) || !/^\d{4}-(0[1-9]|1[0-2])$/.test(mes_ref || ''))
+        return res.status(400).json({error:'Locação ou competência inválida.'});
     const ASAAS_KEY = process.env.ASAAS_API_KEY;
     const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY;
-    const SUPABASE_URL = 'https://uztsmkhlvoemjbbyebcr.supabase.co'; // URL extraída dos seus outros códigos
+    const SUPABASE_URL = process.env.SUPABASE_URL || 'https://uztsmkhlvoemjbbyebcr.supabase.co';
 
     try {
+        const authorization = req.headers.authorization || '';
+        if (!/^Bearer [^ ]+$/.test(authorization)) return res.status(401).json({error:'Entre novamente.'});
+        const sessao = await fetch(SUPABASE_URL+'/auth/v1/user',{headers:{apikey:SUPABASE_KEY,Authorization:authorization}});
+        if (!sessao.ok) return res.status(401).json({error:'Sessão não confirmada.'});
+        const usuario = await sessao.json();
+        let claims;
+        try { claims = JSON.parse(Buffer.from(authorization.split('.')[1], 'base64url').toString()); } catch {}
+        if (!usuario.id || !usuario.email || claims?.sub !== usuario.id || claims?.aal !== 'aal2')
+            return res.status(403).json({error:'Conclua a autenticação em duas etapas.'});
+        if (revisao) return revisarFatura(req,res,usuario);
+        const leitura=await fetch(SUPABASE_URL+'/rest/v1/locacoes?id=eq.'+locacao_id+'&select=user_email,status_cobranca',{
+            headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
+        if (!leitura.ok) return res.status(502).json({error:'Não foi possível confirmar a locação.'});
+        const [locacao]=await leitura.json();
+        if (locacao?.user_email?.toLowerCase() !== usuario.email.toLowerCase())
+            return res.status(403).json({error:'Operação restrita ao responsável pela locação.'});
+        const estado=objeto(locacao.status_cobranca);
+        if (estado[mes_ref+'_emissao'] || estado[mes_ref+'_revisao'] || ['transportada','recebida'].includes(estado[mes_ref]))
+            return res.status(409).json({error:'Competência indisponível para esta operação.'});
         const externalReference = `${locacao_id}||${mes_ref}`;
 
         // ==========================================
@@ -293,7 +302,7 @@ function calcular(p, mes, hoje, lanc) {
         jurosCentavos,saldoAtualizadoCentavos,novoTotalCentavos,novoVencimento,destino,jurosTransporteCentavos,
         transporteCentavos,descricao,valoresParaConfirmar};
 }
-async function revisarFatura(req,res) {
+async function revisarFatura(req,res,user) {
     let travado=false;
     try {
         exigir(req.method==='POST','Método não permitido.',405);
@@ -310,11 +319,7 @@ async function revisarFatura(req,res) {
         const tabela=db+'/rest/v1/locacoes';
         const [row]=await chamar(tabela+'?id=eq.'+id+'&select=email_inquilino,inquilino,user_email,status_cobranca,lancamentos_mensais,aluguel_base,taxa_adm_fixa,regra_condominio,regra_seguro',{headers});
         exigir(row,'Locação não encontrada.');
-        {
-            exigir(/^Bearer \S+$/.test(req.headers.authorization || ''),'Faça login novamente.',401);
-            const user=await chamar(db+'/auth/v1/user',{headers:{apikey:key,Authorization:req.headers.authorization}});
-            exigir(user.email && user.email.toLowerCase()===row.user_email?.toLowerCase(),'Operação restrita ao responsável pelo cadastro.',403);
-        }
+        exigir(user.email.toLowerCase()===row.user_email?.toLowerCase(),'Operação restrita ao responsável pelo cadastro.',403);
         const st=objeto(row.status_cobranca), meses=objeto(row.lancamentos_mensais);
         const registro=meses[mes] || {};
         const recibo = req.body.reciboBase64;
