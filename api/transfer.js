@@ -64,6 +64,57 @@ export default async function handler(req, res) {
         let valProprietario = Math.round((totalReceitas - vTaxaAdm - valCondominioPix - valSeguroMIC) * 100) / 100;
         let valMIC = Math.round((vTaxaAdm + valSeguroMIC) * 100) / 100;
 
+        const revisado = Boolean(lMes.transporte_recebido || lMes.reemissao);
+        if (revisado) {
+            const cent = valor => Math.round(pM(valor) * 100);
+            const soma = partes => partes.reduce((a,b) => a+b, 0);
+
+            // Distribui o total já cobrado. Maiores restos recebem os centavos indivisíveis.
+            function acrescer(partes, adicional) {
+                const base = soma(partes);
+                if (!Number.isSafeInteger(adicional) || adicional < 0 ||
+                    partes.some(v => !Number.isSafeInteger(v) || v < 0) || (!base && adicional)) {
+                    throw new Error('Composição inválida para rateio.');
+                }
+                if (!adicional) return partes.slice();
+                const produtos = partes.map(v => BigInt(v) * BigInt(adicional));
+                const quotas = produtos.map(v => Number(v / BigInt(base)));
+                const ordem = produtos.map((v,i) => ({i, resto:v % BigInt(base)}))
+                    .sort((a,b) => a.resto === b.resto ? a.i-b.i : a.resto>b.resto ? -1:1);
+                const restantes = adicional - soma(quotas);
+                for (let i=0; i<restantes; i++) quotas[ordem[i].i]++;
+                return partes.map((v,i) => v + quotas[i]);
+            }
+
+            function distribuir(registro, regras, principal, previa) {
+                const anterior = registro.transporte_recebido;
+                const herdado = anterior?.totalCentavos || 0;
+                const mic = cent(regras.taxaAdm) + (regras.regraSeguro === 'N' ? cent(registro.seguro) : 0);
+                const cond = regras.regraCondominio === 'N' ? cent(registro.cond_prop)+cent(registro.cond_mes) : 0;
+                const novas = [principal-herdado-mic-cond, mic, cond];
+                if (novas.some(v=>!Number.isSafeInteger(v)||v<0)) throw new Error('Confira a composição do principal.');
+                const multa = previa?.multaCentavos || 0;
+                const juros = previa?.jurosCentavos || 0;
+                const comMulta = acrescer(novas,multa);
+                const comJuros = acrescer(novas,juros);
+                const partes = novas.map((v,i)=>comMulta[i]+comJuros[i]-v);
+                if (anterior) {
+                    const origem = anterior.composicaoOrigem;
+                    const primeira = origem.reemissao?.previa || anterior.previa;
+                    const originais = distribuir(origem,anterior,primeira.saldoCentavos,primeira);
+                    const corrigidas = acrescer(originais,anterior.previa.jurosTransporteCentavos);
+                    if (soma(corrigidas)!==herdado) throw new Error('Saldo anterior divergente.');
+                    corrigidas.forEach((v,i)=>partes[i]+=v);
+                }
+                return partes;
+            }
+
+            const partes = distribuir(lMes, {taxaAdm:c.taxa_adm_fixa,regraSeguro:c.regra_seguro,
+                regraCondominio:c.regra_condominio}, Math.round(totalReceitas*100),lMes.reemissao?.previa);
+            [valProprietario,valMIC,valCondominioPix] = partes.map(v=>v/100);
+            if ((valProprietario>0 && !c.pix_proprietario) || (valCondominioPix>0 && !c.pix_condominio))
+                throw new Error('Confira os dados de pagamento dos recebedores antes do repasse.');
+        }
         // TRAVA DE SEGURANÇA BANCÁRIA: Verifica a fatura paga no Asaas antes de transferir
         const extRef = `${idReg}||${mesRef}`;
         const paySearchRes = await fetch(`https://api.asaas.com/v3/payments?externalReference=${encodeURIComponent(extRef)}`, {
@@ -71,6 +122,16 @@ export default async function handler(req, res) {
         });
         const paySearchData = await paySearchRes.json();
         const faturasPagas = (paySearchData.data || []).filter(p => p.status === 'RECEIVED' || p.status === 'CONFIRMED');
+
+        if (revisado) {
+            const status = JSON.parse(c.status_cobranca || '{}');
+            const paga = faturasPagas[0];
+            if (!paySearchRes.ok || paySearchData.hasMore || faturasPagas.length!==1 || paga.deleted ||
+                status[mesRef]!=='recebida' || status[mesRef+'_fatura_id']!==paga.id ||
+                Math.round(paga.value*100)-299 !== Math.round((valProprietario+valMIC+valCondominioPix)*100)) {
+                return res.status(409).json({error:'Fatura recebida ou composição do rateio divergente. Confira antes de transferir.'});
+            }
+        }
 
         if (faturasPagas.length > 0) {
             const valorPagoLiquidoCob = Math.round((faturasPagas[0].value - 2.99) * 100) / 100;
@@ -186,7 +247,7 @@ export default async function handler(req, res) {
         // Verifica quais destinos deste mês já foram pagos anteriormente (evita duplicidade no "Tentar Novamente")
         let propJaPago = statusRepasse[`${mesRef}_prop`] === 'pago' || valProprietario <= 0;
         let micJaPago = statusRepasse[`${mesRef}_mic`] === 'pago' || valMIC <= 0;
-        let condJaPago = statusRepasse[`${mesRef}_cond`] === 'pago' || repassaCond || valCondominioPix <= 0;
+        let condJaPago = statusRepasse[`${mesRef}_cond`] === 'pago' || valCondominioPix <= 0;
 
         // Soma apenas o que ainda falta transferir neste contrato
         let totalPendenteTransferir = 0;
