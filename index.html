@@ -1838,7 +1838,15 @@
           if (!response.ok) { alert('Erro Asaas/E-mail: ' + data.error); btn.innerText = '⚡ Gerar Link Asaas'; btn.disabled = false; } 
           else {
               let statusObj = {}; try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
-              statusObj[`${mesRef}_url`] = data.urlFatura; statusObj[mesRef] = 'aguardando_asaas';
+              statusObj[`${mesRef}_url`] = data.urlFatura;
+
+              if (data.faturaId) {
+                  statusObj[`${mesRef}_fatura_id`] = data.faturaId;
+              } else {
+                  delete statusObj[`${mesRef}_fatura_id`];
+              }
+
+              statusObj[mesRef] = 'aguardando_asaas';
               await updateDbLinear(contratosDB.indexOf(c), 'status_cobranca', JSON.stringify(statusObj));
               alert('✅ Fatura gerada no Asaas e e-mail agendado/enviado com sucesso!'); atualizarInterfaceGeral(); 
           }
