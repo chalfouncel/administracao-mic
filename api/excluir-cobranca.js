@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
     const { locacao_id, mes_ref, acao } = req.body || {};
     const revisao = acao === 'preparar_revisao' || acao === 'confirmar_revisao';
-    if (!revisao && !['consultar_vencida', 'conferir_previa', 'excluir'].includes(acao))
+    if (!revisao && !['consultar_vencida', 'conferir_previa', 'excluir', 'sincronizar_exclusao'].includes(acao))
         return res.status(400).json({error:'Ação desconhecida.'});
     if (!/^[\w-]+$/.test(String(locacao_id ?? '')) || !/^\d{4}-(0[1-9]|1[0-2])$/.test(mes_ref || ''))
         return res.status(400).json({error:'Locação ou competência inválida.'});
@@ -35,6 +35,54 @@ export default async function handler(req, res) {
         if (locacao?.user_email?.toLowerCase() !== usuario.email.toLowerCase())
             return res.status(403).json({error:'Operação restrita ao responsável pela locação.'});
         const estado=objeto(locacao.status_cobranca);
+        const chave = mes_ref + '_revisao';
+        const pendencia = estado[chave];
+        const referencia = locacao_id + '||' + mes_ref;
+        let versao = locacao.status_cobranca;
+        const headersBanco = {apikey:SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY,
+            'Content-Type':'application/json', Prefer:'return=representation'};
+
+        async function salvarEstado() {
+            const filtros = new URLSearchParams({id:'eq.'+locacao_id, user_email:'eq.'+locacao.user_email,
+                status_cobranca:versao == null ? 'is.null' : 'eq.'+versao, select:'id'});
+            const proxima = JSON.stringify(estado);
+            const r = await fetch(SUPABASE_URL+'/rest/v1/locacoes?'+filtros,{
+                method:'PATCH',headers:headersBanco,body:JSON.stringify({status_cobranca:proxima})});
+            if (!r.ok || (await r.json()).length !== 1) throw Error('Gravação não confirmada. Atualize o painel.');
+            versao = proxima;
+        }
+
+        async function sincronizar(op) {
+            try {
+                if (estado[mes_ref] === 'recebida' || estado[mes_ref] === 'transportada' ||
+                    (estado[mes_ref+'_fatura_id'] && estado[mes_ref+'_fatura_id'] !== op.id))
+                    throw Error('A competência mudou. Confira o recebimento.');
+                const filtros = new URLSearchParams({locacao_id:'eq.'+locacao_id, mes_ref:'eq.'+mes_ref,
+                    link_asaas:'eq.'+op.link});
+                const fila = await fetch(SUPABASE_URL+'/rest/v1/disparos_email?'+filtros,{
+                    method:'DELETE',headers:headersBanco});
+                if (!fila.ok) throw Error('Não foi possível limpar o e-mail agendado.');
+                delete estado[chave];
+                delete estado[mes_ref];
+                delete estado[mes_ref+'_url'];
+                delete estado[mes_ref+'_fatura_id'];
+                await salvarEstado();
+                return res.status(200).json({success:true,message:'Exclusão sincronizada.'});
+            } catch (e) {
+                return res.status(503).json({error:'Fatura cancelada no Asaas. Sincronização pendente. '+e.message});
+            }
+        }
+        if (acao === 'sincronizar_exclusao' && pendencia?.acao !== 'exclusao_manual') return res.status(409).json({error:'Não há exclusão pendente. Atualize o painel.'});
+        if (['excluir','sincronizar_exclusao'].includes(acao) && pendencia?.acao === 'exclusao_manual') {
+            if (!pendencia.confirmada) {
+                const r = await fetch('https://api.asaas.com/v3/payments/'+encodeURIComponent(pendencia.id),
+                    {headers:{access_token:ASAAS_KEY}});
+                const p = r.ok ? await r.json() : null;
+                if (p?.id !== pendencia.id || p.deleted !== true || p.externalReference !== referencia)
+                    return res.status(409).json({error:'Cancelamento não confirmado. Confira no Asaas; nenhum novo cancelamento foi enviado.'});
+            }
+            return sincronizar(pendencia);
+        }
         if (estado[mes_ref+'_emissao'] || estado[mes_ref+'_revisao'] || ['transportada','recebida'].includes(estado[mes_ref]))
             return res.status(409).json({error:'Competência indisponível para esta operação.'});
         const externalReference = `${locacao_id}||${mes_ref}`;
@@ -184,61 +232,24 @@ export default async function handler(req, res) {
             });
         }
 
-        const exclusao = await fetch(`https://api.asaas.com/v3/payments/${encodeURIComponent(fatura.id)}`, {
-            method: 'DELETE',
-            headers: { 'access_token': ASAAS_KEY }
-        });
-
-        if (!exclusao.ok) {
-            return res.status(502).json({
-                error: 'O Asaas não confirmou a exclusão. O registro foi mantido no painel.'
-            });
+        const link = fatura.invoiceUrl || estado[mes_ref+'_url'];
+        if (!link || (estado[mes_ref+'_fatura_id'] && estado[mes_ref+'_fatura_id'] !== fatura.id))
+            return res.status(409).json({error:'Confira a identidade da fatura antes de excluir.'});
+        const op = {acao:'exclusao_manual',id:fatura.id,link,confirmada:false};
+        estado[chave] = op;
+        await salvarEstado();
+        try {
+            const r = await fetch('https://api.asaas.com/v3/payments/'+encodeURIComponent(op.id),
+                {method:'DELETE',headers:{access_token:ASAAS_KEY}});
+            const p = r.ok ? await r.json() : null;
+            if (p?.id !== op.id || p.deleted !== true) throw Error('Resposta sem confirmação.');
+        } catch {
+            return res.status(502).json({error:'Resultado do cancelamento incerto. Atualize o painel e confira no Asaas.'});
         }
-
-        // ==========================================
-        // ETAPA 2: LIMPAR TABELA DE DISPAROS DE E-MAIL
-        // ==========================================
-        // Isso impede que o cron-emails.js tente mandar e-mail de algo deletado
-        await fetch(`${SUPABASE_URL}/rest/v1/disparos_email?locacao_id=eq.${locacao_id}&mes_ref=eq.${mes_ref}`, {
-            method: 'DELETE',
-            headers: { 
-                'apikey': SUPABASE_KEY, 
-                'Authorization': `Bearer ${SUPABASE_KEY}` 
-            }
-        });
-
-        // ==========================================
-        // ETAPA 3: LIMPAR O STATUS NA TABELA LOCACOES
-        // ==========================================
-        // Puxar o status atual da locação
-        const resGetLoc = await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${locacao_id}`, {
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-        });
-        const dataLoc = await resGetLoc.json();
-
-        if (dataLoc && dataLoc.length > 0) {
-            let statusCobranca = {};
-            try { 
-                statusCobranca = JSON.parse(dataLoc[0].status_cobranca || '{}'); 
-            } catch(e) {}
-
-            // Remove o status e a URL do mês específico do JSON de controle
-            delete statusCobranca[mes_ref];
-            delete statusCobranca[`${mes_ref}_url`];
-
-            // Atualiza o banco salvando o JSON sem esse mês
-            await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${locacao_id}`, {
-                method: 'PATCH',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'apikey': SUPABASE_KEY, 
-                    'Authorization': `Bearer ${SUPABASE_KEY}` 
-                },
-                body: JSON.stringify({ status_cobranca: JSON.stringify(statusCobranca) })
-            });
-        }
-
-        return res.status(200).json({ success: true, message: 'Cobrança excluída com sucesso do Asaas e do sistema M&IC.' });
+        op.confirmada = true;
+        try { await salvarEstado(); }
+        catch { return res.status(503).json({error:'Cancelamento confirmado no Asaas. Atualize o painel para concluir a sincronização.'}); }
+        return sincronizar(op);
 
     } catch (error) {
         console.error("Erro ao excluir cobrança:", error);
