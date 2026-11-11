@@ -12,7 +12,47 @@ export default async function handler(req, res) {
     const API_KEY = process.env.ASAAS_API_KEY; 
     const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY;
 
+    const SUPABASE_URL = 'https://uztsmkhlvoemjbbyebcr.supabase.co';
     try {
+        const ref = /^([a-zA-Z0-9_-]+)\|\|(\d{4}-(?:0[1-9]|1[0-2]))$/.exec(externalReference);
+        if (!ref) return res.status(400).json({error:'Referência inválida.'});
+        const [,id,mes] = ref;
+
+        const authorization = req.headers.authorization || '';
+        if (!/^Bearer [^ ]+$/.test(authorization)) return res.status(401).json({error:'Entre novamente no painel.'});
+        const usuarioRes = await fetch(SUPABASE_URL+'/auth/v1/user',{headers:{apikey:SUPABASE_KEY,Authorization:authorization}});
+        if (!usuarioRes.ok) return res.status(401).json({error:'Sessão não confirmada.'});
+        const usuario = await usuarioRes.json();
+        let claims;
+        try { claims = JSON.parse(Buffer.from(authorization.split('.')[1], 'base64url').toString()); } catch {}
+        if (!usuario.id || claims?.sub !== usuario.id || claims?.aal !== 'aal2' || !usuario.email)
+            return res.status(403).json({error:'Conclua a autenticação em duas etapas.'});
+        const tabela = SUPABASE_URL+'/rest/v1/locacoes';
+        const headers={apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json',Prefer:'return=representation'};
+        const leitura=await fetch(tabela+'?id=eq.'+id+'&select=id,user_email,status_cobranca',{headers});
+        if (!leitura.ok) throw Error('Falha ao ler locação.');
+        const [c]=await leitura.json();
+        if (!c) return res.status(404).json({error:'Locação não encontrada.'});
+        if (c.user_email?.toLowerCase() !== usuario.email.toLowerCase()) return res.status(403).json({error:'Acesso restrito ao responsável por esta locação.'});
+        const estado=JSON.parse(c.status_cobranca ?? '{}');
+        if (!estado || Array.isArray(estado) || typeof estado!=='object') throw Error('Histórico inválido.');
+        let esperado=c.status_cobranca;
+        async function gravar(){
+            const q=new URLSearchParams({id:'eq.'+id,user_email:'eq.'+c.user_email,status_cobranca:esperado==null?'is.null':'eq.'+esperado,select:'id'});
+            const novo=JSON.stringify(estado);
+            const r=await fetch(tabela+'?'+q,{method:'PATCH',headers,body:JSON.stringify({status_cobranca:novo})});
+            if (!r.ok || (await r.json()).length!==1) throw Error('Outra operação alterou a cobrança. Atualize o painel e confira.');
+            esperado=novo;
+        }
+        const reserva=mes+'_emissao';
+        if (estado[reserva] || estado[mes+'_revisao'] || ['recebida','transportada'].includes(estado[mes]))
+            return res.status(409).json({error:'Competência bloqueada, recebida ou transportada. Confira a situação antes de repetir.'});
+        async function registrar(fatura){
+            if(!fatura.id || !fatura.invoiceUrl) throw Error('Emissão não confirmada. Confira no Asaas.');
+            delete estado[reserva]; estado[mes]='aguardando_asaas'; estado[mes+'_url']=fatura.invoiceUrl; estado[mes+'_fatura_id']=fatura.id;
+            await gravar();
+        }
+
         // 0. Trava contra duplicidade: verifica se já existe fatura ativa para este imóvel/mês
         const checkExisting = await fetch(`https://api.asaas.com/v3/payments?externalReference=${encodeURIComponent(externalReference)}`, {
             method: 'GET',
@@ -63,6 +103,7 @@ export default async function handler(req, res) {
                 });
             }
 
+            await registrar(fatura);
             return res.status(200).json({
                 urlFatura: fatura.invoiceUrl,
                 faturaId: fatura.id
@@ -91,6 +132,9 @@ export default async function handler(req, res) {
         }
 
         // 2. Criar a Cobrança no Asaas
+        if (estado[mes] === 'aguardando_asaas' || estado[mes+'_url']) return res.status(409).json({error:'O painel já possui fatura. Confira no Asaas.'});
+        estado[reserva]={inicio:new Date().toISOString(),valor,vencimento};
+        await gravar();
         const createPayment = await fetch('https://api.asaas.com/v3/payments', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'access_token': API_KEY },
@@ -106,6 +150,7 @@ export default async function handler(req, res) {
         const paymentResult = await createPayment.json();
         if (!createPayment.ok) throw new Error(paymentResult.errors[0].description);
 
+        await registrar(paymentResult);
         const linkFatura = paymentResult.invoiceUrl;
         const ids = externalReference.split('||'); 
         const locacao_id = ids[0];
@@ -114,7 +159,7 @@ export default async function handler(req, res) {
         // 3. Gravar na nova tabela 'disparos_email' do Supabase
         if (reciboBase64 && emailInquilino) {
              const supabaseUrl = `https://uztsmkhlvoemjbbyebcr.supabase.co/rest/v1/disparos_email`;
-             await fetch(supabaseUrl, {
+             const fila = await fetch(supabaseUrl, {
                  method: 'POST',
                  headers: { 
                      'apikey': SUPABASE_KEY, 
@@ -133,6 +178,7 @@ export default async function handler(req, res) {
                      recibo_base64: reciboBase64
                  })
              });
+             if (!fila.ok) return res.status(200).json({urlFatura:linkFatura,faturaId:paymentResult.id,aviso:"Fatura criada; falha ao agendar e-mail."});
         }
 
         return res.status(200).json({ urlFatura: linkFatura, faturaId: paymentResult.id });
