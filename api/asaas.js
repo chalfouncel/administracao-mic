@@ -22,7 +22,10 @@ export default async function handler(req, res) {
         if (existingData.data && existingData.data.length > 0) {
             const faturaAtiva = existingData.data.find(p => !p.deleted && p.status !== 'REFUNDED');
             if (faturaAtiva && faturaAtiva.invoiceUrl) {
-                return res.status(200).json({ urlFatura: faturaAtiva.invoiceUrl });
+                return res.status(200).json({
+                    urlFatura: faturaAtiva.invoiceUrl,
+                    faturaId: faturaAtiva.id
+                });
             }
         }
 
@@ -92,7 +95,7 @@ export default async function handler(req, res) {
              });
         }
 
-        return res.status(200).json({ urlFatura: linkFatura });
+        return res.status(200).json({ urlFatura: linkFatura, faturaId: paymentResult.id });
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }
