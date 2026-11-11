@@ -36,19 +36,30 @@ export default async function handler(req, res) {
             const asaasRes = await fetch(`https://api.asaas.com/v3/payments?externalReference=${encodeURIComponent(item.locacao_id + '||' + item.mes_ref)}`, {
                 headers: { 'access_token': ASAAS_API_KEY }
             });
+            if (!asaasRes.ok) continue;
             const asaasData = await asaasRes.json();
-            
-            if (asaasData.data && asaasData.data.length > 0) {
-                const statusFatura = asaasData.data[0].status;
-                if (statusFatura === 'RECEIVED' || statusFatura === 'CONFIRMED') {
-                    await fetch(`${SUPABASE_URL}/rest/v1/disparos_email?id=eq.${item.id}`, {
-                        method: 'PATCH',
-                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status_disparo_1: true, status_disparo_2: true, status_disparo_3: true })
-                    });
-                    continue; 
-                }
+            if (!Array.isArray(asaasData?.data) || asaasData.hasMore) continue;
+
+            const referencia = item.locacao_id + '||' + item.mes_ref;
+            const ativas = asaasData.data.filter(f => !f.deleted && f.status !== 'REFUNDED');
+            if (ativas.length !== 1) continue;
+
+            const fatura = ativas[0];
+            if (!fatura.invoiceUrl || fatura.invoiceUrl !== item.link_asaas ||
+                fatura.externalReference !== referencia) continue;
+
+            if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(fatura.status)) {
+                await fetch(`${SUPABASE_URL}/rest/v1/disparos_email?id=eq.${item.id}`, {
+                    method: 'PATCH',
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status_disparo_1: true, status_disparo_2: true, status_disparo_3: true })
+                });
+                continue;
             }
+
+            if (!['PENDING', 'OVERDUE'].includes(fatura.status) ||
+                fatura.dueDate !== item.data_vencimento ||
+                Math.round(Number(fatura.value) * 100) !== Math.round(Number(item.valor_total) * 100)) continue;
 
             const [anoV, mesV, diaV] = String(item.data_vencimento).split('-').map(Number);
             const dataVenc = new Date(anoV, mesV - 1, diaV);
