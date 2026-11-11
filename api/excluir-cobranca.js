@@ -7,7 +7,13 @@ export default async function handler(req, res) {
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
 
-    const { locacao_id, mes_ref } = req.body;
+        const { locacao_id, mes_ref, acao } = req.body || {};
+
+    if (acao !== undefined && acao !== 'consultar_vencida' && acao !== 'excluir') {
+        return res.status(400).json({
+            error: 'Ação de cobrança desconhecida. Nenhuma cobrança foi alterada.'
+        });
+    }
 
     if (!locacao_id || !mes_ref) {
         return res.status(400).json({ error: 'Faltam parâmetros (locacao_id ou mes_ref)' });
