@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
         const { locacao_id, mes_ref, acao } = req.body || {};
 
-    if (acao !== undefined && acao !== 'consultar_vencida' && acao !== 'excluir') {
+    if (!['consultar_vencida', 'conferir_previa', 'excluir'].includes(acao)) {
         return res.status(400).json({
             error: 'Ação de cobrança desconhecida. Nenhuma cobrança foi alterada.'
         });
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
             });
         }
 
-        if (req.body.acao === 'consultar_vencida') {
+        if (acao !== 'excluir') {
             const hoje = new Intl.DateTimeFormat('sv-SE', {
                 timeZone: 'America/Sao_Paulo',
                 year: 'numeric',
@@ -133,14 +133,41 @@ export default async function handler(req, res) {
                 .toISOString()
                 .slice(0, 10);
 
+            const novoTotalCentavos = saldoAtualizadoCentavos + tarifaCentavos;
+
+            const valoresParaConfirmar = {
+                faturaId: fatura.id,
+                vencimentoOriginal: vencimento,
+                totalOriginalCentavos: totalCentavos,
+                novoVencimento,
+                novoTotalCentavos
+            };
+
+            if (acao === 'conferir_previa') {
+                const exibido = req.body.valoresParaConfirmar;
+
+                const mesmaPrevia = exibido != null &&
+                    Object.entries(valoresParaConfirmar).every(
+                        ([campo, valorAtual]) => exibido[campo] === valorAtual
+                    );
+
+                if (!mesmaPrevia) {
+                    return res.status(409).json({
+                        error: 'A fatura ou os valores mudaram. Abra uma nova prévia.'
+                    });
+                }
+            }
+
             return res.status(200).json({
                 ...previa,
                 etapa: 'primeiro_atraso',
                 multaCentavos,
                 jurosCentavos,
                 saldoAtualizadoCentavos,
-                novoTotalCentavos: saldoAtualizadoCentavos + tarifaCentavos,
-                novoVencimento
+                novoTotalCentavos,
+                novoVencimento,
+                valoresParaConfirmar,
+                previaConferida: acao === 'conferir_previa'
             });
         }
 
