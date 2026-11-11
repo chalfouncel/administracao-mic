@@ -1892,12 +1892,12 @@
       } catch(e) { alert('Erro: ' + e.message); btn.innerText = '⚡ Gerar Link Asaas'; btn.disabled = false; }
   }
 
-  async function excluirCobrancaPainel(idReg) {
+  async function excluirCobrancaPainel(idReg, sincronizando = false) {
       const mesRef = document.getElementById('filtro-mes').value;
       const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
       if (!c) return;
 
-      if (!confirm(`Tem certeza que deseja EXCLUIR a cobrança de ${c.inquilino} (${formatarMesAno(mesRef)}) do painel e do Asaas?`)) return;
+      if (!sincronizando && !confirm(`Tem certeza que deseja EXCLUIR a cobrança de ${c.inquilino} (${formatarMesAno(mesRef)}) do painel e do Asaas?`)) return;
 
       const btn = document.getElementById(`btn-del-cob-${idReg}`);
       if (btn) { btn.innerText = '⏳...'; btn.disabled = true; }
@@ -1906,7 +1906,7 @@
           const response = await fetch('/api/excluir-cobranca', {
               method: 'POST',
               headers: { Authorization: 'Bearer '+(getLocalSession()?.access_token || ''), 'Content-Type': 'application/json' },
-              body: JSON.stringify({ locacao_id: idReg, mes_ref: mesRef, acao:'excluir' })
+              body: JSON.stringify({ locacao_id: idReg, mes_ref: mesRef, acao:sincronizando?'sincronizar_exclusao':'excluir' })
           });
           const data = await response.json();
 
@@ -1914,20 +1914,13 @@
               alert('Erro ao excluir: ' + (data.error || 'Falha na operação'));
               if (btn) { btn.innerText = '🗑️ Excluir'; btn.disabled = false; }
           } else {
-              let statusObj = {};
-              try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
-              delete statusObj[mesRef+'_fatura_id'];
-              delete statusObj[mesRef];
-              delete statusObj[`${mesRef}_url`];
-              c.status_cobranca = JSON.stringify(statusObj);
-
               alert('✅ Cobrança excluída com sucesso!');
               atualizarInterfaceGeral();
           }
       } catch (e) {
           alert('Erro de conexão: ' + e.message);
           if (btn) { btn.innerText = '🗑️ Excluir'; btn.disabled = false; }
-      }
+      } finally { await carregarImoveis(); }
   }
   
   function formatarMesAno(mesRef) { if(!mesRef) return ''; const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; const [ano, mes] = mesRef.split('-'); return `${meses[parseInt(mes)-1]} de ${ano}`; }
@@ -2017,6 +2010,13 @@
           const card=container.lastElementChild;
           card.querySelector('strong').textContent=c.inquilino;
           card.querySelector('p').textContent=revisao?'Revisão pendente. Confira no Asaas antes de repetir.':'Saldo transportado para a competência seguinte.';
+          if(revisao?.acao==='exclusao_manual'){
+              card.querySelector('p').textContent='Exclusão pendente de sincronização.';
+              const concluir=document.createElement('button');
+              concluir.className='btn btn-dark'; concluir.textContent='Concluir sincronização';
+              concluir.onclick=()=>excluirCobrancaPainel(idReg,true);
+              card.appendChild(concluir);
+          }
           return;
       }
       const totalComTarifa = registro.reemissao ? registro.reemissao.previa.novoTotalCentavos/100 : baseTotal + vTarifaBancaria;
