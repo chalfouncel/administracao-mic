@@ -1859,6 +1859,8 @@
 
       const cardHtmlId = `img-cob-${idReg}`;
       const cardElement = document.getElementById(cardHtmlId);
+      const linhasRecibo = Array.from(cardElement.querySelectorAll('.comp-line'), linha =>
+          Array.from(linha.querySelectorAll('span'), campo => campo.innerText));
       let imagemBase64 = "";
 
       try {
@@ -1879,7 +1881,7 @@
                   vencimento: dataVenc, 
                   descricao: [`Aluguel M&IC - ${mesRef} - ${c.endereco}`,vMes.desc_outras].filter(Boolean).join('\n'), 
                   externalReference: `${c.id || c._tempId}||${mesRef}`,
-                  reciboBase64: imagemBase64
+                  linhasRecibo, reciboBase64: imagemBase64
               })
           });
           const data = await response.json();
@@ -1966,6 +1968,98 @@
      }
   }
 
+  async function mostrarCobrancaEmitida({slot,c,idReg,estado,link,mesRef}) {
+      const box = document.getElementById(slot);
+      const pago = estado[mesRef] === 'recebida';
+      box.style.background = pago ? '#bbf7d0' : '#fef08a';
+      function elemento(pai,tag,conteudo,classe) {
+          const el = document.createElement(tag);
+          el.textContent = conteudo || '';
+          if (classe) el.className = classe;
+          pai.appendChild(el);
+          return el;
+      }
+      const recibo = elemento(box,'div','','receipt-box');
+      recibo.id = 'img-cob-'+idReg;
+      elemento(recibo,'strong','COBRANÇA');
+      const acoes = elemento(box,'div');
+      Object.assign(acoes.style,{display:'flex',flexWrap:'wrap',gap:'6px',marginTop:'12px'});
+      function botao(rotulo,classe,executar) {
+          const b = elemento(acoes,'button',rotulo,'btn '+classe);
+          b.type = 'button';
+          b.onclick = ()=>executar(b);
+          return b;
+      }
+      function enderecoSeguro(url) {
+          try { return new URL(url).protocol === 'https:'; } catch { return false; }
+      }
+      if (enderecoSeguro(link)) {
+          const a = elemento(acoes,'a','Ver Fatura Oficial','btn btn-dark');
+          a.href = link; a.target = '_blank'; a.rel = 'noopener';
+      }
+      elemento(box,'p',pago?'Recebido via Asaas':'Aguardando confirmação do Asaas');
+      const status = elemento(recibo,'p','Carregando recibo da emissão…');
+      try {
+          let r = estado[mesRef+'_recibo'];
+          if (!r || !link || r.link!==link || r.id!==estado[mesRef+'_fatura_id']) {
+              const resp = await fetch('/api/asaas',{method:'POST',
+                  headers:{Authorization:'Bearer '+(getLocalSession()?.access_token || ''),'Content-Type':'application/json'},
+                  body:JSON.stringify({acao:'ler_recibo',externalReference:idReg+'||'+mesRef,link})});
+              const dados = await resp.json();
+              if (!resp.ok) throw Error(dados.error || 'Falha ao consultar a emissão.');
+              r = dados;
+          }
+          if (!box.isConnected) return;
+          if ((!r.semRecibo && (!Number.isFinite(r.valor) || r.valor<=0)) || !/^\d{4}-\d{2}-\d{2}$/.test(r.vencimento))
+              throw Error('Registro da emissão incompleto.');
+          const data = r.vencimento.split('-').reverse().join('/');
+          const texto = ['Cobrança de '+formatarMesAno(mesRef),r.nome,'Vencimento: '+data];
+          status.remove();
+          if (r.semRecibo) {
+              elemento(recibo,'p','Detalhamento original indisponível. Consulte a fatura oficial.');
+          } else if (typeof r.imagem==='string' && /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(r.imagem)) {
+              recibo.replaceChildren();
+              const img = elemento(recibo,'img');
+              img.alt='Recibo original da cobrança'; img.style.width='100%'; img.src=r.imagem;
+          } else {
+              if (r.nome) elemento(recibo,'p',r.nome);
+              elemento(recibo,'p','Vencimento: '+data);
+              for (const [descricao,valor] of r.linhas || []) {
+                  const linha = elemento(recibo,'div','','comp-line');
+                  elemento(linha,'span',descricao).style.whiteSpace='pre-line';
+                  elemento(linha,'span',valor);
+              }
+              if (r.descricao) elemento(recibo,'p',r.descricao).style.whiteSpace='pre-line';
+              elemento(recibo,'div','TOTAL: '+fmtMoeda(r.valor),'comp-total');
+          }
+          for (const [descricao,valor] of r.linhas || []) texto.push(descricao+': '+valor);
+          if (r.descricao) texto.push(r.descricao);
+          if (!r.semRecibo) texto.push('TOTAL A PAGAR: '+fmtMoeda(r.valor));
+          texto.push('Pague aqui: '+link);
+          const msg = elemento(box,'textarea');
+          msg.id='txt-cob-'+idReg; msg.hidden=true; msg.value=texto.filter(Boolean).join('\n');
+          if (!pago) {
+              const hoje = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+              if (hoje>r.vencimento) {
+                  const op = elemento(acoes,'details');
+                  elemento(op,'summary','Cobrança vencida. Deseja excluir?','btn btn-danger');
+                  elemento(op,'button','Sim','btn').onclick=e=>revisarVencida(e.currentTarget,idReg,mesRef);
+                  elemento(op,'button','Não','btn').onclick=()=>{op.open=false;};
+              } else botao('Excluir','btn-danger',()=>excluirCobrancaPainel(idReg));
+          }
+          if (!r.semRecibo) botao('Copiar Recibo','btn-gold',async b=>{
+              const img=recibo.querySelector('img');
+              if (img) {try {await img.decode();} catch {alert('Falha ao carregar a imagem original.');return;}}
+              copiarApenasImagem(recibo.id,b);
+          });
+          const wpp=elemento(acoes,'a','Enviar WPP','btn btn-whatsapp');
+          wpp.target='_blank'; wpp.rel='noopener';
+          wpp.href='https://api.whatsapp.com/send?phone=55'+String(c.telefone_inquilino || '').replace(/\D/g,'')+'&text='+encodeURIComponent(msg.value);
+      } catch (erro) {
+          status.textContent='Recibo indisponível. '+erro.message;
+          botao('Tentar novamente','btn-dark',()=>gerarTextosCobranca());
+      }
+  }
   function gerarTextosCobranca() {
     const container = document.getElementById('cobrancas-container'); if (!container) return;
     const mesRef = document.getElementById('filtro-mes').value;
@@ -1985,24 +2079,9 @@
 
     const vencPadraoObj = getQuintoDiaUtil(mesRef);
 
+    const emitidas = [];
     contratosExibir.forEach(c => {
-      const idReg = c.id || c._tempId; const v = getVariaveisMes(c, mesRef);
-      const isoVenc = v.vencimentoCustom || vencPadraoObj.iso;
-      const vencimento = { iso: isoVenc, formatada: isoVenc.split('-').reverse().join('/') };
-      let vTarifaBancaria = 2.99; 
-      
-      let pAlug = parseMoedaToFloat(v.alugProp);
-      let pCond = parseMoedaToFloat(v.condProp);
-      let mAlug = parseMoedaToFloat(v.alugMes);
-      let mCond = parseMoedaToFloat(v.condMes);
-      let iptu = parseMoedaToFloat(v.iptu);
-      let bomb = parseMoedaToFloat(v.bombeiro);
-      let seg = parseMoedaToFloat(v.seguro);
-      let out = parseMoedaToFloat(v.outras_taxas);
-      let desc = parseMoedaToFloat(v.desconto);
-
-      const baseTotal = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
-      const registro=registroDoMes(c,mesRef);
+      const idReg = c.id || c._tempId;
       const revisao=JSON.parse(c.status_cobranca || '{}')[mesRef+'_revisao'];
       const transportada=situacaoMes(c,mesRef)==='transportada';
       if(revisao || transportada){
@@ -2019,7 +2098,31 @@
           }
           return;
       }
-      const totalComTarifa = registro.reemissao ? registro.reemissao.previa.novoTotalCentavos/100 : baseTotal + vTarifaBancaria;
+      const estado = JSON.parse(c.status_cobranca || '{}');
+      const link = estado[mesRef+'_url'];
+      if (link || ['aguardando_asaas','recebida'].includes(estado[mesRef])) {
+          const slot = 'emitida-'+idReg;
+          container.insertAdjacentHTML('beforeend','<div class="card" id="'+slot+'" style="width:100%;max-width:460px;margin:0 auto"></div>');
+          emitidas.push({slot,c,idReg,estado,link,mesRef});
+          return;
+      }
+      const v = getVariaveisMes(c, mesRef);
+      const isoVenc = v.vencimentoCustom || vencPadraoObj.iso;
+      const vencimento = { iso: isoVenc, formatada: isoVenc.split('-').reverse().join('/') };
+      let vTarifaBancaria = 2.99; 
+      
+      let pAlug = parseMoedaToFloat(v.alugProp);
+      let pCond = parseMoedaToFloat(v.condProp);
+      let mAlug = parseMoedaToFloat(v.alugMes);
+      let mCond = parseMoedaToFloat(v.condMes);
+      let iptu = parseMoedaToFloat(v.iptu);
+      let bomb = parseMoedaToFloat(v.bombeiro);
+      let seg = parseMoedaToFloat(v.seguro);
+      let out = parseMoedaToFloat(v.outras_taxas);
+      let desc = parseMoedaToFloat(v.desconto);
+
+      const baseTotal = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
+      const totalComTarifa = baseTotal + vTarifaBancaria;
 
       let texto = `Prezado(a) ${c.inquilino}, \nSegue a locação de *${formatarMesAno(mesRef)}* (Venc: ${vencimento.formatada}):\n\n`;
       let linhasCard = '';
@@ -2043,62 +2146,9 @@
 
       texto += `\nTOTAL A PAGAR: ${fmtMoeda(totalComTarifa)}`;
 
-      let statusObj = {}; try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {} 
-      let statusAtual = statusObj[mesRef] || 'pendente'; let asaasUrl = statusObj[`${mesRef}_url`];
-
-      if(registro.reemissao) {
-          const resumo=registro.reemissao.previa.descricao;
-          texto='Cobrança de '+formatarMesAno(mesRef)+' • Vencimento: '+vencimento.formatada+'\n'+resumo;
-          linhasCard='<div style="white-space:pre-line">'+resumo.replaceAll('&','&amp;').replaceAll('<','&lt;')+'</div>';
-      }
-      if (asaasUrl) texto += `\n\n🔗 *Pague aqui:* ${asaasUrl}`;
-
-      let bgPainel = '#f8fafc'; let msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:bold; color:#a16207; font-size:0.85rem;">⏳ Fatura não gerada.</div>`;
-      if (statusAtual === 'aguardando_asaas') { bgPainel = '#fef08a'; msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:bold; color:#a16207; font-size:0.85rem;">⏳ Aguardando confirmação do Asaas...</div>`; } 
-      else if (statusAtual === 'recebida') { bgPainel = '#bbf7d0'; msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:900; color:#166534; font-size:0.9rem;">✅ Recebido via Asaas</div>`; }
-
-     let btnExcluirCobHtml = (statusAtual === 'aguardando_asaas' || (asaasUrl && statusAtual !== 'recebida'))
-          ? `<button id="btn-del-cob-${idReg}" class="btn btn-danger" style="padding: 8px 12px; font-size: 0.8rem;" onclick="excluirCobrancaPainel('${idReg}')" title="Excluir cobrança do painel e do Asaas">🗑️ Excluir</button>`
-          : '';
-      
-            const hojeBrasilia = new Intl.DateTimeFormat('sv-SE', {
-          timeZone: 'America/Sao_Paulo',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-      }).format(new Date());
-
-      const cobrancaVencida =
-          statusAtual === 'aguardando_asaas' &&
-          Boolean(asaasUrl) &&
-          /^\d{4}-\d{2}-\d{2}$/.test(isoVenc) &&
-          hojeBrasilia > isoVenc;
-
-      if (cobrancaVencida) {
-          btnExcluirCobHtml = `
-              <details>
-                  <summary class="btn btn-danger" style="cursor:pointer">
-                      Cobrança vencida. Deseja excluir?
-                  </summary>
-                  <div style="display:flex; gap:6px; margin-top:6px">
-                      <button type="button" class="btn"
-                          onclick="revisarVencida(this,'${idReg}','${mesRef}')">
-                          Sim
-                      </button>
-                      <button type="button" class="btn"
-                          onclick="this.closest('details').open = false">
-                          Não
-                      </button>
-                  </div>
-              </details>`;
-      }
-      
-      let btnAsaasHtml = !asaasUrl 
-          ? `<button id="btn-asaas-${idReg}" class="btn" style="width: 100%; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff;" onclick="gerarCobrancaAsaas('${idReg}', ${baseTotal})">⚡ Gerar Link Asaas</button>` 
-          : `<div style="display: flex; gap: 6px;">
-               <a class="btn" style="flex: 1; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff; text-decoration: none; text-align: center;" href="${asaasUrl}" target="_blank">📄 Ver Fatura Oficial</a>
-               ${btnExcluirCobHtml}
-             </div>`;
+      const bgPainel = '#f8fafc';
+      const msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:bold; color:#a16207; font-size:0.85rem;">⏳ Fatura não gerada.</div>`;
+      const btnAsaasHtml = `<button id="btn-asaas-${idReg}" class="btn" style="width: 100%; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff;" onclick="gerarCobrancaAsaas('${idReg}', ${baseTotal})">⚡ Gerar Link Asaas</button>`;
 
       const idTextArea = `txt-cob-${idReg}`; const idCard = `img-cob-${idReg}`;
       container.innerHTML += `
@@ -2124,6 +2174,7 @@
            </div>
         </div>`;
     });
+    emitidas.forEach(mostrarCobrancaEmitida);
   }
 
   async function realizarTransferencias(idReg, alertSuccess = true) {
