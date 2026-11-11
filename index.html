@@ -113,6 +113,20 @@
   .gerencial-metric { text-align:center; padding:30px; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0; }
   .gerencial-metric h3 { color:#64748b; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; }
   .gerencial-metric .value { font-size:2.4rem; font-weight:900; color:var(--primary); }
+  .card[id^="emitida-"] { padding:16px; border:1px solid #cbd5e1; border-radius:8px; }
+  [id^="emitida-"] .receipt-box > strong { font-size:1.1rem; font-weight:900; }
+  [id^="emitida-"] .nome-recibo { font-size:.9rem; margin-bottom:4px; }
+  [id^="emitida-"] .venc-recibo { font-size:.85rem; color:#dc2626; font-weight:bold; margin-bottom:12px; }
+  [id^="emitida-"] .tarifa-recibo { color:#64748b; font-size:.75rem; }
+  .acoes-recibo { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:8px; margin:16px 0 8px; }
+  .acoes-recibo > * { grid-column:span 6; min-width:0; }
+  .acoes-recibo > a:first-child { grid-column:1/-1; background:#001e60; }
+  .acoes-recibo:has(> .btn-danger, > details) > a:first-child { grid-column:span 9; }
+  .acoes-recibo > .btn-danger, .acoes-recibo > details { grid-column:span 3; }
+  .acoes-recibo > details { grid-column:1/-1; }
+  .acoes-recibo:has(> details) > a:first-child { grid-column:1/-1; }
+  .acoes-recibo .btn { padding:8px; font-size:.8rem; text-decoration:none; text-align:center; }
+  [id^="emitida-"] > p { margin-top:12px; text-align:center; font-size:.85rem; font-weight:bold; color:#a16207; }
 </style>
 </head>
 <body>
@@ -1983,7 +1997,7 @@
       recibo.id = 'img-cob-'+idReg;
       elemento(recibo,'strong','COBRANÇA');
       const acoes = elemento(box,'div');
-      Object.assign(acoes.style,{display:'flex',flexWrap:'wrap',gap:'6px',marginTop:'12px'});
+      acoes.className = 'acoes-recibo';
       function botao(rotulo,classe,executar) {
           const b = elemento(acoes,'button',rotulo,'btn '+classe);
           b.type = 'button';
@@ -1994,10 +2008,11 @@
           try { return new URL(url).protocol === 'https:'; } catch { return false; }
       }
       if (enderecoSeguro(link)) {
-          const a = elemento(acoes,'a','Ver Fatura Oficial','btn btn-dark');
+          const a = elemento(acoes,'a','📄 Ver Fatura Oficial','btn btn-dark');
           a.href = link; a.target = '_blank'; a.rel = 'noopener';
       }
-      elemento(box,'p',pago?'Recebido via Asaas':'Aguardando confirmação do Asaas');
+      const aviso = elemento(box,'p',pago?'✅ Recebido via Asaas':'⏳ Aguardando confirmação do Asaas...');
+      if (pago) aviso.style.color='#166534';
       const status = elemento(recibo,'p','Carregando recibo da emissão…');
       try {
           let r = estado[mesRef+'_recibo'];
@@ -2022,15 +2037,23 @@
               const img = elemento(recibo,'img');
               img.alt='Recibo original da cobrança'; img.style.width='100%'; img.src=r.imagem;
           } else {
-              if (r.nome) elemento(recibo,'p',r.nome);
-              elemento(recibo,'p','Vencimento: '+data);
+              if (r.nome) {
+                  const nome=elemento(recibo,'p','','nome-recibo');
+                  elemento(nome,'strong','Inquilino: ');
+                  nome.append(r.nome);
+              }
+              elemento(recibo,'p','Vencimento: '+data,'venc-recibo');
+              elemento(recibo,'hr');
               for (const [descricao,valor] of r.linhas || []) {
                   const linha = elemento(recibo,'div','','comp-line');
+                  if (descricao==='Tarifa Bancária') linha.classList.add('tarifa-recibo');
                   elemento(linha,'span',descricao).style.whiteSpace='pre-line';
                   elemento(linha,'span',valor);
               }
               if (r.descricao) elemento(recibo,'p',r.descricao).style.whiteSpace='pre-line';
-              elemento(recibo,'div','TOTAL: '+fmtMoeda(r.valor),'comp-total');
+              const total=elemento(recibo,'div','','comp-total');
+              elemento(total,'span','TOTAL:');
+              elemento(total,'span',fmtMoeda(r.valor));
           }
           for (const [descricao,valor] of r.linhas || []) texto.push(descricao+': '+valor);
           if (r.descricao) texto.push(r.descricao);
@@ -2045,14 +2068,14 @@
                   elemento(op,'summary','Cobrança vencida. Deseja excluir?','btn btn-danger');
                   elemento(op,'button','Sim','btn').onclick=e=>revisarVencida(e.currentTarget,idReg,mesRef);
                   elemento(op,'button','Não','btn').onclick=()=>{op.open=false;};
-              } else botao('Excluir','btn-danger',()=>excluirCobrancaPainel(idReg));
+              } else botao('🗑️ Excluir','btn-danger',()=>excluirCobrancaPainel(idReg));
           }
-          if (!r.semRecibo) botao('Copiar Recibo','btn-gold',async b=>{
+          if (!r.semRecibo) botao('📸 Copiar Recibo','btn-gold',async b=>{
               const img=recibo.querySelector('img');
               if (img) {try {await img.decode();} catch {alert('Falha ao carregar a imagem original.');return;}}
               copiarApenasImagem(recibo.id,b);
           });
-          const wpp=elemento(acoes,'a','Enviar WPP','btn btn-whatsapp');
+          const wpp=elemento(acoes,'a','📲 Enviar WPP','btn btn-whatsapp');
           wpp.target='_blank'; wpp.rel='noopener';
           wpp.href='https://api.whatsapp.com/send?phone=55'+String(c.telefone_inquilino || '').replace(/\D/g,'')+'&text='+encodeURIComponent(msg.value);
       } catch (erro) {
