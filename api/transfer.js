@@ -14,6 +14,17 @@ export default async function handler(req, res) {
     }
 
     try {
+        if (!/^[a-zA-Z0-9_-]+$/.test(String(idReg ?? '')) || !/^\d{4}-(0[1-9]|1[0-2])$/.test(mesRef || '')) return res.status(400).json({error:'Locação ou competência inválida.'});
+
+        const authorization = req.headers.authorization || '';
+        if (!/^Bearer [^ ]+$/.test(authorization)) return res.status(401).json({error:'Entre novamente no painel.'});
+        const usuarioRes = await fetch(SUPABASE_URL+'/auth/v1/user',{headers:{apikey:SUPABASE_KEY,Authorization:authorization}});
+        if (!usuarioRes.ok) return res.status(401).json({error:'Sessão não confirmada.'});
+        const usuario = await usuarioRes.json();
+        let claims;
+        try { claims = JSON.parse(Buffer.from(authorization.split('.')[1], 'base64url').toString()); } catch {}
+        if (!usuario.id || claims?.sub !== usuario.id || claims?.aal !== 'aal2' || !usuario.email)
+            return res.status(403).json({error:'Conclua a autenticação em duas etapas.'});
         const resGet = await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
         });
@@ -23,6 +34,7 @@ export default async function handler(req, res) {
         const dataGet = await resGet.json();
         if (!dataGet || dataGet.length === 0) return res.status(400).json({ error: 'Contrato não encontrado' });
         const c = dataGet[0];
+        if (c.user_email?.toLowerCase() !== usuario.email.toLowerCase()) return res.status(403).json({error:'Acesso restrito ao responsável por esta locação.'});
 
         function pM(str) {
             if (!str || String(str).toLowerCase() === 'não' || String(str).toLowerCase() === 'nao') return 0;
