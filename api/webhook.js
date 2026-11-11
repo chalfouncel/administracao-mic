@@ -15,17 +15,98 @@ export default async function handler(req, res) {
                 const resGet = await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
                 });
+                if (!resGet.ok) {
+                    return res.status(503).json({
+                        error: 'Falha ao consultar a locação. O pagamento precisa ser reprocessado.'
+                    });
+                }
+
                 const dataGet = await resGet.json();
+
+                if (!Array.isArray(dataGet) || dataGet.length !== 1) {
+                    console.error('Locação não identificada para baixa', {
+                        locacao_id: idReg,
+                        mes_ref: mesRef
+                    });
+
+                    return res.status(503).json({
+                        error: 'Não foi possível identificar a locação para registrar o pagamento.'
+                    });
+                }
                 if (dataGet && dataGet.length > 0) {
-                    let statusCobranca = {};
-                    try { statusCobranca = JSON.parse(dataGet[0].status_cobranca || '{}'); } catch(e){}
+                    let statusCobranca;
+
+                    try {
+                        statusCobranca = JSON.parse(dataGet[0].status_cobranca || '{}');
+
+                        if (statusCobranca === null ||
+                            typeof statusCobranca !== 'object' ||
+                            Array.isArray(statusCobranca)) {
+                            throw new Error('Formato inválido');
+                        }
+                    } catch (erro) {
+                        console.error('Histórico de cobranças inválido', {
+                            locacao_id: idReg,
+                            mes_ref: mesRef
+                        });
+
+                        return res.status(503).json({
+                            error: 'Histórico de cobranças inválido. Confira a locação antes de reprocessar.'
+                        });
+                    }
+                    const idFaturaAtiva = statusCobranca[`${mesRef}_fatura_id`];
+                    const idFaturaDoEvento = payload.payment?.id;
+
+                    if (idFaturaAtiva && idFaturaDoEvento !== idFaturaAtiva) {
+                        console.warn('Pagamento de outra fatura na mesma competência', {
+                            locacao_id: idReg,
+                            mes_ref: mesRef,
+                            fatura_ativa: idFaturaAtiva,
+                            fatura_do_evento: idFaturaDoEvento
+                        });
+
+                        return res.status(200).json({
+                            recebido: true,
+                            baixaAplicada: false,
+                            motivo: 'Fatura diferente da ativa. Conferir pagamento no Asaas.'
+                        });
+                    }
+
                     statusCobranca[mesRef] = 'recebida';
 
-                    await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-                        body: JSON.stringify({ status_cobranca: JSON.stringify(statusCobranca) })
+                    const statusLido = dataGet[0].status_cobranca;
+                    const filtros = new URLSearchParams({
+                        id: `eq.${idReg}`,
+                        status_cobranca: statusLido == null ? 'is.null' : `eq.${statusLido}`,
+                        select: 'id'
                     });
+
+                    const baixa = await fetch(`${SUPABASE_URL}/rest/v1/locacoes?${filtros}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`,
+                            'Prefer': 'return=representation'
+                        },
+                        body: JSON.stringify({
+                            status_cobranca: JSON.stringify(statusCobranca)
+                        })
+                    });
+
+                    if (!baixa.ok) {
+                        return res.status(503).json({
+                            error: 'O banco não confirmou a baixa do pagamento.'
+                        });
+                    }
+
+                    const registrosAtualizados = await baixa.json();
+
+                    if (registrosAtualizados.length !== 1) {
+                        return res.status(503).json({
+                            error: 'O registro mudou durante a baixa. O evento precisa ser reprocessado.'
+                        });
+                    }
                 }
             }
         }
