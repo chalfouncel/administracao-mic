@@ -1378,7 +1378,7 @@
   function cancelarEdicao() {
       idContratoEdicao = null;
       document.querySelectorAll('#tab-resumo input, #tab-resumo select, #tab-resumo textarea').forEach(el => { 
-          if(el.type !== 'file' && el.id !== 'filtro-mes') { el.value = ''; el.classList.remove('field-ok'); } 
+          if(!el.readOnly && el.type !== 'file' && el.id !== 'filtro-mes') { el.value = ''; el.classList.remove('field-ok'); } 
       }); 
       document.getElementById('tipo_chave_repasse').value = 'PIX';
       window.toggleTipoRepasse();
@@ -1655,6 +1655,9 @@
       const vAtuais = getVariaveisMes(c, mesRef);
       let lancamentos = {}; try { lancamentos = JSON.parse(c.lancamentos_mensais || '{}'); } catch(e){}
       
+      if(lancamentos[mesRef]?.transporte_recebido && ['outras_taxas','desc_outras'].includes(field)){
+          alert('Outras contém um saldo transportado. O lançamento foi preservado.'); atualizarInterfaceGeral();return;
+      }
       let valorAntigo = '';
       if (lancamentos[mesRef]) valorAntigo = lancamentos[mesRef][field] || '';
 
@@ -1672,7 +1675,7 @@
           for (let k = 1; k <= 36; k++) { 
               dataFutura.setMonth(dataFutura.getMonth() + 1);
               let mF = `${dataFutura.getFullYear()}-${String(dataFutura.getMonth() + 1).padStart(2, '0')}`;
-              if (lancamentos[mF]) {
+              if (lancamentos[mF] && !(baseField==='outras_taxas' && lancamentos[mF].transporte_recebido)) {
                   delete lancamentos[mF][baseField];
                   delete lancamentos[mF][descField];
               }
@@ -1695,7 +1698,8 @@
                       dataFutura.setMonth(dataFutura.getMonth() + 1);
                       let mF = `${dataFutura.getFullYear()}-${String(dataFutura.getMonth() + 1).padStart(2, '0')}`;
                       if (!lancamentos[mF]) lancamentos[mF] = {};
-                      lancamentos[mF][baseField] = valorBase;
+                      if(baseField==='outras_taxas' && lancamentos[mF].transporte_recebido) continue;
+                        lancamentos[mF][baseField] = valorBase;
                       lancamentos[mF][descField] = text.replace(regex, `${atual + k}/${total}`);
                   }
                   alert(`✅ Valor de R$ ${valorBase} projetado automaticamente para as próximas ${total - atual} parcelas!`);
@@ -1707,7 +1711,8 @@
                   dataFutura.setMonth(dataFutura.getMonth() + 1);
                   let mF = `${dataFutura.getFullYear()}-${String(dataFutura.getMonth() + 1).padStart(2, '0')}`;
                   if (!lancamentos[mF]) lancamentos[mF] = {};
-                  lancamentos[mF][baseField] = valorBase;
+                  if(baseField==='outras_taxas' && lancamentos[mF].transporte_recebido) continue;
+                        lancamentos[mF][baseField] = valorBase;
                   lancamentos[mF][descField] = text;
               }
               alert(`✅ Valor de R$ ${valorBase} (Fixo) projetado automaticamente para os próximos 12 meses!`);
@@ -1796,6 +1801,50 @@
     });
   }
 
+
+  function registroDoMes(c, mes) {
+      return JSON.parse(c.lancamentos_mensais || '{}')[mes] || {};
+  }
+  function situacaoMes(c, mes) {
+      return JSON.parse(c.status_cobranca || '{}')[mes];
+  }
+  function imagemDaPrevia(linhas) {
+      const canvas=document.createElement('canvas');
+      canvas.width=800; canvas.height=80+linhas.length*42;
+      const ctx=canvas.getContext('2d');
+      ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.font='24px sans-serif';ctx.fillStyle='#182130';
+      linhas.forEach((linha,i)=>ctx.fillText(linha,32,48+i*42,736));
+      return canvas.toDataURL('image/png');
+  }
+  async function revisarVencida(botao,id,mes) {
+      if(botao.disabled) return;
+      botao.disabled=true;
+      async function consultar(acao,extras={}) {
+          const token=getLocalSession()?.access_token;
+          if(!token) throw Error('Entre novamente no sistema.');
+          const resposta=await fetch('/api/excluir-cobranca',{method:'POST',
+              headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+              body:JSON.stringify({acao,locacao_id:id,mes_ref:mes,...extras})});
+          const dados=await resposta.json();
+          if(!resposta.ok) throw Error(dados.error || 'Falha na revisão.');
+          return dados;
+      }
+      try {
+          const p=await consultar('preparar_revisao');
+          if(!p.valoresParaConfirmar || !['primeiro_atraso','virada_do_mes'].includes(p.etapa)) throw Error('Prévia incompleta.');
+          const transportar=p.etapa==='virada_do_mes';
+          const linhas=['M&IC • Cobrança de '+formatarMesAno(mes),...p.descricao.split('\n')];
+          if(!transportar) linhas.push('Novo vencimento: '+p.novoVencimento.split('-').reverse().join('/'));
+          const pergunta=transportar?'Cancelar esta fatura e somar o saldo em Outras de '+formatarMesAno(p.destino)+'?':'Cancelar esta fatura e emitir o novo link?';
+          if(!confirm(linhas.join('\n')+'\n\n'+pergunta)) return;
+          const extras={valoresParaConfirmar:p.valoresParaConfirmar};
+          if(!transportar) extras.reciboBase64=imagemDaPrevia(linhas);
+          await consultar('confirmar_revisao',extras);
+          alert(transportar?'Saldo lançado em Outras. A próxima emissão é manual.':'Fatura substituída. O novo link foi agendado para envio.');
+      } catch(e){alert(e.message);} finally {botao.disabled=false;await carregarImoveis();}
+  }
+
   async function gerarCobrancaAsaas(idReg, valorTotalBase) {
       const c = contratosDB.find(x => String(x.id || x._tempId) === String(idReg));
       if (!c.cpf_inquilino || !c.email_inquilino) { alert('Erro: Preencha o CPF e o E-mail do Inquilino na aba Imóveis.'); return; }
@@ -1828,7 +1877,7 @@
                   emailInquilino: c.email_inquilino, 
                   valor: valorTotal, 
                   vencimento: dataVenc, 
-                  descricao: `Aluguel M&IC - ${mesRef} - ${c.endereco}`, 
+                  descricao: [`Aluguel M&IC - ${mesRef} - ${c.endereco}`,vMes.desc_outras].filter(Boolean).join('\n'), 
                   externalReference: `${c.id || c._tempId}||${mesRef}`,
                   reciboBase64: imagemBase64
               })
@@ -1838,15 +1887,8 @@
           if (!response.ok) { alert('Erro Asaas/E-mail: ' + data.error); btn.innerText = '⚡ Gerar Link Asaas'; btn.disabled = false; } 
           else {
               let statusObj = {}; try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
-              statusObj[`${mesRef}_url`] = data.urlFatura;
-
-              if (data.faturaId) {
-                  statusObj[`${mesRef}_fatura_id`] = data.faturaId;
-              } else {
-                  delete statusObj[`${mesRef}_fatura_id`];
-              }
-
-              statusObj[mesRef] = 'aguardando_asaas';
+              if (data.faturaId) statusObj[mesRef+'_fatura_id']=data.faturaId; else delete statusObj[mesRef+'_fatura_id'];
+              statusObj[`${mesRef}_url`] = data.urlFatura; statusObj[mesRef] = 'aguardando_asaas';
               await updateDbLinear(contratosDB.indexOf(c), 'status_cobranca', JSON.stringify(statusObj));
               alert('✅ Fatura gerada no Asaas e e-mail agendado/enviado com sucesso!'); atualizarInterfaceGeral(); 
           }
@@ -1867,11 +1909,7 @@
           const response = await fetch('/api/excluir-cobranca', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                  locacao_id: idReg,
-                  mes_ref: mesRef,
-                  acao: 'excluir'
-              })
+              body: JSON.stringify({ locacao_id: idReg, mes_ref: mesRef, acao:'excluir' })
           });
           const data = await response.json();
 
@@ -1881,6 +1919,7 @@
           } else {
               let statusObj = {};
               try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
+              delete statusObj[mesRef+'_fatura_id'];
               delete statusObj[mesRef];
               delete statusObj[`${mesRef}_url`];
               c.status_cobranca = JSON.stringify(statusObj);
@@ -1973,7 +2012,17 @@
       let desc = parseMoedaToFloat(v.desconto);
 
       const baseTotal = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
-      const totalComTarifa = baseTotal + vTarifaBancaria;
+      const registro=registroDoMes(c,mesRef);
+      const revisao=JSON.parse(c.status_cobranca || '{}')[mesRef+'_revisao'];
+      const transportada=situacaoMes(c,mesRef)==='transportada';
+      if(revisao || transportada){
+          container.insertAdjacentHTML('beforeend','<div class="card"><strong></strong><p></p></div>');
+          const card=container.lastElementChild;
+          card.querySelector('strong').textContent=c.inquilino;
+          card.querySelector('p').textContent=revisao?'Revisão pendente. Confira no Asaas antes de repetir.':'Saldo transportado para a competência seguinte.';
+          return;
+      }
+      const totalComTarifa = registro.reemissao ? registro.reemissao.previa.novoTotalCentavos/100 : baseTotal + vTarifaBancaria;
 
       let texto = `Prezado(a) ${c.inquilino}, \nSegue a locação de *${formatarMesAno(mesRef)}* (Venc: ${vencimento.formatada}):\n\n`;
       let linhasCard = '';
@@ -1989,7 +2038,7 @@
       if (bomb > 0) { texto += `🔹 Bombeiro: ${fmtMoeda(bomb)}\n`; linhasCard += `<div class="comp-line"><span>Bombeiro</span> <span>${fmtMoeda(bomb)}</span></div>`; }
       if (seg > 0) { texto += `🔹 Seguro: ${fmtMoeda(seg)}\n`; linhasCard += `<div class="comp-line"><span>Seguro</span> <span>${fmtMoeda(seg)}</span></div>`; }
       
-      if (out > 0) { texto += `🔹 Outras Taxas${descOutras}: ${fmtMoeda(out)}\n`; linhasCard += `<div class="comp-line"><span>Outras Taxas${descOutras}</span> <span>${fmtMoeda(out)}</span></div>`; }
+      if (out > 0) { texto += `🔹 Outras Taxas${descOutras}: ${fmtMoeda(out)}\n`; linhasCard += `<div class="comp-line"><span>Outras Taxas${descOutras.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll("\n","<br>")}</span> <span>${fmtMoeda(out)}</span></div>`; }
       if (desc > 0) { texto += `🔹 Desconto${descDesconto}: -${fmtMoeda(desc)}\n`; linhasCard += `<div class="comp-line" style="color:var(--danger);"><span>Desconto${descDesconto}</span> <span>-${fmtMoeda(desc)}</span></div>`; }
       
       texto += `🔹 Tarifa Bancária: ${fmtMoeda(vTarifaBancaria)}\n`;
@@ -2000,6 +2049,11 @@
       let statusObj = {}; try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {} 
       let statusAtual = statusObj[mesRef] || 'pendente'; let asaasUrl = statusObj[`${mesRef}_url`];
 
+      if(registro.reemissao) {
+          const resumo=registro.reemissao.previa.descricao;
+          texto='Cobrança de '+formatarMesAno(mesRef)+' • Vencimento: '+vencimento.formatada+'\n'+resumo;
+          linhasCard='<div style="white-space:pre-line">'+resumo.replaceAll('&','&amp;').replaceAll('<','&lt;')+'</div>';
+      }
       if (asaasUrl) texto += `\n\n🔗 *Pague aqui:* ${asaasUrl}`;
 
       let bgPainel = '#f8fafc'; let msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:bold; color:#a16207; font-size:0.85rem;">⏳ Fatura não gerada.</div>`;
@@ -2031,97 +2085,9 @@
                   </summary>
                   <div style="display:flex; gap:6px; margin-top:6px">
                       <button type="button" class="btn"
-    onclick="(async (botao) => {
-        botao.disabled = true;
-        botao.textContent = 'Consultando...';
-
-        try {
-            const resposta = await fetch('/api/excluir-cobranca', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    locacao_id: '${idReg}',
-                    mes_ref: '${mesRef}',
-                    acao: 'consultar_vencida'
-                })
-            });
-
-            const dados = await resposta.json();
-
-            if (!resposta.ok) {
-                throw new Error(dados.error || 'Não foi possível consultar a fatura.');
-            }
-
-                        const moeda = centavos => fmtMoeda(centavos / 100);
-            const dataBR = data => data.split('-').reverse().join('/');
-
-            if (dados.etapa === 'primeiro_atraso') {
-                const mensagem = [
-                    'Prévia da cobrança atualizada',
-                    '',
-                    'Vencimento original: ' + dataBR(dados.vencimento),
-                    'Saldo sem tarifa: ' + moeda(dados.saldoCentavos),
-                    'Multa de 10%: ' + moeda(dados.multaCentavos),
-                    'Juros de 1%: ' + moeda(dados.jurosCentavos),
-                    'Saldo atualizado: ' + moeda(dados.saldoAtualizadoCentavos),
-                    'Tarifa bancária: ' + moeda(dados.tarifaCentavos),
-                    '',
-                    'Valor do novo link: ' + moeda(dados.novoTotalCentavos),
-                    'Novo vencimento: ' + dataBR(dados.novoVencimento)
-                ];
-
-                const quebra = String.fromCharCode(10);
-                mensagem.push('', 'Deseja conferir esses valores no Asaas?');
-
-                if (!confirm(mensagem.join(quebra))) return;
-
-                botao.textContent = 'Conferindo...';
-
-                const conferencia = await fetch('/api/excluir-cobranca', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        locacao_id: '${idReg}',
-                        mes_ref: '${mesRef}',
-                        acao: 'conferir_previa',
-                        valoresParaConfirmar: dados.valoresParaConfirmar
-                    })
-                });
-
-                const resultado = await conferencia.json();
-
-                if (!conferencia.ok) {
-                    throw new Error(resultado.error || 'Não foi possível conferir a prévia.');
-                }
-
-                if (resultado.etapa === 'virada_do_mes') {
-                    alert('O mês virou. Feche esta prévia e consulte a cobrança novamente.');
-                    return;
-                }
-
-                if (resultado.previaConferida !== true) {
-                    throw new Error('O servidor não confirmou os valores. Abra uma nova prévia.');
-                }
-
-                alert('Valores conferidos. A cobrança original continua ativa.');
-            } else if (dados.etapa === 'virada_do_mes') {
-                alert([
-                    'O mês de vencimento já encerrou.',
-                    'Saldo da fatura vencida, sem tarifa: ' + moeda(dados.saldoCentavos),
-                    'O transporte para o mês seguinte ainda não está habilitado.'
-                ].join(String.fromCharCode(10)));
-            } else {
-                alert('A consulta retornou sem a prévia. Confira se a alteração 4 já foi publicada.');
-            }
-        } catch (erro) {
-            alert('Falha na consulta: ' + erro.message);
-        } finally {
-            botao.disabled = false;
-            botao.textContent = 'Sim';
-        }
-    })(this)">
-    Sim
-</button>
+                          onclick="revisarVencida(this,'${idReg}','${mesRef}')">
+                          Sim
+                      </button>
                       <button type="button" class="btn"
                           onclick="this.closest('details').open = false">
                           Não
@@ -2258,6 +2224,57 @@
     atualizarInterfaceGeral();
 }
 
+  function rateioDaCobranca(c,mesRef,totalReceitas) {
+      const lMes=registroDoMes(c,mesRef);
+      if(!lMes.transporte_recebido && !lMes.reemissao) return null;
+      const pM=parseMoedaToFloat;
+            const cent = valor => Math.round(pM(valor) * 100);
+            const soma = partes => partes.reduce((a,b) => a+b, 0);
+
+            // Distribui o total já cobrado. Maiores restos recebem os centavos indivisíveis.
+            function acrescer(partes, adicional) {
+                const base = soma(partes);
+                if (!Number.isSafeInteger(adicional) || adicional < 0 ||
+                    partes.some(v => !Number.isSafeInteger(v) || v < 0) || (!base && adicional)) {
+                    throw new Error('Composição inválida para rateio.');
+                }
+                if (!adicional) return partes.slice();
+                const produtos = partes.map(v => BigInt(v) * BigInt(adicional));
+                const quotas = produtos.map(v => Number(v / BigInt(base)));
+                const ordem = produtos.map((v,i) => ({i, resto:v % BigInt(base)}))
+                    .sort((a,b) => a.resto === b.resto ? a.i-b.i : a.resto>b.resto ? -1:1);
+                const restantes = adicional - soma(quotas);
+                for (let i=0; i<restantes; i++) quotas[ordem[i].i]++;
+                return partes.map((v,i) => v + quotas[i]);
+            }
+
+            function distribuir(registro, regras, principal, previa) {
+                const anterior = registro.transporte_recebido;
+                const herdado = anterior?.totalCentavos || 0;
+                const mic = cent(regras.taxaAdm) + (regras.regraSeguro === 'N' ? cent(registro.seguro) : 0);
+                const cond = regras.regraCondominio === 'N' ? cent(registro.cond_prop)+cent(registro.cond_mes) : 0;
+                const novas = [principal-herdado-mic-cond, mic, cond];
+                if (novas.some(v=>!Number.isSafeInteger(v)||v<0)) throw new Error('Confira a composição do principal.');
+                const multa = previa?.multaCentavos || 0;
+                const juros = previa?.jurosCentavos || 0;
+                const comMulta = acrescer(novas,multa);
+                const comJuros = acrescer(novas,juros);
+                const partes = novas.map((v,i)=>comMulta[i]+comJuros[i]-v);
+                if (anterior) {
+                    const origem = anterior.composicaoOrigem;
+                    const primeira = origem.reemissao?.previa || anterior.previa;
+                    const originais = distribuir(origem,anterior,primeira.saldoCentavos,primeira);
+                    const corrigidas = acrescer(originais,anterior.previa.jurosTransporteCentavos);
+                    if (soma(corrigidas)!==herdado) throw new Error('Saldo anterior divergente.');
+                    corrigidas.forEach((v,i)=>partes[i]+=v);
+                }
+                return partes;
+            }
+
+            const partes = distribuir(lMes, {taxaAdm:c.taxa_adm_fixa,regraSeguro:c.regra_seguro,
+                regraCondominio:c.regra_condominio}, Math.round(totalReceitas*100),lMes.reemissao?.previa);
+      return partes.map(n=>n/100);
+  }
   function gerarTextosRepasse() {
     const container = document.getElementById('repasses-container'); if (!container) return;
     const mesRef = document.getElementById('filtro-mes').value;
@@ -2298,7 +2315,9 @@
       let valCondominioPix = repassaCond ? 0 : (pCond + mCond);
       let valSeguroMIC = repassaSeguro ? 0 : seg;
       let valProprietario = totalReceitas - vTaxaAdm - valCondominioPix - valSeguroMIC;
-      let valMIC = vTaxaAdm + valSeguroMIC; 
+      let valMIC = vTaxaAdm + valSeguroMIC;
+         const dividido=rateioDaCobranca(c,mesRef,totalReceitas);
+         if(dividido) [valProprietario,valMIC,valCondominioPix]=dividido; 
 
       let pixBruto = c.pix_proprietario || 'Não informada';
       let txtChaveWpp = pixBruto;
@@ -2326,7 +2345,7 @@
       let borderCor = isRepasseFeito ? '#22c55e' : '#cbd5e1'; 
       let acaoHtml = '';
       
-      if (!isCobrancaPaga) {
+      if (situacaoMes(c,mesRef)==='transportada') { acaoHtml='Saldo transportado. Repasse na competência seguinte.'; } else if (!isCobrancaPaga) {
           acaoHtml = `<div style="text-align:center; padding:10px; color:#a16207; background:#fef9c3; border-radius:6px; font-size:0.8rem;">⏳ Aguardando Inquilino pagar no Asaas para liberar repasse.</div>`;
       } else if (isCobrancaPaga && !isRepasseFeito) {
           acaoHtml = `<button id="btn-transf-${idReg}" class="btn btn-gold" style="width:100%; padding: 12px; font-size: 0.9rem;" onclick="realizarTransferencias('${idReg}')">💸 Realizar Transferências Automáticas</button>`;
@@ -2346,6 +2365,7 @@
       if (desc > 0) breakdownProp += `&nbsp;&nbsp;&nbsp;↳ (-) Desconto: -${fmtMoeda(desc)}<br>`;
       breakdownProp += `&nbsp;&nbsp;&nbsp;↳ (-) Taxa Adm: -${fmtMoeda(vTaxaAdm)}<br>`;
 
+      if(dividido) breakdownProp='&nbsp;Rateio proporcional das parcelas e encargos: '+fmtMoeda(valProprietario)+'<br>';
       const idTextArea = `txt-rep-${idReg}`; const idCard = `img-rep-${idReg}`;
       container.innerHTML += `
         <div style="background: ${bgPainel}; border: 2px solid ${borderCor}; border-radius: 8px; padding: 16px; max-width: 460px; margin: 0 auto; width: 100%;">
@@ -2407,13 +2427,15 @@
           let repassaSeguro = c.regra_seguro !== 'N';
           let baseTotal = pAlug + pCond + mAlug + mCond + iptu + bomb + seg + out - desc;
           
-          totalArrecadado += (baseTotal + 2.99); 
+          if(situacaoMes(c,mesRef)!=='transportada') totalArrecadado += (registroDoMes(c,mesRef).reemissao?.previa.novoTotalCentavos/100 || baseTotal+2.99); 
           
           let valCondominioPix = repassaCond ? 0 : (pCond + mCond);
           let valSeguroMIC = repassaSeguro ? 0 : seg;
           
           let valProprietario = baseTotal - vTaxaAdm - valCondominioPix - valSeguroMIC;
           let valMIC = vTaxaAdm + valSeguroMIC;
+         const dividido=rateioDaCobranca(c,mesRef,baseTotal);
+         if(dividido) [valProprietario,valMIC,valCondominioPix]=dividido;
           
           totalProp += valProprietario;
           totalMIC += valMIC;
@@ -2426,12 +2448,20 @@
           let repStatus = sR[mesRef] || 'pendente';
           let erroMsg = sR[`${mesRef}_erro`] || '';
 
-          if (repStatus !== 'recebida') todosRepassesOk = false;
+          if (repStatus !== 'recebida' && cobStatus !== 'transportada') todosRepassesOk = false;
 
           let badgeCob = `<span style="background:#fef9c3; color:#a16207; padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">⏳ Pendente</span>`;
           if (cobStatus === 'aguardando_asaas') badgeCob = `<span style="background:#fef08a; color:#a16207; padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">⏳ Link Gerado (Asaas)</span>`;
           if (cobStatus === 'recebida') badgeCob = `<span style="background:#dcfce7; color:#166534; padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">✅ Pago pelo Inquilino</span>`;
 
+if(cobStatus==='transportada'){
+    totalProp-=valProprietario;totalMIC-=valMIC;totalCond-=valCondominioPix;
+    if(tbodyFluxo) {
+        const tr=tbodyFluxo.insertRow();
+        [c.endereco,c.inquilino,c.proprietario,'Saldo transportado','Repasse na competência de destino',''].forEach(t=>tr.insertCell().textContent=t||'');
+    }
+    return;
+}
 let repGeralStatus = 'Aguardando Inquilino';
 let bgGeral = '#f1f5f9'; let corGeral = '#64748b'; let iconeRep = '⏳';
 
@@ -2473,7 +2503,7 @@ let badgeRep = `
               tbodyFluxo.innerHTML += `
                 <tr>
                   <td style="font-size:0.8rem; font-weight:bold;">${c.endereco || 'Endereço não informado'}</td>
-                  <td style="font-size:0.8rem;">${c.inquilino}<br><span style="font-size:0.7rem; color:#64748b;">Total: ${fmtMoeda(baseTotal + 2.99)}</span></td>
+                  <td style="font-size:0.8rem;">${c.inquilino}<br><span style="font-size:0.7rem; color:#64748b;">Total: ${fmtMoeda(registroDoMes(c,mesRef).reemissao?.previa.novoTotalCentavos/100 || baseTotal+2.99)}</span></td>
                   <td style="font-size:0.8rem;">${c.proprietario}<br><span style="font-size:0.7rem; color:#64748b;">Líquido: ${fmtMoeda(valProprietario)}</span></td>
                   <td style="text-align: center;">${badgeCob}</td>
                   <td style="text-align: center;">${badgeRep}</td>
@@ -2557,6 +2587,7 @@ let badgeRep = `
       const ativosList = contratosDB.filter(c => c.ativo === 'SIM');
       
       ativosList.forEach(c => {
+         if(situacaoMes(c,mesRef)==='transportada'){tableData.push([{content:'Saldo transportado: '+c.inquilino+' - '+c.endereco,colSpan:6}]);return;}
           const v = getVariaveisMes(c, mesRef);
           let pAlug = parseMoedaToFloat(v.alugProp);
           let pCond = parseMoedaToFloat(v.condProp);
@@ -2576,10 +2607,12 @@ let badgeRep = `
           let valSeguroMIC = repassaSeguro ? 0 : seg;
           let valProprietario = baseTotal - vTaxaAdm - valCondominioPix - valSeguroMIC;
           let valMIC = vTaxaAdm + valSeguroMIC;
+         const dividido=rateioDaCobranca(c,mesRef,baseTotal);
+         if(dividido) [valProprietario,valMIC,valCondominioPix]=dividido;
 
           tableData.push([{ content: `Imóvel: ${c.endereco}\nInquilino: ${c.inquilino}\nProprietário: ${c.proprietario}`, colSpan: 6, styles: { fillColor: [244, 246, 249], fontStyle: 'bold', textColor: [15, 23, 42] } }]);
           tableData.push([
-              'R$ ' + fmtMoeda(baseTotal + 2.99), 
+              'R$ ' + fmtMoeda(registroDoMes(c,mesRef).reemissao?.previa.novoTotalCentavos/100 || baseTotal+2.99), 
               'R$ 2.99',                          
               'R$ ' + fmtMoeda(valMIC),            
               'R$ ' + fmtMoeda(valProprietario),  
