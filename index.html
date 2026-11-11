@@ -1997,7 +1997,39 @@
      let btnExcluirCobHtml = (statusAtual === 'aguardando_asaas' || (asaasUrl && statusAtual !== 'recebida'))
           ? `<button id="btn-del-cob-${idReg}" class="btn btn-danger" style="padding: 8px 12px; font-size: 0.8rem;" onclick="excluirCobrancaPainel('${idReg}')" title="Excluir cobrança do painel e do Asaas">🗑️ Excluir</button>`
           : '';
+      
+            const hojeBrasilia = new Intl.DateTimeFormat('sv-SE', {
+          timeZone: 'America/Sao_Paulo',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+      }).format(new Date());
 
+      const cobrancaVencida =
+          statusAtual === 'aguardando_asaas' &&
+          Boolean(asaasUrl) &&
+          /^\d{4}-\d{2}-\d{2}$/.test(isoVenc) &&
+          hojeBrasilia > isoVenc;
+
+      if (cobrancaVencida) {
+          btnExcluirCobHtml = `
+              <details>
+                  <summary class="btn btn-danger" style="cursor:pointer">
+                      Cobrança vencida. Deseja excluir?
+                  </summary>
+                  <div style="display:flex; gap:6px; margin-top:6px">
+                      <button type="button" class="btn"
+                          onclick="alert('A prévia dos novos valores ainda não está instalada. A cobrança continua ativa.')">
+                          Sim
+                      </button>
+                      <button type="button" class="btn"
+                          onclick="this.closest('details').open = false">
+                          Não
+                      </button>
+                  </div>
+              </details>`;
+      }
+      
       let btnAsaasHtml = !asaasUrl 
           ? `<button id="btn-asaas-${idReg}" class="btn" style="width: 100%; padding: 8px; font-size: 0.8rem; background: #001e60; color: #fff;" onclick="gerarCobrancaAsaas('${idReg}', ${baseTotal})">⚡ Gerar Link Asaas</button>` 
           : `<div style="display: flex; gap: 6px;">
