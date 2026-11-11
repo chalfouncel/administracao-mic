@@ -1870,7 +1870,7 @@
 
       try {
           const response = await fetch('/api/asaas', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              method: 'POST', headers: { Authorization: 'Bearer '+(getLocalSession()?.access_token || ''), 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
                   nomeInquilino: c.inquilino, 
                   cpfInquilino: c.cpf_inquilino, 
@@ -1886,11 +1886,8 @@
 
           if (!response.ok) { alert('Erro Asaas/E-mail: ' + data.error); btn.innerText = '⚡ Gerar Link Asaas'; btn.disabled = false; } 
           else {
-              let statusObj = {}; try { statusObj = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
-              if (data.faturaId) statusObj[mesRef+'_fatura_id']=data.faturaId; else delete statusObj[mesRef+'_fatura_id'];
-              statusObj[`${mesRef}_url`] = data.urlFatura; statusObj[mesRef] = 'aguardando_asaas';
-              await updateDbLinear(contratosDB.indexOf(c), 'status_cobranca', JSON.stringify(statusObj));
-              alert('✅ Fatura gerada no Asaas e e-mail agendado/enviado com sucesso!'); atualizarInterfaceGeral(); 
+              await carregarImoveis();
+              alert(data.aviso || 'Fatura disponível no Asaas.');
           }
       } catch(e) { alert('Erro: ' + e.message); btn.innerText = '⚡ Gerar Link Asaas'; btn.disabled = false; }
   }
@@ -2136,7 +2133,7 @@
 
       try {
           const res = await fetch('/api/transfer', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              method: 'POST', headers: { Authorization: 'Bearer '+(getLocalSession()?.access_token || ''), 'Content-Type': 'application/json' },
               body: JSON.stringify({ idReg, mesRef })
           });
           const data = await res.json();
