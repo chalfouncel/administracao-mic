@@ -133,26 +133,25 @@ export default async function handler(req, res) {
             }
         }
 
+        const cobrancas = JSON.parse(c.status_cobranca || '{}');
+        if (!paySearchRes.ok || paySearchData.hasMore || faturasPagas.length !== 1 ||
+            faturasPagas[0].deleted || faturasPagas[0].externalReference !== extRef ||
+            cobrancas[mesRef] !== 'recebida' || cobrancas[mesRef+'_revisao'] ||
+            (cobrancas[mesRef+'_fatura_id'] && cobrancas[mesRef+'_fatura_id'] !== faturasPagas[0].id)) {
+            return res.status(409).json({error:'Pagamento não confirmado para esta competência.'});
+        }
         if (faturasPagas.length > 0) {
             const valorPagoLiquidoCob = Math.round((faturasPagas[0].value - 2.99) * 100) / 100;
             const somaSaidas = Math.round((valProprietario + valMIC + valCondominioPix) * 100) / 100;
 
             if (Math.abs(somaSaidas - valorPagoLiquidoCob) > 0.05) {
                 const msgDiv = `BLOQUEIO DE SEGURANÇA: Soma dos repasses (R$ ${somaSaidas.toFixed(2)}) diverge do valor pago pelo inquilino sem tarifa (R$ ${valorPagoLiquidoCob.toFixed(2)}). Verifique a aba Taxas Condominiais.`;
-                let sRepErro = {};
-                try { sRepErro = JSON.parse(c.status_repasse || '{}'); } catch(e){}
-                sRepErro[`${mesRef}_erro`] = msgDiv;
-                await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-                    body: JSON.stringify({ status_repasse: JSON.stringify(sRepErro) })
-                });
-                return res.status(400).json({ error: msgDiv, statusRepasse: sRepErro });
+                return res.status(409).json({error:msgDiv});
             }
         }
 
         async function executeTransfer(value, rawKey, titular, desc) {
-            if (value <= 0 || !rawKey) return { success: true };
+            if (!rawKey || value <= 0) throw Error('Destino ou valor inválido.');
 
             const cleanKey = String(rawKey).trim();
             let payloadTransf = {};
@@ -235,25 +234,35 @@ export default async function handler(req, res) {
             
             if (!transferRes.ok || transferData.errors) {
                 const erroMsg = transferData.errors?.[0]?.description || transferData.message || JSON.stringify(transferData);
-                return { success: false, error: erroMsg };
+                // Rejeição de autenticação não criou uma ordem. Outros erros sem ID
+                // (inclusive suspeita de duplicidade) precisam de conciliação.
+                return { success:false, recusada:transferRes.status===401 && !transferData.id, error:erroMsg };
             }
             if (!transferData.id) return { success: false, error: "Falha desconhecida no banco Asaas." };
-            return { success: true };
+            return { success: true, id: transferData.id, status:transferData.status };
         }
 
-        let statusRepasse = {}; 
-        try { statusRepasse = JSON.parse(c.status_repasse || '{}'); } catch(e){}
-
-        // Verifica quais destinos deste mês já foram pagos anteriormente (evita duplicidade no "Tentar Novamente")
-        let propJaPago = statusRepasse[`${mesRef}_prop`] === 'pago' || valProprietario <= 0;
-        let micJaPago = statusRepasse[`${mesRef}_mic`] === 'pago' || valMIC <= 0;
-        let condJaPago = statusRepasse[`${mesRef}_cond`] === 'pago' || valCondominioPix <= 0;
-
-        // Soma apenas o que ainda falta transferir neste contrato
+        const statusRepasse = JSON.parse(c.status_repasse ?? '{}');
+        if (!statusRepasse || typeof statusRepasse !== 'object' || Array.isArray(statusRepasse)) throw Error('Histórico inválido.');
+        if (statusRepasse[mesRef] === 'recebida') return res.status(200).json({success:true,statusRepasse});
+        let esperado = c.status_repasse;
+        async function gravar() {
+            const filtro = v => v == null ? 'is.null' : 'eq.'+v;
+            const q = new URLSearchParams({id:'eq.'+idReg,status_repasse:filtro(esperado),status_cobranca:filtro(c.status_cobranca),lancamentos_mensais:filtro(c.lancamentos_mensais),select:'id'});
+            const valor = JSON.stringify(statusRepasse);
+            const r = await fetch(SUPABASE_URL+'/rest/v1/locacoes?'+q,{method:'PATCH',
+                headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json',Prefer:'return=representation'},
+                body:JSON.stringify({status_repasse:valor})});
+            if (!r.ok || (await r.json()).length !== 1) throw Error('Estado não confirmado. Recarregue e confira o repasse.');
+            esperado = valor;
+        }
+        const propJaPago = statusRepasse[mesRef+'_prop']==='pago' || valProprietario<=0;
+        const micJaPago = statusRepasse[mesRef+'_mic']==='pago' || valMIC<=0;
+        const condJaPago = statusRepasse[mesRef+'_cond']==='pago' || valCondominioPix<=0;
         let totalPendenteTransferir = 0;
-        if (!propJaPago) totalPendenteTransferir += valProprietario;
-        if (!micJaPago) totalPendenteTransferir += valMIC;
-        if (!condJaPago) totalPendenteTransferir += valCondominioPix;
+        if (!propJaPago && statusRepasse[mesRef+'_prop']!=='enviado') totalPendenteTransferir += valProprietario;
+        if (!micJaPago && statusRepasse[mesRef+'_mic']!=='enviado') totalPendenteTransferir += valMIC;
+        if (!condJaPago && statusRepasse[mesRef+'_cond']!=='enviado') totalPendenteTransferir += valCondominioPix;
         totalPendenteTransferir = Math.round(totalPendenteTransferir * 100) / 100;
 
         // TRAVA DE SALDO DISPONÍVEL NO ASAAS: Só inicia se houver saldo para cobrir TODAS as transferências pendentes deste imóvel
@@ -266,73 +275,62 @@ export default async function handler(req, res) {
                 const saldoConta = typeof balData.balance === 'number' ? balData.balance : 0;
                 if (saldoConta < totalPendenteTransferir) {
                     const msgSaldo = `BLOQUEIO PREVENTIVO: Saldo disponível no Asaas (R$ ${saldoConta.toFixed(2)}) insuficiente para cobrir o repasse total pendente deste imóvel (R$ ${totalPendenteTransferir.toFixed(2)}). Nenhuma transferência foi feita.`;
-                    statusRepasse[`${mesRef}_erro`] = msgSaldo;
-                    await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-                        body: JSON.stringify({ status_repasse: JSON.stringify(statusRepasse) })
-                    });
-                    return res.status(400).json({ error: msgSaldo, statusRepasse });
+                    return res.status(409).json({error:msgSaldo});
                 }
             }
         }
 
-        let errors = [];
-        
-        // 1. Transferência do Proprietário (só executa se ainda não foi paga)
-        if (!propJaPago) {
-            let resProp = await executeTransfer(valProprietario, c.pix_proprietario, c.titular_pix || c.proprietario, `Repasse M&IC ${mesRef} - ${c.inquilino}`);
-            if (resProp.success) {
-                statusRepasse[`${mesRef}_prop`] = 'pago';
-                propJaPago = true;
-            } else {
-                errors.push(`Proprietário: ${resProp.error}`);
+        const destinos = [
+            ['prop',valProprietario,c.pix_proprietario,c.titular_pix || c.proprietario,'Repasse M&IC '+mesRef+' - '+c.inquilino],
+            ['mic',valMIC,'chalfouncorretor@gmail.com','M&IC Corretores','Taxa Adm + Seguro '+mesRef+' - '+c.inquilino],
+            ['cond',valCondominioPix,c.pix_condominio,'Condomínio','Condomínio M&IC '+mesRef+' - '+c.id]
+        ];
+        for (const [tipo,valor,chave] of destinos) {
+            const estado=statusRepasse[mesRef+'_'+tipo];
+            if (estado==='conferir') return res.status(409).json({error:'Confira o PIX de '+tipo+' no Asaas antes de liberar outra tentativa.',statusRepasse});
+            if (!Number.isFinite(valor) || valor<0 || (valor>0 && !chave && estado!=='pago')) throw Error('Confira valor e destino do repasse.');
+        }
+        for (const [tipo,valor,chave,titular,descricao] of destinos) {
+            const campo=mesRef+'_'+tipo;
+            if (valor===0 || statusRepasse[campo]==='pago') continue;
+            if (statusRepasse[campo]==='enviado') {
+                const idAnterior=statusRepasse[campo+'_asaas_id'];
+                if (!idAnterior) throw Error('Transferência sem ID. Confira no Asaas.');
+                const consulta=await fetch('https://api.asaas.com/v3/transfers/'+encodeURIComponent(idAnterior),
+                    {headers:{access_token:ASAAS_KEY}});
+                if (!consulta.ok) throw Error('Falha ao consultar transferência anterior. Nenhum reenvio autorizado.');
+                const anterior=await consulta.json();
+                if (anterior.id!==idAnterior || Math.round(anterior.value*100)!==Math.round(valor*100))
+                    throw Error('A transferência consultada diverge do registro. Confira no Asaas.');
+                if (anterior.status==='DONE') {
+                    statusRepasse[campo]='pago';
+                    await gravar();
+                    continue;
+                }
+                if (anterior.status==='FAILED') {
+                    statusRepasse[campo]='pendente';
+                    await gravar();
+                    return res.status(409).json({error:'Asaas confirmou falha. Após corrigir a causa, tente novamente.',statusRepasse});
+                }
+                return res.status(409).json({error:'Transferência já enviada. Aguarde a conclusão e consulte novamente.',statusRepasse});
             }
-        }
-        
-        // 2. Transferência da M&IC (só executa se ainda não foi paga E se o Proprietário já estiver pago, evitando descontar comissão se o repasse principal falhar)
-        if (!micJaPago && propJaPago) {
-            let resMIC = await executeTransfer(valMIC, 'chalfouncorretor@gmail.com', 'M&IC Corretores', `Taxa Adm + Seguro ${mesRef} - ${c.inquilino}`);
-            if (resMIC.success) {
-                statusRepasse[`${mesRef}_mic`] = 'pago';
-                micJaPago = true;
-            } else {
-                errors.push(`M&IC: ${resMIC.error}`);
+            statusRepasse[campo]='conferir';
+            await gravar();
+            const envio=await executeTransfer(valor,chave,titular,descricao);
+            if (!envio.success) {
+                if (envio.recusada) statusRepasse[campo]='pendente';
+                statusRepasse[mesRef+'_erro']=envio.error;
+                await gravar();
+                return res.status(409).json({error:envio.error,statusRepasse});
             }
+            statusRepasse[campo]=envio.status==='DONE'?'pago':'enviado';
+            statusRepasse[campo+'_asaas_id']=envio.id;
+            await gravar();
+            if (statusRepasse[campo]==='enviado') return res.status(409).json({error:'Ordem recebida pelo Asaas. Consulte novamente para verificar o resultado.',statusRepasse});
         }
-        
-        // 3. Transferência do Condomínio (só executa se ainda não foi paga E se o Proprietário já estiver pago)
-        if (!condJaPago && propJaPago) {
-            let resCond = await executeTransfer(valCondominioPix, c.pix_condominio, 'Condomínio', `Condomínio M&IC ${mesRef} - ${c.id}`);
-            if (resCond.success) {
-                statusRepasse[`${mesRef}_cond`] = 'pago';
-                condJaPago = true;
-            } else {
-                errors.push(`Condomínio: ${resCond.error}`);
-            }
-        }
-
-        // Se todas as pontas estiverem pagas, marca o mês como concluído; caso contrário, registra o erro mas preserva no banco o que já foi pago
-        if (propJaPago && micJaPago && condJaPago && errors.length === 0) {
-            statusRepasse[mesRef] = 'recebida';
-            delete statusRepasse[`${mesRef}_erro`];
-        } else if (errors.length > 0) {
-            statusRepasse[`${mesRef}_erro`] = errors.join(" | ");
-        }
-
-        // Salva SEMPRE no Supabase (mesmo em caso de erro parcial) para nunca repetir um PIX já feito
-        const resPatch = await fetch(`${SUPABASE_URL}/rest/v1/locacoes?id=eq.${idReg}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-            body: JSON.stringify({ status_repasse: JSON.stringify(statusRepasse) })
-        });
-
-        if (!resPatch.ok) throw new Error(`Falha ao atualizar status no banco: ${resPatch.statusText}`);
-
-        if (errors.length > 0) {
-            return res.status(400).json({ error: errors.join(" | "), statusRepasse });
-        }
-
+        statusRepasse[mesRef]='recebida';
+        delete statusRepasse[mesRef+'_erro'];
+        await gravar();
         return res.status(200).json({ success: true, statusRepasse });
     } catch (error) {
         return res.status(500).json({ error: error.message });
