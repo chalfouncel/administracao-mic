@@ -2062,7 +2062,40 @@
                     'Novo vencimento: ' + dataBR(dados.novoVencimento)
                 ];
 
-                alert(mensagem.join(String.fromCharCode(10)));
+                const quebra = String.fromCharCode(10);
+                mensagem.push('', 'Deseja conferir esses valores no Asaas?');
+
+                if (!confirm(mensagem.join(quebra))) return;
+
+                botao.textContent = 'Conferindo...';
+
+                const conferencia = await fetch('/api/excluir-cobranca', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        locacao_id: '${idReg}',
+                        mes_ref: '${mesRef}',
+                        acao: 'conferir_previa',
+                        valoresParaConfirmar: dados.valoresParaConfirmar
+                    })
+                });
+
+                const resultado = await conferencia.json();
+
+                if (!conferencia.ok) {
+                    throw new Error(resultado.error || 'Não foi possível conferir a prévia.');
+                }
+
+                if (resultado.etapa === 'virada_do_mes') {
+                    alert('O mês virou. Feche esta prévia e consulte a cobrança novamente.');
+                    return;
+                }
+
+                if (resultado.previaConferida !== true) {
+                    throw new Error('O servidor não confirmou os valores. Abra uma nova prévia.');
+                }
+
+                alert('Valores conferidos. A cobrança original continua ativa.');
             } else if (dados.etapa === 'virada_do_mes') {
                 alert([
                     'O mês de vencimento já encerrou.',
