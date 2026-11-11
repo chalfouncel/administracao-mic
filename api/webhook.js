@@ -54,6 +54,13 @@ export default async function handler(req, res) {
                             error: 'Histórico de cobranças inválido. Confira a locação antes de reprocessar.'
                         });
                     }
+                    if (statusCobranca[mesRef] === 'transportada') {
+                        console.warn('Pagamento em competência transportada: conciliar no Asaas.', {idReg, mesRef, fatura:payload.payment?.id});
+                        return res.status(200).json({recebido:true, baixaAplicada:false, motivo:'Competência transportada'});
+                    }
+                    if (statusCobranca[mesRef + '_revisao']) {
+                        return res.status(503).json({error:'Revisão em andamento. Reprocessar após a conciliação.'});
+                    }
                     const idFaturaAtiva = statusCobranca[`${mesRef}_fatura_id`];
                     const idFaturaDoEvento = payload.payment?.id;
 
