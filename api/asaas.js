@@ -18,15 +18,55 @@ export default async function handler(req, res) {
             method: 'GET',
             headers: { 'access_token': API_KEY }
         });
+        if (!checkExisting.ok) {
+            return res.status(502).json({
+                error: 'Não foi possível consultar as faturas no Asaas. Tente novamente antes de emitir.'
+            });
+        }
+
         const existingData = await checkExisting.json();
-        if (existingData.data && existingData.data.length > 0) {
-            const faturaAtiva = existingData.data.find(p => !p.deleted && p.status !== 'REFUNDED');
-            if (faturaAtiva && faturaAtiva.invoiceUrl) {
-                return res.status(200).json({
-                    urlFatura: faturaAtiva.invoiceUrl,
-                    faturaId: faturaAtiva.id
+
+        if (!Array.isArray(existingData?.data) || existingData.hasMore) {
+            return res.status(409).json({
+                error: 'A consulta de faturas está incompleta. Confira a competência no Asaas.'
+            });
+        }
+
+        const faturas = existingData.data.filter(
+            fatura => !fatura.deleted && fatura.status !== 'REFUNDED'
+        );
+
+        if (faturas.length > 1) {
+            return res.status(409).json({
+                error: 'Há mais de uma fatura para este imóvel e mês. Confira no Asaas antes de emitir.'
+            });
+        }
+
+        if (faturas.length === 1) {
+            const fatura = faturas[0];
+
+            if (!['PENDING', 'OVERDUE'].includes(fatura.status)) {
+                return res.status(409).json({
+                    error: `Já existe uma fatura com situação ${fatura.status}. Confira no Asaas antes de emitir.`
                 });
             }
+
+            const mesmoValor =
+                Math.round(Number(fatura.value) * 100) ===
+                Math.round(Number(valor) * 100);
+
+            if (!fatura.id || !fatura.invoiceUrl ||
+                fatura.externalReference !== externalReference ||
+                fatura.dueDate !== vencimento || !mesmoValor) {
+                return res.status(409).json({
+                    error: 'A fatura existente não corresponde à emissão solicitada. Confira o valor e o vencimento.'
+                });
+            }
+
+            return res.status(200).json({
+                urlFatura: fatura.invoiceUrl,
+                faturaId: fatura.id
+            });
         }
 
         // 1. Procurar ou Criar o Cliente no Asaas (Para não duplicar cadastros)
