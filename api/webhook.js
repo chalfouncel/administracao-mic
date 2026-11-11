@@ -1,5 +1,13 @@
+import { createHash, timingSafeEqual } from 'node:crypto';
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).send('Método não permitido');
+
+    const esperado = process.env.ASAAS_WEBHOOK_TOKEN;
+    if (!esperado) return res.status(503).json({error:'Webhook sem token configurado.'});
+    const recebido = req.headers['asaas-access-token'];
+    const hash = texto => createHash('sha256').update(texto).digest();
+    if (typeof recebido !== 'string' || !timingSafeEqual(hash(recebido),hash(esperado)))
+        return res.status(401).json({error:'Webhook não autenticado.'});
 
     try {
         const payload = req.body;
