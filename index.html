@@ -309,7 +309,15 @@
         </div>
 
         <div class="grid-3" style="margin-top:14px;">
-          <div><label>Valor do Aluguel Base</label><input type="text" id="aluguelBase" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)"></div>
+          <div>
+  <label>Multa por atraso</label>
+  <input type="text" value="10% (uma única vez)" readonly>
+</div>
+<div>
+  <label>Juros de mora</label>
+  <input type="text" value="1% ao mês" readonly>
+</div>
+<div><label>Valor do Aluguel Base</label><input type="text" id="aluguelBase" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)"></div>
           <div><label>Condomínio Mês Contratado</label><input type="text" id="condominioBase" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)"></div>
           <div><label>Taxa de Adm. Fixa (R$)</label><input type="text" id="valorTaxaAdm" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)"></div>
         </div>
