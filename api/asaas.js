@@ -40,14 +40,20 @@ export default async function handler(req, res) {
         if (req.body.acao === 'ler_recibo') {
             const link = estado[mes+'_url'];
             if (!link || link !== req.body.link) return res.status(409).json({error:'A fatura mudou. Atualize a lista.'});
-            const filtros = new URLSearchParams({locacao_id:'eq.'+id, mes_ref:'eq.'+mes, link_asaas:'eq.'+link,
-                select:'nome_inquilino,valor_total,data_vencimento,recibo_base64',limit:'2'});
-            const fila = await fetch(SUPABASE_URL+'/rest/v1/disparos_email?'+filtros,{headers});
-            if (!fila.ok) throw Error('Falha ao consultar o recibo original.');
-            const registros = await fila.json();
-            if (registros.length === 1) {
+            const filtros = new URLSearchParams({locacao_id:'eq.'+id, mes_ref:'eq.'+mes,
+                link_asaas:'eq.'+link, limit:'2'});
+            let registros;
+            try {
+                const fila = await fetch(SUPABASE_URL+'/rest/v1/disparos_email?'+filtros,{headers});
+                if (fila.ok) registros = await fila.json();
+                else console.warn('Consulta do recibo arquivado: HTTP', fila.status);
+            } catch {
+                console.warn('Recibo arquivado indisponível para leitura.');
+            }
+            if (Array.isArray(registros) && registros.length === 1) {
                 const r = registros[0];
-                if (Number(r.valor_total)>0 && /^\d{4}-\d{2}-\d{2}$/.test(r.data_vencimento))
+                if (r?.link_asaas===link && Number.isFinite(Number(r.valor_total)) &&
+                    Number(r.valor_total)>0 && /^\d{4}-\d{2}-\d{2}$/.test(r.data_vencimento))
                     return res.status(200).json({nome:r.nome_inquilino,valor:Number(r.valor_total),vencimento:r.data_vencimento,
                         imagem:r.recibo_base64,link});
             }
@@ -55,10 +61,17 @@ export default async function handler(req, res) {
                 {headers:{access_token:API_KEY}});
             if (!busca.ok) throw Error('Falha ao consultar a fatura oficial.');
             const pagina = await busca.json();
-            const ativas = pagina.data?.filter(f=>!f.deleted && f.externalReference===externalReference && f.invoiceUrl===link);
-            if (pagina.hasMore || ativas?.length!==1) throw Error('Fatura oficial não identificada.');
+            const ativas = Array.isArray(pagina.data) ? pagina.data.filter(f=>!f.deleted && f.status!=='REFUNDED') : [];
             const f = ativas[0];
-            return res.status(200).json({semRecibo:true,vencimento:f.dueDate,link});
+            if (pagina.hasMore || ativas.length!==1 || f.externalReference!==externalReference ||
+                f.invoiceUrl!==link || (estado[mes+'_fatura_id'] && estado[mes+'_fatura_id']!==f.id))
+                return res.status(409).json({error:'Fatura oficial não identificada com segurança. Confira o link oficial.'});
+            const valorEmitido = f.originalValue ?? f.value;
+            if (typeof valorEmitido!=='number' || !Number.isFinite(valorEmitido) || valorEmitido<=0 ||
+                !/^\d{4}-\d{2}-\d{2}$/.test(f.dueDate))
+                return res.status(502).json({error:'Os dados da fatura oficial estão incompletos.'});
+            return res.status(200).json({valor:valorEmitido,vencimento:f.dueDate,link,
+                descricao:['Dados da fatura oficial Asaas. Detalhamento original indisponível.',f.description].filter(Boolean).join('\n')});
         }
         let esperado=c.status_cobranca;
         async function gravar(){
