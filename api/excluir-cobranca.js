@@ -100,12 +100,41 @@ export default async function handler(req, res) {
                 });
             }
 
-            return res.status(200).json({
+                        const previa = {
                 faturaId: fatura.id,
                 vencimento,
                 totalCentavos,
                 tarifaCentavos,
                 saldoCentavos
+            };
+
+            const mesVencimento = vencimento.slice(0, 7);
+
+            if (hoje.slice(0, 7) !== mesVencimento) {
+                return res.status(200).json({
+                    ...previa,
+                    etapa: 'virada_do_mes'
+                });
+            }
+
+            const multaCentavos = Math.round(saldoCentavos * 10 / 100);
+            const jurosCentavos = Math.round(saldoCentavos / 100);
+            const saldoAtualizadoCentavos =
+                saldoCentavos + multaCentavos + jurosCentavos;
+
+            const [ano, mes] = mesVencimento.split('-').map(Number);
+            const novoVencimento = new Date(Date.UTC(ano, mes, 0))
+                .toISOString()
+                .slice(0, 10);
+
+            return res.status(200).json({
+                ...previa,
+                etapa: 'primeiro_atraso',
+                multaCentavos,
+                jurosCentavos,
+                saldoAtualizadoCentavos,
+                novoTotalCentavos: saldoAtualizadoCentavos + tarifaCentavos,
+                novoVencimento
             });
         }
 
