@@ -1905,7 +1905,7 @@
       try {
           const response = await fetch('/api/excluir-cobranca', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { Authorization: 'Bearer '+(getLocalSession()?.access_token || ''), 'Content-Type': 'application/json' },
               body: JSON.stringify({ locacao_id: idReg, mes_ref: mesRef, acao:'excluir' })
           });
           const data = await response.json();
