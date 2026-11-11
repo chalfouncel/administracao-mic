@@ -36,6 +36,30 @@ export default async function handler(req, res) {
         if (c.user_email?.toLowerCase() !== usuario.email.toLowerCase()) return res.status(403).json({error:'Acesso restrito ao responsável por esta locação.'});
         const estado=JSON.parse(c.status_cobranca ?? '{}');
         if (!estado || Array.isArray(estado) || typeof estado!=='object') throw Error('Histórico inválido.');
+        // O recibo original é identificado pela locação, competência e link da emissão.
+        if (req.body.acao === 'ler_recibo') {
+            const link = estado[mes+'_url'];
+            if (!link || link !== req.body.link) return res.status(409).json({error:'A fatura mudou. Atualize a lista.'});
+            const filtros = new URLSearchParams({locacao_id:'eq.'+id, mes_ref:'eq.'+mes, link_asaas:'eq.'+link,
+                select:'nome_inquilino,valor_total,data_vencimento,recibo_base64',limit:'2'});
+            const fila = await fetch(SUPABASE_URL+'/rest/v1/disparos_email?'+filtros,{headers});
+            if (!fila.ok) throw Error('Falha ao consultar o recibo original.');
+            const registros = await fila.json();
+            if (registros.length === 1) {
+                const r = registros[0];
+                if (Number(r.valor_total)>0 && /^\d{4}-\d{2}-\d{2}$/.test(r.data_vencimento))
+                    return res.status(200).json({nome:r.nome_inquilino,valor:Number(r.valor_total),vencimento:r.data_vencimento,
+                        imagem:r.recibo_base64,link});
+            }
+            const busca = await fetch('https://api.asaas.com/v3/payments?externalReference='+encodeURIComponent(externalReference),
+                {headers:{access_token:API_KEY}});
+            if (!busca.ok) throw Error('Falha ao consultar a fatura oficial.');
+            const pagina = await busca.json();
+            const ativas = pagina.data?.filter(f=>!f.deleted && f.externalReference===externalReference && f.invoiceUrl===link);
+            if (pagina.hasMore || ativas?.length!==1) throw Error('Fatura oficial não identificada.');
+            const f = ativas[0];
+            return res.status(200).json({semRecibo:true,vencimento:f.dueDate,link});
+        }
         let esperado=c.status_cobranca;
         async function gravar(){
             const q=new URLSearchParams({id:'eq.'+id,user_email:'eq.'+c.user_email,status_cobranca:esperado==null?'is.null':'eq.'+esperado,select:'id'});
@@ -47,8 +71,9 @@ export default async function handler(req, res) {
         const reserva=mes+'_emissao';
         if (estado[reserva] || estado[mes+'_revisao'] || ['recebida','transportada'].includes(estado[mes]))
             return res.status(409).json({error:'Competência bloqueada, recebida ou transportada. Confira a situação antes de repetir.'});
-        async function registrar(fatura){
+        async function registrar(fatura, resumo){
             if(!fatura.id || !fatura.invoiceUrl) throw Error('Emissão não confirmada. Confira no Asaas.');
+            if (resumo) estado[mes+'_recibo']={...resumo,id:fatura.id,link:fatura.invoiceUrl};
             delete estado[reserva]; estado[mes]='aguardando_asaas'; estado[mes+'_url']=fatura.invoiceUrl; estado[mes+'_fatura_id']=fatura.id;
             await gravar();
         }
@@ -133,6 +158,14 @@ export default async function handler(req, res) {
 
         // 2. Criar a Cobrança no Asaas
         if (estado[mes] === 'aguardando_asaas' || estado[mes+'_url']) return res.status(409).json({error:'O painel já possui fatura. Confira no Asaas.'});
+        const linhas = req.body.linhasRecibo;
+        let resumo;
+        if (linhas !== undefined) {
+            if (!Array.isArray(linhas) || !linhas.length || linhas.length>30 ||
+                !linhas.every(l=>Array.isArray(l) && l.length===2 && l.every(v=>typeof v==='string' && v.length<=8000)))
+                return res.status(400).json({error:'Recibo inválido. Reabra a aba Cobrança.'});
+            resumo={nome:nomeInquilino,valor,vencimento,linhas};
+        }
         estado[reserva]={inicio:new Date().toISOString(),valor,vencimento};
         await gravar();
         const createPayment = await fetch('https://api.asaas.com/v3/payments', {
@@ -150,7 +183,7 @@ export default async function handler(req, res) {
         const paymentResult = await createPayment.json();
         if (!createPayment.ok) throw new Error(paymentResult.errors[0].description);
 
-        await registrar(paymentResult);
+        await registrar(paymentResult,resumo);
         const linkFatura = paymentResult.invoiceUrl;
         const ids = externalReference.split('||'); 
         const locacao_id = ids[0];
