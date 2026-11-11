@@ -2019,9 +2019,44 @@
                   </summary>
                   <div style="display:flex; gap:6px; margin-top:6px">
                       <button type="button" class="btn"
-                          onclick="alert('A prévia dos novos valores ainda não está instalada. A cobrança continua ativa.')">
-                          Sim
-                      </button>
+    onclick="(async (botao) => {
+        botao.disabled = true;
+        botao.textContent = 'Consultando...';
+
+        try {
+            const resposta = await fetch('/api/excluir-cobranca', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    locacao_id: '${idReg}',
+                    mes_ref: '${mesRef}',
+                    acao: 'consultar_vencida'
+                })
+            });
+
+            const dados = await resposta.json();
+
+            if (!resposta.ok) {
+                throw new Error(dados.error || 'Não foi possível consultar a fatura.');
+            }
+
+            const mensagem = [
+                'Fatura vencida em ' + dados.vencimento.split('-').reverse().join('/'),
+                'Valor da fatura: ' + fmtMoeda(dados.totalCentavos / 100),
+                'Tarifa bancária: ' + fmtMoeda(dados.tarifaCentavos / 100),
+                'Saldo sem tarifa: ' + fmtMoeda(dados.saldoCentavos / 100)
+            ];
+
+            alert(mensagem.join(String.fromCharCode(10)));
+        } catch (erro) {
+            alert('Falha na consulta: ' + erro.message);
+        } finally {
+            botao.disabled = false;
+            botao.textContent = 'Sim';
+        }
+    })(this)">
+    Sim
+</button>
                       <button type="button" class="btn"
                           onclick="this.closest('details').open = false">
                           Não
