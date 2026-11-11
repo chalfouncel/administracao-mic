@@ -2040,14 +2040,34 @@
                 throw new Error(dados.error || 'Não foi possível consultar a fatura.');
             }
 
-            const mensagem = [
-                'Fatura vencida em ' + dados.vencimento.split('-').reverse().join('/'),
-                'Valor da fatura: ' + fmtMoeda(dados.totalCentavos / 100),
-                'Tarifa bancária: ' + fmtMoeda(dados.tarifaCentavos / 100),
-                'Saldo sem tarifa: ' + fmtMoeda(dados.saldoCentavos / 100)
-            ];
+                        const moeda = centavos => fmtMoeda(centavos / 100);
+            const dataBR = data => data.split('-').reverse().join('/');
 
-            alert(mensagem.join(String.fromCharCode(10)));
+            if (dados.etapa === 'primeiro_atraso') {
+                const mensagem = [
+                    'Prévia da cobrança atualizada',
+                    '',
+                    'Vencimento original: ' + dataBR(dados.vencimento),
+                    'Saldo sem tarifa: ' + moeda(dados.saldoCentavos),
+                    'Multa de 10%: ' + moeda(dados.multaCentavos),
+                    'Juros de 1%: ' + moeda(dados.jurosCentavos),
+                    'Saldo atualizado: ' + moeda(dados.saldoAtualizadoCentavos),
+                    'Tarifa bancária: ' + moeda(dados.tarifaCentavos),
+                    '',
+                    'Valor do novo link: ' + moeda(dados.novoTotalCentavos),
+                    'Novo vencimento: ' + dataBR(dados.novoVencimento)
+                ];
+
+                alert(mensagem.join(String.fromCharCode(10)));
+            } else if (dados.etapa === 'virada_do_mes') {
+                alert([
+                    'O mês de vencimento já encerrou.',
+                    'Saldo da fatura vencida, sem tarifa: ' + moeda(dados.saldoCentavos),
+                    'O transporte para o mês seguinte ainda não está habilitado.'
+                ].join(String.fromCharCode(10)));
+            } else {
+                alert('A consulta retornou sem a prévia. Confira se a alteração 4 já foi publicada.');
+            }
         } catch (erro) {
             alert('Falha na consulta: ' + erro.message);
         } finally {
