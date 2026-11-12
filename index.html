@@ -1081,6 +1081,11 @@
   function flash(id, val) {
     if (val !== null && val !== undefined) {
       let cleanVal = String(val).replace(/[\{\}]/g, '').trim();
+
+      if (['proprietario', 'titularPix', 'inquilino'].includes(id)) {
+        cleanVal = cleanVal.normalize('NFC').replace(/\u00C1\u201Eo/g, 'ção');
+      }
+
       if (cleanVal !== '') {
         const el = document.getElementById(id);
         if (el) { 
