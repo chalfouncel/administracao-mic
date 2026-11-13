@@ -87,6 +87,14 @@ export default async function handler(req, res) {
                         });
                     }
 
+                                     if (payload.payment.status === 'RECEIVED_IN_CASH') {
+                        const linkAtivo = statusCobranca[mesRef + '_url'];
+                        if (!idFaturaDoEvento || (!idFaturaAtiva && (!linkAtivo || linkAtivo !== payload.payment.invoiceUrl))) {
+                            return res.status(409).json({error:'Confira a fatura do recebimento em dinheiro.'});
+                        }
+                        statusCobranca[mesRef + '_fatura_id'] = idFaturaDoEvento;
+                        statusCobranca[mesRef + '_dinheiro_id'] = idFaturaDoEvento;
+                    }
                     statusCobranca[mesRef] = 'recebida';
 
                     const statusLido = dataGet[0].status_cobranca;
