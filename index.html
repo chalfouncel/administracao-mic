@@ -1987,6 +1987,11 @@
      }
   }
 
+    function recebidoEmDinheiro(estado, mes) {
+      const id = estado[mes + '_dinheiro_id'];
+      return estado[mes] === 'recebida' && Boolean(id) && id === estado[mes + '_fatura_id'];
+  }
+
   async function mostrarCobrancaEmitida({slot,c,idReg,estado,link,mesRef}) {
       const box = document.getElementById(slot);
       const pago = estado[mesRef] === 'recebida';
@@ -2016,7 +2021,7 @@
           const a = elemento(acoes,'a','📄 Ver Fatura Oficial','btn btn-dark');
           a.href = link; a.target = '_blank'; a.rel = 'noopener';
       }
-      const aviso = elemento(box,'p',pago?'✅ Recebido via Asaas':'⏳ Aguardando confirmação do Asaas...');
+      const aviso = elemento(box,'p',recebidoEmDinheiro(estado, mesRef)?'✅ Recebido em dinheiro':pago?'✅ Recebido via Asaas':'⏳ Aguardando confirmação do Asaas...');
       if (pago) aviso.style.color='#166534';
       const status = elemento(recibo,'p','Carregando recibo da emissão…');
       try {
@@ -2262,7 +2267,7 @@
         if (c.ativo !== 'SIM') return false;
         let sC = {}; try{ sC = JSON.parse(c.status_cobranca || '{}'); }catch(e){}
         let sR = {}; try{ sR = JSON.parse(c.status_repasse || '{}'); }catch(e){}
-        return sC[mesRef] === 'recebida' && sR[mesRef] !== 'recebida';
+        return sC[mesRef] === 'recebida' && !recebidoEmDinheiro(sC, mesRef) && sR[mesRef] !== 'recebida';
     });
 
     if (contratosParaTransferir.length === 0) {
@@ -2414,6 +2419,22 @@
       let statusCob = {}; try { statusCob = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
       let statusRep = {}; try { statusRep = JSON.parse(c.status_repasse || '{}'); } catch(e) {} 
       
+      if (recebidoEmDinheiro(statusCob, mesRef) && statusRep[mesRef] !== 'recebida') {
+          const card = document.createElement('div');
+          card.className = 'card';
+
+          const titulo = document.createElement('strong');
+          titulo.textContent = 'Repasse manual';
+
+          const detalhe = document.createElement('p');
+          detalhe.textContent = (c.proprietario || '') + ' — ' + formatarMesAno(mesRef) +
+              ' · Valor a repassar ao proprietário: ' + fmtMoeda(valProprietario);
+
+          card.append(titulo, detalhe);
+          container.appendChild(card);
+          return;
+      }
+
       let isCobrancaPaga = statusCob[mesRef] === 'recebida';
       let isRepasseFeito = statusRep[mesRef] === 'recebida';
 
@@ -2542,7 +2563,9 @@ let repGeralStatus = 'Aguardando Inquilino';
 let bgGeral = '#f1f5f9'; let corGeral = '#64748b'; let iconeRep = '⏳';
 
 if (cobStatus === 'recebida' && repStatus !== 'recebida') { 
-    repGeralStatus = 'Liberado p/ Repasse'; bgGeral = '#fef08a'; corGeral = '#a16207'; 
+    repGeralStatus = recebidoEmDinheiro(sC, mesRef) ? 'Repasse manual' : 'Liberado p/ Repasse';
+    bgGeral = '#fef08a';
+    corGeral = '#a16207';
 }
 if (repStatus === 'recebida') { 
     repGeralStatus = 'Concluído no Asaas'; bgGeral = '#dcfce7'; corGeral = '#166534'; iconeRep = '✅'; 
