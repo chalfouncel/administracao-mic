@@ -386,11 +386,12 @@
               <th class="fit">Status</th>
               <th>Inquilino</th>
               <th>Endereço do Imóvel</th>
+              <th class="fit" style="text-align:center;">Transf. contas de consumo</th>
               <th class="fit" style="text-align: center;">Venc.</th>
               <th class="fit" style="text-align: center;">Contrato</th>
             </tr>
           </thead>
-          <tbody id="tabela-imoveis-linear-body"><tr><td colspan="7" style="text-align: center; padding: 20px; color: #64748b;">Carregando imóveis administrados...</td></tr></tbody>
+          <tbody id="tabela-imoveis-linear-body"><tr><td colspan="8" style="text-align: center; padding: 20px; color: #64748b;">Carregando imóveis administrados...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1432,12 +1433,60 @@
     return { html: bola, textoCob, htmlCard };
   }
 
+  const consumoSalvando = new Set();
+  const AVISO_CONTAS_CONSUMO = 'Não consta nos nossos registros os comprovantes de alteração da titularidade das contas de consumo conforme determina o contrato. Evite multa enviando imediatamente';
+
+  function avisoConsumoWhatsApp(c) {
+      return c.transf_contas_consumo === true ? '' : '\n\n*⚠️ PENDÊNCIA — CONTAS DE CONSUMO*\n*' + AVISO_CONTAS_CONSUMO + '*';
+  }
+
+  async function salvarTransferenciaConsumo(index, select) {
+      const c = contratosDB[index];
+      const anterior = c?.transf_contas_consumo === true;
+      const restaurar = () => { select.value = anterior ? 'SIM' : 'NAO'; };
+      if (!c?.id) {
+          restaurar();
+          alert('Atualize a lista antes de alterar a transferência das contas de consumo.');
+          return;
+      }
+      const id = String(c.id);
+      if (consumoSalvando.has(id)) { restaurar(); return; }
+      if (!['SIM', 'NAO'].includes(select.value)) { restaurar(); return; }
+      const valor = select.value === 'SIM';
+      if (valor === anterior) return;
+      consumoSalvando.add(id);
+      select.disabled = true;
+      try {
+          const filtros = new URLSearchParams({ id: 'eq.' + id, select: 'id,transf_contas_consumo' });
+          const resposta = await supabaseFetchWithRefresh('/rest/v1/locacoes?' + filtros, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+              body: JSON.stringify({ transf_contas_consumo: valor })
+          });
+          if (!resposta.ok) throw Error('O banco não confirmou a alteração.');
+          const dados = await resposta.json();
+          if (!Array.isArray(dados) || dados.length !== 1 ||
+              String(dados[0].id) !== id || dados[0].transf_contas_consumo !== valor)
+              throw Error('Não foi possível confirmar a gravação deste contrato.');
+          c.transf_contas_consumo = valor;
+          const atual = contratosDB.find(item => String(item.id) === id);
+          if (atual) atual.transf_contas_consumo = valor;
+      } catch (erro) {
+          restaurar();
+          alert('Não foi possível confirmar a alteração das contas de consumo: ' + erro.message + ' Atualize a lista para conferir antes de enviar a cobrança.');
+      } finally {
+          consumoSalvando.delete(id);
+          select.disabled = false;
+          atualizarInterfaceGeral();
+      }
+  }
+
   function renderizarTabelaLinear() {
     const tbody = document.getElementById('tabela-imoveis-linear-body'); if (!tbody) return; tbody.innerHTML = '';
     const imoveisVisiveis = contratosDB.filter(c => c.ativo !== 'EXCLUIDO');
     const checkAllBtn = document.getElementById('check-all-imoveis');
     if (checkAllBtn) checkAllBtn.checked = imoveisVisiveis.length > 0 && imoveisVisiveis.every(c => contratosMarcados.has(String(c.id || c._tempId)));
-    if (imoveisVisiveis.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: #64748b;">Nenhum imóvel registrado.</td></tr>'; return; }
+    if (imoveisVisiveis.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px; color: #64748b;">Nenhum imóvel registrado.</td></tr>'; return; }
 
     imoveisVisiveis.forEach((c) => {
       const i = contratosDB.indexOf(c); const idReg = c.id || c._tempId; const isMarcado = contratosMarcados.has(String(idReg)) ? 'checked' : ''; const venc = getAvisoVencimento(c);
@@ -1453,7 +1502,13 @@
           <td class="fit" style="text-align: center;"><input type="checkbox" class="checkbox-marcar" onchange="toggleMarcar('${idReg}', this.checked)" ${isMarcado}></td>
           <td class="fit"><select onchange="updateDbLinear(${i}, 'ativo', this.value)" style="padding: 6px; font-size: 0.82rem; min-width: 110px; width: auto;"><option value="SIM" ${c.ativo === 'SIM' ? 'selected' : ''}>🟢 Ativo</option><option value="NÃO" ${c.ativo === 'NÃO' ? 'selected' : ''}>🔴 Inativo</option></select></td>
           <td><strong style="font-size: 0.95rem;">${c.inquilino}</strong> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarCPF(${i})">✏️ CPF</button><br><span style="font-size: 0.75rem; color: #64748b;">Locador: ${c.proprietario || '-'}</span> <button class="btn-edit-pix" style="padding:2px 4px; font-size:0.6rem;" onclick="editarPix(${i})">✏️ Dados Pgto</button></td>
-          <td>${c.endereco || ''}</td><td class="fit" style="text-align: center;">${venc.html}</td><td class="fit" style="text-align: center;">${btnPdf}</td>
+          <td>${c.endereco || ''}</td>
+          <td class="fit" style="text-align:center;">
+              <select aria-label="Transferência das contas de consumo" title="SIM: comprovantes recebidos e conferidos" onchange="salvarTransferenciaConsumo(${i}, this)" ${consumoSalvando.has(String(idReg)) ? 'disabled' : ''} style="width:auto; min-width:85px; padding:6px; font-weight:bold; color:${c.transf_contas_consumo === true ? '#166534' : '#b91c1c'};">
+                  <option value="SIM" ${c.transf_contas_consumo === true ? 'selected' : ''}>SIM</option>
+                  <option value="NAO" ${c.transf_contas_consumo !== true ? 'selected' : ''}>NÃO</option>
+              </select>
+          </td><td class="fit" style="text-align: center;">${venc.html}</td><td class="fit" style="text-align: center;">${btnPdf}</td>
         </tr>`;
     });
   }
@@ -1461,12 +1516,12 @@
   async function carregarImoveis(forceUI = true) {
     if (isLoadingImoveis) return; isLoadingImoveis = true;
     const tbody = document.getElementById('tabela-imoveis-linear-body');
-    if (forceUI && tbody && contratosDB.length === 0) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">Sincronizando...</td></tr>';
+    if (forceUI && tbody && contratosDB.length === 0) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">Sincronizando...</td></tr>';
     try {
-      const colunas = 'id,created_at,user_email,proprietario,telefone_proprietario,pix_proprietario,titular_pix,inquilino,cpf_inquilino,email_inquilino,telefone_inquilino,endereco,data_inicio,data_fim,aluguel_base,condominio_base,taxa_adm_fixa,taxa_adm_pct,regra_condominio,pix_condominio,regra_seguro,ativo,reajuste_aplicado,historico_reajuste,lancamentos_mensais,status_cobranca,status_repasse';
+      const colunas = 'id,created_at,user_email,proprietario,telefone_proprietario,pix_proprietario,titular_pix,inquilino,cpf_inquilino,email_inquilino,telefone_inquilino,endereco,data_inicio,data_fim,aluguel_base,condominio_base,taxa_adm_fixa,taxa_adm_pct,regra_condominio,pix_condominio,regra_seguro,ativo,reajuste_aplicado,historico_reajuste,lancamentos_mensais,status_cobranca,status_repasse,transf_contas_consumo';
       const resp = await supabaseFetchWithRefresh(`/rest/v1/locacoes?select=${colunas}&order=created_at.desc`, { method: 'GET' });
       if (resp.ok) { contratosDB = await resp.json(); atualizarInterfaceGeral(); } else throw new Error("Erro na API.");
-    } catch(e) { if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: red;">Falha de conexão: ${e.message}</td></tr>`; } 
+    } catch(e) { if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: red;">Falha de conexão: ${e.message}</td></tr>`; } 
     finally { isLoadingImoveis = false; }
   }
 
@@ -1559,6 +1614,7 @@
           const s = getLocalSession(); let emailUser = 'chalfouncorretor@gmail.com'; if (s && s.user && s.user.email) emailUser = s.user.email;
 
           payload.user_email = emailUser;
+          payload.transf_contas_consumo = false;
           payload.taxa_adm_pct = 10;
           payload.ativo = 'SIM';
           payload.reajuste_aplicado = 'NAO';
@@ -2070,7 +2126,7 @@
           if (!r.semRecibo) texto.push('TOTAL A PAGAR: '+fmtMoeda(r.valor));
           texto.push('Pague aqui: '+link);
           const msg = elemento(box,'textarea');
-          msg.id='txt-cob-'+idReg; msg.hidden=true; msg.value=texto.filter(Boolean).join('\n');
+          msg.id='txt-cob-'+idReg; msg.hidden=true; msg.value=texto.filter(Boolean).join('\n') + avisoConsumoWhatsApp(c);
           if (!pago) {
               const hoje = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
               if (hoje>r.vencimento) {
@@ -2178,6 +2234,7 @@
       linhasCard += `<div class="comp-line" style="color:#64748b; font-size:0.75rem;"><span>Tarifa Bancária</span> <span>${fmtMoeda(vTarifaBancaria)}</span></div>`;
 
       texto += `\nTOTAL A PAGAR: ${fmtMoeda(totalComTarifa)}`;
+      texto += avisoConsumoWhatsApp(c);
 
       const bgPainel = '#f8fafc';
       const msgFinal = `<div style="text-align:center; margin-top:12px; font-weight:bold; color:#a16207; font-size:0.85rem;">⏳ Fatura não gerada.</div>`;
