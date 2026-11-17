@@ -85,6 +85,28 @@ export default async function handler(req, res) {
             }
 
             if (deveEnviar) {
+                // Consulta a situação atual; não altera o recibo ou os valores da emissão.
+                const filtrosConsumo = new URLSearchParams({
+                    id: 'eq.' + item.locacao_id,
+                    select: 'id,transf_contas_consumo'
+                });
+                const consultaConsumo = await fetch(SUPABASE_URL + '/rest/v1/locacoes?' + filtrosConsumo, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+                });
+                if (!consultaConsumo.ok) {
+                    throw new Error('Falha ao consultar a transferência das contas de consumo. O e-mail permanece pendente.');
+                }
+                const contratosConsumo = await consultaConsumo.json();
+                if (!Array.isArray(contratosConsumo) || contratosConsumo.length !== 1 ||
+                    String(contratosConsumo[0].id) !== String(item.locacao_id) ||
+                    typeof contratosConsumo[0].transf_contas_consumo !== 'boolean') {
+                    throw new Error('Situação das contas de consumo não identificada. O e-mail permanece pendente.');
+                }
+                const avisoConsumo = contratosConsumo[0].transf_contas_consumo ? '' : `
+                    <div style="margin:20px 0; padding:16px; background:#fff7ed; border:2px solid #c2410c; border-radius:8px; color:#9a3412;">
+                        <strong>⚠️ PENDÊNCIA — CONTAS DE CONSUMO</strong>
+                        <p style="margin:8px 0 0; font-weight:bold;">Não consta nos nossos registros os comprovantes de alteração da titularidade das contas de consumo conforme determina o contrato. Evite multa enviando imediatamente</p>
+                    </div>`;
                 const resendRes = await fetch('https://api.resend.com/emails', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -98,6 +120,7 @@ export default async function handler(req, res) {
                                 <p>${assuntoEmail}</p>
                                 <p>Pode pagar diretamente através do link seguro do seu banco (Asaas) clicando no botão abaixo:</p>
                                 <a href="${item.link_asaas}" style="display: inline-block; padding: 12px 24px; background-color: #001e60; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">Pagar Fatura Oficial</a>
+                                ${avisoConsumo}
                                 <p>Abaixo, segue o recibo descritivo dos valores deste mês:</p>
                                 <img src="${item.recibo_base64}" alt="Recibo M&IC" style="max-width: 100%; border: 1px solid #ddd; border-radius: 8px; margin-top: 20px;" />
                                 <hr style="margin-top: 30px; border: none; border-top: 1px solid #eee;" />
