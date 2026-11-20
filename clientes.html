@@ -548,7 +548,8 @@
         <div id="view-registros-grid">
           <div class="card" style="border-top: 3px solid var(--accent); margin-bottom: 0;">
             <div class="card-title">
-              <span>Módulo de Certidões (Vendas Pendentes)</span>
+              <span>Módulo de Certidões</span>
+              <button class="btn btn-gold" onclick="mostrarFormularioCard()">＋ Adicionar certidões</button>
             </div>
             <div id="container-grid-registros" class="grid-registros"></div>
           </div>
@@ -561,6 +562,10 @@
           <button class="btn btn-light" onclick="voltarParaGridRegistros()">⬅ Voltar para Lista</button>
         </div>
 
+        <div id="painel-vinculo-certidao" hidden style="padding:14px;margin-bottom:16px;border:1px solid #e2c46d;border-radius:8px;background:#fffbeb;">
+          <p id="situacao-vinculo-certidao" style="margin-bottom:10px;"></p>
+          <button id="btn-vincular-certidao" class="btn btn-gold" onclick="mostrarVinculoCertidao()">Vincular venda</button>
+        </div>
         <div id="setup-form-registro" style="max-width: 400px; margin: 20px auto; text-align: center;">
           <p>Informe as quantidades para gerar a estrutura de campos:</p>
           <div style="display: flex; gap: 15px; margin-bottom: 15px;">
@@ -716,12 +721,55 @@
         </div>
       </div>
     </div>
+    <div class="doc-block" style="border-top:3px solid var(--accent);">
+      <div class="doc-block-title"><label for="anotacoes-registro" style="margin:0;text-transform:none;">📝 Anotações para Registro</label></div>
+      <div style="padding:16px;">
+        <p id="card-anotacoes-registro" style="font-size:0.85rem;margin-bottom:10px;color:#475569;">Abra um card de certidões para escrever e salvar suas anotações.</p>
+        <textarea id="anotacoes-registro" rows="20" lang="pt-BR" spellcheck="true" disabled
+          aria-describedby="card-anotacoes-registro ajuda-anotacoes-registro"
+          placeholder="Escreva aqui suas observações, pendências e orientações para o registro..."
+          oninput="document.getElementById('status-anotacoes-registro').textContent = 'Alterações ainda não salvas.'"
+          style="width:100%;resize:vertical;line-height:1.5;font-size:0.95rem;"></textarea>
+        <p id="ajuda-anotacoes-registro" style="font-size:0.78rem;color:#64748b;margin:8px 0;">Texto salvo neste card. Corretor ortográfico do navegador habilitado para português (Brasil).</p>
+        <button id="btn-salvar-anotacoes" class="btn btn-gold" disabled onclick="salvarDadosDoRegistroDB(true)">💾 Salvar anotações e certidões</button>
+        <p id="status-anotacoes-registro" role="status" aria-live="polite" style="font-size:0.82rem;margin-top:8px;"></p>
+      </div>
+    </div>
   </div>
 </div>
 
   </div>
 
 </div>
+
+<dialog id="dialog-card-manual" style="margin:auto;border:1px solid #cbd5e1;border-radius:14px;padding:24px;width:min(520px,94vw);">
+  <form onsubmit="criarCardManual(event)">
+    <h2 style="margin-bottom:16px;">Adicionar certidões</h2>
+    <label for="nome-card-manual">Nome / Operação</label>
+    <input id="nome-card-manual" required maxlength="200" placeholder="Ex.: Maria — Venda apartamento Tijuca">
+    <p style="margin:12px 0;color:#475569;">Este card não cria um lançamento financeiro. Você poderá vinculá-lo à venda depois. Cards manuais ficam disponíveis para o usuário que os criou, inclusive em outros dispositivos.</p>
+    <p id="erro-card-manual" role="alert" style="color:#b91c1c;"></p>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
+      <button type="button" class="btn btn-light" onclick="document.getElementById('dialog-card-manual').close()">Cancelar</button>
+      <button type="submit" id="btn-criar-card" class="btn btn-gold">Criar card</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="dialog-vinculo-certidao" style="margin:auto;border:1px solid #cbd5e1;border-radius:14px;padding:24px;width:min(640px,94vw);">
+  <form onsubmit="confirmarVinculoCertidao(event)">
+    <h2 style="margin-bottom:16px;">Vincular contrato de venda</h2>
+    <label for="busca-venda-certidao">Buscar pelo Nome / Operação</label>
+    <input id="busca-venda-certidao" type="search" oninput="filtrarVendasCertidao()" placeholder="Digite parte do nome...">
+    <label for="venda-certidao" style="margin-top:14px;">Venda cadastrada</label>
+    <select id="venda-certidao" required></select>
+    <p id="total-vendas-certidao" style="margin:12px 0;color:#475569;"></p>
+    <p id="erro-vinculo-certidao" role="alert" style="color:#b91c1c;"></p>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
+      <button type="button" class="btn btn-light" onclick="document.getElementById('dialog-vinculo-certidao').close()">Cancelar</button>
+      <button type="submit" id="btn-confirmar-vinculo" class="btn btn-gold">Confirmar vínculo</button>
+    </div>
+  </form>
+</dialog>
 
 <script>
 // Alterna entre Amarelo e Verde Claro direto no estilo do input
@@ -2202,55 +2250,272 @@ document.addEventListener('click', function(e) {
     return d;
   }
 
-  function renderizarGridRegistros() {
-    const container = document.getElementById('container-grid-registros');
+  // Cards manuais: separados dos lançamentos financeiros.
+  let certidoesManuais = [];
+  let cargaCertidoes = 0;
+  let operacaoCertidao = false;
 
-    const registros = dadosDB.filter(d => {
-      const sit = String(d.situacao || '').toUpperCase();
-      const rec = String(d.recebido || '').toUpperCase();
-      const dadosCert = obterObjetoDadosCertidao(d);
-
-      // Se já foi concluído/removido manualmente, nunca mais aparece
-      if (dadosCert && dadosCert.concluido === true) return false;
-
-      const temDadosSalvos = !!(dadosCert && (dadosCert.vend || dadosCert.comp || dadosCert.imovel));
-
-      // Nasce se for VENDA com Recebido = NÃO, ou permanece na tela se já tiver dados preenchidos (mesmo após passar para Recebido = SIM)
-      if (sit === 'VENDA' && (rec === 'NÃO' || temDadosSalvos)) return true;
-
-      // Mantém visíveis os cards que já tinham dados preenchidos anteriormente
-      if (temDadosSalvos) return true;
-
-      return false;
-    });
-
-    if (registros.length === 0) {
-      container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#64748b;">Nenhuma venda pendente de certidões encontrada.</div>';
-      return;
-    }
-
-    container.innerHTML = registros.map(reg => {
-      const dadosCert = obterObjetoDadosCertidao(reg);
-      const preenchido = !!(dadosCert && (dadosCert.vend || dadosCert.comp || dadosCert.imovel));
-      return `
-        <div class="card-registro-box" onclick="abrirDetalheRegistro(${reg.id})">
-          <div class="card-registro-nome">${reg.nome || 'Cliente sem nome'}</div>
-          <div class="card-registro-id">Lançamento #${reg.id}</div>
-          <div style="font-size:0.75rem; margin-top:5px; color:#64748b;">${reg.mes}/${reg.ano}</div>
-          ${preenchido ? '<div style="margin-top:8px; font-size:0.7rem; color:green; font-weight:bold;">✅ Dados Preenchidos</div>' : '<div style="margin-top:8px; font-size:0.7rem; color:orange; font-weight:bold;">⚠️ Pendente</div>'}
-        </div>
-      `;
-    }).join('');
+  function escaparCertidao(valor) {
+    return String(valor ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  function abrirDetalheRegistro(id) {
+  function carregarAnotacoesCertidao(registro) {
+    const campo = document.getElementById('anotacoes-registro');
+    campo.value = registro ? String(obterObjetoDadosCertidao(registro)?.anotacoes_registro || '') : '';
+    campo.disabled = !registro;
+    document.getElementById('btn-salvar-anotacoes').disabled = !registro;
+    document.getElementById('card-anotacoes-registro').textContent = registro
+      ? 'Anotações de: ' + (registro.nome || 'Sem nome')
+      : 'Abra um card de certidões para escrever e salvar suas anotações.';
+    document.getElementById('status-anotacoes-registro').textContent = '';
+  }
+
+  function obterRegistroCertidao(id = idRegistroAberto) {
+    if (String(id).startsWith('manual:')) {
+      const card = certidoesManuais.find(c => 'manual:' + c.id === id);
+      if (!card) return null;
+      const venda = card.venda || (window.vendasParaCertidao || []).find(v => v.id === card.venda_id) || dadosDB.find(v => v.id === card.venda_id);
+      return {...card, id: 'manual:' + card.id, manual: true,
+        nome: card.nome, nomeVenda: venda?.nome, mes: venda?.mes, ano: venda?.ano};
+    }
+    return dadosDB.find(d => d.id === id) || null;
+  }
+
+  async function requisicaoCertidao(caminho, metodo = 'GET', corpo) {
+    let sessao;
+    try { sessao = JSON.parse(localStorage.getItem('mic_auth_session')); } catch (_) {}
+    if (!sessao?.access_token) throw new Error('Sua sessão expirou. Entre novamente.');
+    const resposta = await fetch(SUPABASE_URL + '/rest/v1/' + caminho, {
+      method: metodo,
+      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + sessao.access_token,
+        'Content-Type': 'application/json', Prefer: 'return=representation' },
+      ...(corpo === undefined ? {} : {body: JSON.stringify(corpo)})
+    });
+    const texto = await resposta.text();
+    let dados;
+    try { dados = texto ? JSON.parse(texto) : null; } catch (_) {}
+    if (!resposta.ok) {
+      if (dados?.code === 'PGRST205' || dados?.code === '42P01') {
+        throw new Error('A tabela de certidões manuais ainda não está instalada. Execute o SQL fornecido antes de usar esta versão.');
+      }
+      throw new Error(dados?.message || 'Não foi possível salvar/consultar as certidões (HTTP ' + resposta.status + ').');
+    }
+    return dados;
+  }
+
+  function mostrarFormularioCard() {
+    if (operacaoCertidao) return;
+    document.getElementById('nome-card-manual').value = '';
+    document.getElementById('erro-card-manual').textContent = '';
+    document.getElementById('dialog-card-manual').showModal();
+    document.getElementById('nome-card-manual').focus();
+  }
+
+  async function criarCardManual(evento) {
+    evento.preventDefault();
+    if (operacaoCertidao) return;
+    const nome = document.getElementById('nome-card-manual').value.trim();
+    if (!nome || nome.length > 200) return;
+    const botao = document.getElementById('btn-criar-card');
+    operacaoCertidao = true;
+    botao.disabled = true;
+    try {
+      const resposta = await requisicaoCertidao('certidoes_manuais', 'POST', {nome});
+      if (!Array.isArray(resposta) || resposta.length !== 1) throw new Error('O banco não confirmou a criação. Atualize a lista antes de tentar novamente.');
+      certidoesManuais.push(resposta[0]);
+      document.getElementById('dialog-card-manual').close();
+      abrirDetalheRegistro('manual:' + resposta[0].id, true);
+    } catch (erro) {
+      document.getElementById('erro-card-manual').textContent = erro.message;
+    } finally {
+      operacaoCertidao = false;
+      botao.disabled = false;
+    }
+  }
+
+  function atualizarPainelVinculo() {
+    const registro = obterRegistroCertidao();
+    const painel = document.getElementById('painel-vinculo-certidao');
+    painel.hidden = !registro?.manual;
+    if (!registro?.manual) return;
+    document.getElementById('situacao-vinculo-certidao').textContent = registro.venda_id
+      ? 'Vinculado: ' + (registro.nomeVenda || 'Venda') + ' — lançamento #' + registro.venda_id
+      : 'Sem contrato vinculado. Você já pode preencher e salvar as certidões.';
+    document.getElementById('btn-vincular-certidao').hidden = !!registro.venda_id;
+  }
+
+  async function mostrarVinculoCertidao() {
+    if (operacaoCertidao) return;
+    const botao = document.getElementById('btn-vincular-certidao');
+    botao.disabled = true;
+    try {
+      // Consulta apenas as vendas; não executa geração de lançamentos mensais.
+      const vendas = await requisicaoCertidao('clientes_producao?select=id,nome,mes,ano,situacao,dados_registro&situacao=eq.VENDA&order=nome.asc');
+      if (!Array.isArray(vendas)) throw new Error('Resposta inválida ao consultar vendas.');
+      window.vendasParaCertidao = vendas;
+      document.getElementById('busca-venda-certidao').value = '';
+      document.getElementById('erro-vinculo-certidao').textContent = '';
+      filtrarVendasCertidao();
+      document.getElementById('dialog-vinculo-certidao').showModal();
+    } catch (erro) { alert(erro.message); }
+    finally { botao.disabled = false; }
+  }
+
+  function filtrarVendasCertidao() {
+    const normalizar = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+    const termo = normalizar(document.getElementById('busca-venda-certidao').value);
+    const ocupadas = new Set(certidoesManuais.map(c => c.venda_id).filter(Boolean));
+    const vendas = (window.vendasParaCertidao || []).filter(v => {
+      const dados = obterObjetoDadosCertidao(v);
+      return !ocupadas.has(v.id) && (!dados || Object.keys(dados).length === 0) && normalizar(v.nome).includes(termo);
+    });
+    document.getElementById('venda-certidao').innerHTML = '<option value="">Selecione a venda...</option>' + vendas.map(v =>
+      '<option value="' + v.id + '">' + escaparCertidao(v.nome + ' — ' + v.mes + '/' + v.ano + ' — #' + v.id) + '</option>'
+    ).join('');
+    document.getElementById('total-vendas-certidao').textContent = vendas.length
+      ? vendas.length + ' venda(s) disponível(is). Vendas com certidões já preenchidas não são substituídas.'
+      : 'Nenhuma venda disponível para esta busca. Cadastre a venda primeiro; vendas com certidões/histórico não podem receber outro card.';
+  }
+
+  async function confirmarVinculoCertidao(evento) {
+    evento.preventDefault();
+    if (operacaoCertidao) return;
+    const registro = obterRegistroCertidao();
+    const vendaId = Number(document.getElementById('venda-certidao').value);
+    const venda = (window.vendasParaCertidao || []).find(v => v.id === vendaId);
+    if (!registro?.manual || registro.venda_id || !venda) return;
+    if (!confirm('Vincular este card a "' + venda.nome + '" — #' + venda.id + '? Os dados preenchidos serão preservados.')) return;
+    operacaoCertidao = true;
+    const botao = document.getElementById('btn-confirmar-vinculo');
+    botao.disabled = true;
+    document.getElementById('anotacoes-registro').disabled = true;
+    document.getElementById('btn-salvar-anotacoes').disabled = true;
+    try {
+      const resposta = await requisicaoCertidao('rpc/vincular_certidao_manual', 'POST', {
+        p_id: registro.id.slice(7), p_versao: registro.versao, p_venda_id: venda.id,
+        p_dados: coletarDadosCertidao()
+      });
+      atualizarCardManualConfirmado(resposta);
+      document.getElementById('dialog-vinculo-certidao').close();
+      atualizarPainelVinculo();
+      document.getElementById('status-anotacoes-registro').textContent = 'Venda vinculada. Anotações e certidões salvas.';
+      alert('Venda vinculada. Os dados das certidões foram salvos.');
+    } catch (erro) { document.getElementById('erro-vinculo-certidao').textContent = erro.message; }
+    finally {
+      operacaoCertidao = false; botao.disabled = false;
+      document.getElementById('anotacoes-registro').disabled = !idRegistroAberto;
+      document.getElementById('btn-salvar-anotacoes').disabled = !idRegistroAberto;
+    }
+  }
+
+  function atualizarCardManualConfirmado(resposta) {
+    if (!Array.isArray(resposta) || resposta.length !== 1) throw new Error('O banco não confirmou a gravação. Atualize a lista antes de tentar novamente.');
+    const idx = certidoesManuais.findIndex(c => c.id === resposta[0].id);
+    if (idx >= 0) certidoesManuais[idx] = resposta[0];
+  }
+
+  async function persistirDadosCertidao(jsonDados) {
+    const registro = obterRegistroCertidao();
+    if (!registro) throw new Error('Card não encontrado. Reabra a lista.');
+    if (registro.manual) {
+      const resposta = await requisicaoCertidao('rpc/salvar_certidao_manual', 'POST', {
+        p_id: registro.id.slice(7), p_versao: registro.versao, p_dados: jsonDados
+      });
+      atualizarCardManualConfirmado(resposta);
+    } else {
+      const resposta = await requisicaoCertidao('clientes_producao?id=eq.' + registro.id, 'PATCH', {dados_registro: jsonDados});
+      if (!Array.isArray(resposta) || resposta.length !== 1) throw new Error('O lançamento não foi atualizado. Confira se ele ainda existe e se sua sessão tem acesso.');
+      registro.dados_registro = resposta[0].dados_registro;
+    }
+  }
+
+  async function renderizarGridRegistros() {
+    const chamada = ++cargaCertidoes;
+    const container = document.getElementById('container-grid-registros');
+    container.innerHTML = '<p>Carregando certidões...</p>';
+    try {
+      const resposta = await requisicaoCertidao('certidoes_manuais?select=*,venda:clientes_producao(id,nome,mes,ano)&order=created_at.desc');
+      if (chamada !== cargaCertidoes) return;
+      if (!Array.isArray(resposta)) throw new Error('Resposta inválida ao consultar cards.');
+      certidoesManuais = resposta;
+      const vinculadas = new Set(certidoesManuais.map(c => c.venda_id).filter(Boolean));
+      const registros = dadosDB.filter(d => {
+        if (vinculadas.has(d.id)) return false;
+        const dados = obterObjetoDadosCertidao(d);
+        if (dados?.concluido === true) return false;
+        const preenchido = !!(dados && (dados.vend || dados.comp || dados.imovel || dados.anotacoes_registro));
+        return (String(d.situacao || '').toUpperCase() === 'VENDA' && String(d.recebido || '').toUpperCase() === 'NÃO') || preenchido;
+      });
+      const manuais = certidoesManuais.filter(c => c.dados_registro?.concluido !== true).map(c => obterRegistroCertidao('manual:' + c.id));
+      container.innerHTML = [...manuais, ...registros].map(reg => {
+        const dados = obterObjetoDadosCertidao(reg);
+        const preenchido = !!(dados && (dados.vend || dados.comp || dados.imovel || dados.anotacoes_registro));
+        const identificacao = reg.manual ? (reg.venda_id ? 'Vinculado à venda #' + reg.venda_id : 'Card manual • Sem contrato') : 'Lançamento #' + reg.id;
+        return `<button type="button" class="card-registro-box" style="text-align:left;font:inherit;width:100%;" onclick="abrirDetalheRegistro(${escaparCertidao(JSON.stringify(reg.id))})">
+          <div class="card-registro-nome">${escaparCertidao(reg.nome || 'Cliente sem nome')}</div>
+          <div class="card-registro-id">${escaparCertidao(identificacao)}</div>
+          <div style="font-size:0.75rem;margin-top:5px;color:#64748b;">${reg.manual && reg.nomeVenda ? escaparCertidao(reg.nomeVenda) + '<br>' : ''}${reg.mes ? escaparCertidao(reg.mes + '/' + reg.ano) : 'Preencha as certidões antes de cadastrar a venda'}</div>
+          <div style="margin-top:8px;font-size:0.7rem;color:${preenchido ? 'green' : '#9a6700'};font-weight:bold;">${preenchido ? '✅ Dados preenchidos' : '⚠️ Pendente'}</div>
+        </button>`;
+      }).join('') || '<p>Nenhuma certidão pendente. Use “Adicionar certidões” para começar um card manual.</p>';
+    } catch (erro) {
+      if (chamada === cargaCertidoes) container.innerHTML = '<p role="alert">' + escaparCertidao(erro.message) + '</p><button class="btn btn-light" onclick="renderizarGridRegistros()">Tentar novamente</button>';
+    }
+  }
+
+  async function salvarDadosDoRegistroDB(manterAberto = false) {
+    if (!idRegistroAberto || operacaoCertidao) return;
+    operacaoCertidao = true;
+    const botao = document.getElementById('btnSalvarRegistroAtual');
+    botao.disabled = true;
+    botao.innerText = 'Salvando...';
+    document.getElementById('btn-salvar-anotacoes').disabled = true;
+    document.getElementById('anotacoes-registro').disabled = true;
+    document.getElementById('status-anotacoes-registro').textContent = 'Salvando...';
+    try {
+      await persistirDadosCertidao(coletarDadosCertidao());
+      document.getElementById('status-anotacoes-registro').textContent = 'Anotações e certidões salvas.';
+      if (!manterAberto) {
+        alert('Dados das certidões salvos com sucesso!');
+        voltarParaGridRegistros(true);
+      }
+    } catch (erro) {
+      document.getElementById('status-anotacoes-registro').textContent = 'Não foi possível salvar. O texto permanece no campo; tente novamente.';
+      alert('Erro ao salvar: ' + erro.message);
+    } finally {
+      operacaoCertidao = false; botao.disabled = false; botao.innerText = '💾 Salvar Dados das Certidões';
+      document.getElementById('btn-salvar-anotacoes').disabled = !idRegistroAberto;
+      document.getElementById('anotacoes-registro').disabled = !idRegistroAberto;
+    }
+  }
+
+  async function finalizarCardCertidao(remover) {
+    if (!idRegistroAberto || operacaoCertidao) return;
+    if (!confirm(remover ? 'Remover este card da fila? Os dados serão preservados e a venda não será apagada.' : 'Concluir as certidões e retirar o card da fila? A venda será preservada.')) return;
+    operacaoCertidao = true;
+    try {
+      await persistirDadosCertidao({...coletarDadosCertidao(), concluido: true});
+      voltarParaGridRegistros(true);
+    } catch (erro) { alert('Erro ao finalizar: ' + erro.message); }
+    finally { operacaoCertidao = false; }
+  }
+
+  function concluirProcessoRegistro() { return finalizarCardCertidao(false); }
+  function excluirProcessoRegistro() { return finalizarCardCertidao(true); }
+
+
+  function abrirDetalheRegistro(id, interno = false) {
+    if (operacaoCertidao && !interno) return;
     idRegistroAberto = id;
-    const registro = dadosDB.find(d => d.id === id);
+    const registro = obterRegistroCertidao(id);
+    if (!registro) { alert('Card não encontrado. Atualize a lista.'); return; }
 
     document.getElementById('view-registros-grid').style.display = 'none';
     document.getElementById('view-registros-detalhe').style.display = 'block';
     document.getElementById('titulo-detalhe-registro').innerText = 'Certidões: ' + (registro.nome || 'Sem Nome');
 
+    atualizarPainelVinculo();
+    carregarAnotacoesCertidao(registro);
     const dados = obterObjetoDadosCertidao(registro);
     if (dados && (dados.vend || dados.comp || dados.imovel)) {
       document.getElementById('setup-form-registro').style.display = 'none';
@@ -2265,10 +2530,13 @@ document.addEventListener('click', function(e) {
     }
   }
 
-  function voltarParaGridRegistros() {
+  function voltarParaGridRegistros(interno = false) {
+    if (operacaoCertidao && !interno) return;
     document.getElementById('view-registros-detalhe').style.display = 'none';
     document.getElementById('view-registros-grid').style.display = 'block';
     idRegistroAberto = null;
+    carregarAnotacoesCertidao(null);
+    renderizarGridRegistros();
   }
 
   function gerarTabelaRegistroDinamicamente(dadosPreenchidos = null) {
@@ -2280,7 +2548,8 @@ document.addEventListener('click', function(e) {
     let html = '';
     const getVal = (array, idx, campo) => {
       if (dadosPreenchidos && dadosPreenchidos[array] && dadosPreenchidos[array][idx]) {
-        return dadosPreenchidos[array][idx][campo] || '';
+        const valor = dadosPreenchidos[array][idx][campo];
+        return typeof valor === 'boolean' ? valor : escaparCertidao(valor || '');
       }
       return '';
     };
@@ -2315,7 +2584,10 @@ document.addEventListener('click', function(e) {
       `;
     }
 
-    const imovelGet = campo => dadosPreenchidos && dadosPreenchidos.imovel ? (dadosPreenchidos.imovel[campo] || '') : '';
+    const imovelGet = campo => {
+      const valor = dadosPreenchidos?.imovel?.[campo];
+      return typeof valor === 'boolean' ? valor : escaparCertidao(valor || '');
+    };
     const imovFazOk = imovelGet('fazenda_ok') === true;
     html += `
         <tr><td colspan="4" class="titulo-secao-reg">DADOS DO IMÓVEL</td></tr>
@@ -2352,7 +2624,7 @@ document.addEventListener('click', function(e) {
       `;
     }
 
-    const valItbi = dadosPreenchidos ? (dadosPreenchidos.itbi || '') : '';
+    const valItbi = escaparCertidao(dadosPreenchidos?.itbi || '');
     html += `
       <tr><td colspan="4" class="titulo-secao-reg">SITUAÇÃO DAS CERTIDÕES / REGISTRO</td></tr>
       <tr>
@@ -2366,13 +2638,13 @@ document.addEventListener('click', function(e) {
     document.getElementById('container-tabela-registro').style.display = 'block';
   }
 
-  async function salvarDadosDoRegistroDB() {
-    if (!idRegistroAberto) return;
-
-    document.getElementById('btnSalvarRegistroAtual').innerText = "Salvando...";
-    document.getElementById('btnSalvarRegistroAtual').disabled = true;
-
+  function coletarDadosCertidao() {
+    const atuais = obterObjetoDadosCertidao(obterRegistroCertidao()) || {};
+    const anotacoes = document.getElementById('anotacoes-registro').value;
+    if (document.getElementById('container-tabela-registro').style.display === 'none') return {...atuais, anotacoes_registro: anotacoes};
     const jsonDados = {
+      ...atuais,
+      anotacoes_registro: anotacoes,
       qtdVend: qtdVendAtual,
       qtdComp: qtdCompAtual,
       vend: [],
@@ -2402,81 +2674,7 @@ document.addEventListener('click', function(e) {
       }
     });
 
-    try {
-      await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?id=eq.' + idRegistroAberto, {
-        method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dados_registro: jsonDados })
-      });
-
-      const idx = dadosDB.findIndex(x => x.id === idRegistroAberto);
-      if(idx !== -1) dadosDB[idx].dados_registro = jsonDados;
-
-      alert("✅ Dados das certidões salvos com sucesso!");
-      voltarParaGridRegistros();
-      renderizarGridRegistros();
-
-    } catch (err) {
-      alert("Erro ao salvar: " + err);
-    } finally {
-      document.getElementById('btnSalvarRegistroAtual').innerText = "💾 Salvar Dados das Certidões";
-      document.getElementById('btnSalvarRegistroAtual').disabled = false;
-    }
-  }
-
-  async function concluirProcessoRegistro() {
-    if (!idRegistroAberto) return;
-
-    if (!confirm("Deseja concluir e remover este card da fila de Certidões? (O lançamento da VENDA continuará intacto na planilha e relatórios)")) return;
-
-    const idx = dadosDB.findIndex(x => x.id === idRegistroAberto);
-    let dadosAtuais = idx !== -1 ? (obterObjetoDadosCertidao(dadosDB[idx]) || {}) : {};
-    dadosAtuais.concluido = true;
-
-    try {
-      await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?id=eq.' + idRegistroAberto, {
-        method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dados_registro: dadosAtuais })
-      });
-
-      if(idx !== -1) dadosDB[idx].dados_registro = dadosAtuais;
-
-      alert("✅ Card de certidões concluído e finalizado!");
-
-      voltarParaGridRegistros();
-      renderizarGridRegistros();
-
-    } catch (err) {
-      alert("Erro ao concluir: " + err);
-    }
-  }
-
-  async function excluirProcessoRegistro() {
-    if (!idRegistroAberto) return;
-
-    if (!confirm('Deseja remover este card da aba de Certidões? (O lançamento da Venda na planilha principal NÃO será apagado)')) return;
-
-    const idx = dadosDB.findIndex(x => x.id === idRegistroAberto);
-    const dadosAtuais = { concluido: true };
-
-    try {
-      await fetch(SUPABASE_URL + '/rest/v1/clientes_producao?id=eq.' + idRegistroAberto, {
-        method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dados_registro: dadosAtuais })
-      });
-
-      if(idx !== -1) dadosDB[idx].dados_registro = dadosAtuais;
-
-      alert("🗑️ Card removido da fila de Certidões!");
-
-      voltarParaGridRegistros();
-      renderizarGridRegistros();
-
-    } catch (err) {
-      alert("Erro ao remover o card: " + err);
-    }
+    return jsonDados;
   }
 
   document.addEventListener('DOMContentLoaded', () => {
