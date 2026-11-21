@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestão de Locação Imobiliária — M&IC</title>
 
 <!-- CHAMADA PARA O PWA -->
@@ -186,6 +186,65 @@ body{background:#f5f5f1}header{background:#18201c;border-bottom:2px solid #b8954
 @media(max-width:600px){#tab-imoveis .mic-metrics{gap:10px}#tab-imoveis .mic-metrics>:nth-child(2){border:1px solid #eee1bb;border-top:3px solid #bc9236}#tab-imoveis .mic-metrics>:nth-child(4){border:1px solid #efdbd0;border-top:3px solid #c78265}#tab-imoveis .mic-metrics strong{font-size:21px}#tab-imoveis .mic-details[data-mic-action="ficha"]{padding:8px 12px}}
 
 </style>
+<style id="mic-mobile-20261121">
+
+@media screen and (max-width: 800px) {
+ html,body {height:auto!important;min-height:100%;overflow-x:clip;overflow-y:auto!important;}
+ body {font-size:16px;}
+ body>.container {display:block;max-width:100%;width:100%;margin:12px auto;padding:0 12px 28px;}
+ header {flex-wrap:wrap;gap:12px;padding:14px 12px;}
+ header .brand-area {min-width:0;gap:10px;} header h1 {font-size:1rem;overflow-wrap:anywhere;} header p {font-size:.8rem;}
+ header>div:last-child {flex-wrap:wrap;gap:8px;max-width:100%;overflow-wrap:anywhere;}
+ .card {padding:14px!important;border-radius:12px;min-width:0;}
+ .card-title {gap:10px;flex-wrap:wrap;align-items:flex-start;font-size:1rem;}
+ .card-title>div {flex-wrap:wrap;max-width:100%;}
+ input:not([type=checkbox]):not([type=radio]),select,textarea {font-size:16px!important;min-height:44px;max-width:100%;box-sizing:border-box;}
+ label {font-size:.85rem!important;line-height:1.4;}
+ button,.btn,.doc-link-btn {min-height:44px;white-space:normal;touch-action:manipulation;}
+ .btn {height:auto!important;font-size:.875rem!important;padding:10px 12px!important;}
+ input[type=checkbox] {width:22px!important;height:22px!important;}
+ .tabs {display:flex;position:sticky;top:0;z-index:40;gap:8px;padding:10px 0;background:var(--bg,#f4f6f9);overflow-x:auto;scrollbar-width:thin;}
+ .tab-btn {flex:0 0 auto;min-height:46px;padding:10px 14px;border-radius:8px;font-size:.875rem;}
+ .grid-2,.grid-3 {grid-template-columns:minmax(0,1fr);}
+ .grid-2>*,.grid-3>*,.registros-split-layout>* {min-width:0;}
+ dialog {max-height:calc(100dvh - 24px);max-width:calc(100vw - 24px);padding:18px!important;overflow:auto;}
+ dialog form>div {flex-wrap:wrap;}
+ .auth-card {max-height:calc(100dvh - 32px);overflow:auto;padding:20px 16px;}
+ #auth-modal,#mfa-modal,#modal-hub,#pdf-modal,#reajuste-modal,#relatorio-modal {overflow-y:auto;}
+ .hub-card {padding:24px 18px;} .btn-module {min-height:64px;line-height:1.5;}
+}
+
+@media screen and (max-width:800px){
+ .resumo-layout {grid-template-columns:minmax(0,1fr);}
+ .thumbnail-wrapper {min-height:130px;max-height:240px;}
+ .thumbnail-wrapper canvas {object-fit:contain;max-height:240px;}
+ #user-pill {width:100%;font-size:13px!important;}
+ .container>div:first-child {flex-wrap:wrap;gap:8px;}
+ #div-botoes-form {flex-wrap:wrap;} #div-botoes-form .btn {flex:1 1 100%;}
+ #tab-resumo_cobranca>.card>div:first-child,#tab-repasse>.card>div:first-child,#tab-resumo_gerencial .card>div:first-child {flex-wrap:wrap;gap:12px;}
+ #tab-repasse>.card>div:first-child>div {flex-wrap:wrap;}
+ #cobrancas-container,#repasses-container {display:grid!important;grid-template-columns:minmax(0,1fr);}
+ #cobrancas-container>*,#repasses-container>* {width:100%!important;min-width:0!important;max-width:100%!important;}
+ .acoes-recibo {gap:8px;} .acoes-recibo>* {min-height:44px;white-space:normal;}
+ #tab-resumo_gerencial>div:first-child {grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+ .gerencial-metric {min-width:0;padding:12px!important;} .gerencial-metric .value {font-size:18px!important;overflow-wrap:anywhere;}
+ #tab-resumo_gerencial .card>div:last-child {flex-wrap:wrap;}
+ #mic-ficha .mic-drawer {padding:20px 16px;} #mic-ficha small {font-size:13px;} #mic-ficha .mic-close {width:44px;height:44px;}
+ #tab-imoveis .mic-muted,#tab-imoveis .mic-person {font-size:13px;} #tab-imoveis .mic-toolbar {padding:14px;}
+ #tab-imoveis .mic-filters button {min-height:44px;font-size:14px;}
+ #tab-imoveis .mic-toolbar select {width:100%;}
+ .table-linear-container {max-height:none;overflow:visible;}
+ .table-linear {display:block;min-width:0!important;width:100%;}
+ .table-linear thead {display:none;} .table-linear tbody {display:block;}
+ .table-linear tbody tr {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px;background:#fff;border:1px solid #cbd5e1;border-top:3px solid var(--accent);border-radius:10px;padding:14px;margin:12px 0;}
+ .table-linear tbody td {display:block;border:0;padding:0;min-width:0;width:auto!important;white-space:normal!important;overflow-wrap:anywhere;}
+ .table-linear tbody td::before {display:block;font-size:13px;color:#475569;font-weight:700;margin-bottom:6px;}
+ .table-linear tbody td:nth-child(1),.table-linear tbody td:nth-child(2),.table-linear tbody td:last-child,.table-linear tbody td[colspan] {grid-column:1/-1;}
+ .input-calc {width:100%;padding:10px!important;} .input-desc {font-size:16px!important;min-height:72px;}
+}
+@media screen and (max-width:800px){#tabela-taxas-body td:not([colspan]):nth-child(1)::before{content:"Inquilino";}#tabela-taxas-body td:not([colspan]):nth-child(2)::before{content:"Imóvel";}#tabela-taxas-body td:not([colspan]):nth-child(3)::before{content:"Vencimento";}#tabela-taxas-body td:not([colspan]):nth-child(4)::before{content:"Aluguel proporcional";}#tabela-taxas-body td:not([colspan]):nth-child(5)::before{content:"Condomínio proporcional";}#tabela-taxas-body td:not([colspan]):nth-child(6)::before{content:"Aluguel";}#tabela-taxas-body td:not([colspan]):nth-child(7)::before{content:"Condomínio mensal";}#tabela-taxas-body td:not([colspan]):nth-child(8)::before{content:"IPTU";}#tabela-taxas-body td:not([colspan]):nth-child(9)::before{content:"Bombeiro";}#tabela-taxas-body td:not([colspan]):nth-child(10)::before{content:"Seguro";}#tabela-taxas-body td:not([colspan]):nth-child(11)::before{content:"Outras taxas";}#tabela-taxas-body td:not([colspan]):nth-child(12)::before{content:"Desconto";}#tabela-taxas-body td:not([colspan]):nth-child(13)::before{content:"Valor da cobrança";}}
+@media screen and (max-width:800px){#tabela-gerencial-fluxo-body td:not([colspan]):nth-child(1)::before{content:"Imóvel";}#tabela-gerencial-fluxo-body td:not([colspan]):nth-child(2)::before{content:"Inquilino / Cobrança";}#tabela-gerencial-fluxo-body td:not([colspan]):nth-child(3)::before{content:"Proprietário / Repasse";}#tabela-gerencial-fluxo-body td:not([colspan]):nth-child(4)::before{content:"Status do inquilino";}#tabela-gerencial-fluxo-body td:not([colspan]):nth-child(5)::before{content:"Status do repasse";}#tabela-gerencial-fluxo-body td:not([colspan]):nth-child(6)::before{content:"Ação / Ocorrência";}}
+@media(max-width:800px){#tab-imoveis .mic-table{min-width:0;display:block}#tab-imoveis .mic-table thead{display:none}#tab-imoveis .mic-table tbody{display:block}#tab-imoveis .mic-table tr{display:grid;grid-template-columns:20px minmax(0,1fr) minmax(0,1fr);gap:16px 12px;padding:20px 14px;border-bottom:1px solid #e1e5df}#tab-imoveis .mic-table td{display:block;padding:0;border:0;min-width:0!important;max-width:none!important}#tab-imoveis .mic-table td:first-child{grid-row:1/5}#tab-imoveis .mic-table td:nth-child(2){grid-column:2/4}#tab-imoveis .mic-table td:nth-child(3)::before{content:'Aluguel base';display:block;font-size:11px;color:#788078;margin-bottom:5px}#tab-imoveis .mic-table td:nth-child(4)::before{content:'Término';display:block;font-size:11px;color:#788078;margin-bottom:5px}#tab-imoveis .mic-table td:nth-child(5)::before{content:'Contas de consumo';display:block;font-size:11px;color:#788078;margin-bottom:5px}#tab-imoveis .mic-table td:nth-child(6)::before{content:'Status';display:block;font-size:11px;color:#788078;margin-bottom:5px}#tab-imoveis .mic-table td[colspan]{grid-column:1/4}#tab-imoveis .mic-table select{width:100%;font-size:16px;min-height:44px}#tab-imoveis .mic-details{min-height:44px}#tab-imoveis .mic-money{font-size:14px}#tab-imoveis .mic-table-wrap{overflow:visible}}</style>
 </head>
 <body>
 
