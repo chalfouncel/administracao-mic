@@ -3024,9 +3024,9 @@ document.addEventListener('click', function(e) {
  }
  new MutationObserver(enhance).observe(body,{childList:true});enhance();
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&opened!==null)close()});
- // No celular a lista completa substitui os filtros da planilha, sem apagar seus valores.
+ // No celular mantém Recebido = NÃO, sem exibir os controles da planilha.
  const originalFilter=filtrarTabela;
- filtrarTabela=function(){return mq.matches?renderizarTabela(dadosDB):originalFilter()};
+ filtrarTabela=function(){return mq.matches?renderizarTabela(dadosDB.filter(item => String(item.recebido || '').trim().toUpperCase() === 'NÃO')):originalFilter()};
  const aside=document.querySelector('#page-mapa .mapa-layout > aside');
  const period=document.createElement('div');period.className='m3-only m3-period';
  const makeSelect=(text)=>{const l=document.createElement('label');l.textContent=text;const s=document.createElement('select');s.setAttribute('aria-label',text);l.append(s);period.append(l);return s};
