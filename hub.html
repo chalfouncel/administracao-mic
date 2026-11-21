@@ -46,6 +46,55 @@
  .hub-card {padding:24px 18px;} .btn-module {min-height:64px;line-height:1.5;}
 }
 </style>
+<style id="mic-mobile-v2">
+.m2-only{display:none!important}
+@media screen and (max-width:800px){
+ body{background:#f2f4f7!important;font-size:16px;line-height:1.45}
+ header{padding:14px 16px!important;border-bottom:3px solid #c59b27!important;gap:12px!important}
+ header h1{font-size:15px!important;line-height:1.35!important;letter-spacing:0!important}
+ header p{font-size:11px!important} header img{max-height:38px!important}
+ .container{padding:0 12px 30px!important;margin:12px auto!important}
+ .m2-only{display:block!important}
+ .m2-original-nav{position:static!important;padding:0!important;margin:0!important;border:0!important;background:none!important}
+ .m2-original-nav>.tab-btn,.m2-original-nav>div:first-child{display:none!important}
+ .m2-nav{position:sticky;top:0;z-index:60;background:#18231f;border-radius:13px;padding:10px 12px;margin:0 0 16px;box-shadow:0 5px 18px #13231c20;color:#ddc381;display:block}
+ .m2-nav span,.m2-stage{font-size:10px;letter-spacing:1px;font-weight:800}
+ .m2-nav select{background:#18231f!important;color:white!important;border:0!important;padding:6px 0!important;font-size:17px!important;font-weight:650;width:100%;min-height:44px}
+ .m2-stage{color:#68766d;margin:14px 0;display:block}
+ .m2-stage select{display:block;width:100%;margin-top:6px;background:#fff9e9;border:1px solid #dac184;color:#29392e}
+ .m2-control{border:1px solid #d8e2dc;border-radius:10px;background:#edf4ef;color:#254b35;font:inherit;font-size:14px;font-weight:650;min-height:44px;padding:10px 12px;cursor:pointer}
+ .m2-accordion{width:100%;text-align:left;background:#fff;border-left:4px solid #c59b27;margin:10px 0}
+ .m2-expand{margin-top:12px;width:100%;text-align:center}
+ .m2-collapsed{display:none!important}
+ .m2-other-stage{display:none!important}
+ .m2-compact:not(.m2-expanded)>.m2-secondary{display:none!important}
+ .m2-compact{border-radius:14px!important;box-shadow:0 3px 12px #25372b0a;margin-bottom:14px!important;border:1px solid #dfe6e1!important;padding:14px!important}
+ .card,.doc-block{border-radius:14px!important;padding:16px!important;box-shadow:0 3px 12px #25372b08}
+ .card-title{font-size:17px!important;gap:10px;flex-wrap:wrap}
+ .form-row-exact{grid-template-columns:minmax(0,1fr)!important}
+ input:not([type=checkbox]):not([type=radio]),textarea,select{font-size:16px!important;min-height:46px;border-radius:9px!important}
+ input[type=checkbox]{width:23px!important;height:23px!important}
+ .doc-hub-column{gap:0!important}
+ .card-registro-box{border:1px solid #dbe4df!important;border-left:4px solid #b7953c!important;border-radius:13px!important;padding:18px!important;background:#fff!important;min-height:105px}
+ .card-registro-nome{font-size:17px!important;line-height:1.4}
+ .card-registro-id{font-size:12px!important;margin-top:6px}
+ #anotacoes-registro{min-height:340px;line-height:1.6}
+ #btnSalvarRegistroAtual{width:100%;position:sticky;bottom:8px;z-index:15;box-shadow:0 4px 18px #0002}
+ #view-registros-detalhe{padding-bottom:16px}
+ .tabela-registro-form,.planilha-tabela{min-width:0!important;width:100%!important}
+ .tabela-registro-form td,.planilha-tabela td{overflow-wrap:anywhere}
+ .m2-expanded td{min-width:0!important}
+ #tab-imoveis .mic-metrics{gap:8px;background:transparent;border:0;padding:0;grid-template-columns:1fr 1fr}
+ #tab-imoveis .mic-metrics>*{background:#fff!important;border:1px solid #dce5df!important;border-top:3px solid #b7953c!important;border-radius:12px;padding:14px!important}
+ #tab-imoveis .mic-metrics strong{font-size:23px!important}
+ #tab-imoveis .mic-heading{padding:6px 0 16px}#tab-imoveis h2{font-size:24px}
+ #mic-ficha .mic-drawer{padding:18px;width:100%;padding-bottom:40px}
+ dialog{width:calc(100vw - 24px)!important;max-height:calc(100dvh - 24px)!important}
+ .hub-card{padding:24px 18px!important;border-radius:20px!important}
+ .btn-module{border-radius:14px!important;min-height:80px!important;display:flex;align-items:center;justify-content:center;padding:18px!important}
+}
+
+</style>
 </head>
 <body>
 <div class="hub-card">
@@ -55,5 +104,92 @@
   <a href="/" class="btn-module btn-locacao">🏢 Administração de Imóvel (Locações)</a>
   <a href="/clientes" class="btn-module btn-cliente">👥 Administração do Cliente (Produção)</a>
 </div>
+<script id="mic-mobile-v2-ui">
+/* Navegação e apresentação mobile. Mantém os campos e eventos originais. */
+(() => {
+  const mq = matchMedia('(max-width: 800px)');
+  const all = (s, root = document) => [...root.querySelectorAll(s)];
+  function button(text, action) {
+    const el = document.createElement('button'); el.type = 'button'; el.className = 'm2-control';
+    el.textContent = text; el.addEventListener('click', action); return el;
+  }
+  const tabs = all('.main-tabs .tab-nav-btn, .tabs .tab-btn');
+  if (tabs.length) {
+    const original = tabs[0].closest('.main-tabs, .tabs');
+    const bar = document.createElement('label'); bar.className = 'm2-nav m2-only';
+    const title = document.createElement('span'); title.textContent = 'NAVEGAR';
+    const select = document.createElement('select'); select.setAttribute('aria-label', 'Selecionar módulo');
+    tabs.forEach((tab, i) => { const o = document.createElement('option'); o.value = i; o.textContent = tab.textContent.trim(); select.append(o); });
+    select.addEventListener('change', () => tabs[Number(select.value)].click());
+    const sync = () => { const i = tabs.findIndex(t => t.classList.contains('active')); if (i >= 0) select.value = i; };
+    tabs.forEach(t => new MutationObserver(sync).observe(t, {attributes:true, attributeFilter:['class']}));
+    bar.append(title, select); original.before(bar); original.classList.add('m2-original-nav'); sync();
+  }
+  function accordion(node, heading) {
+    if (!node || node.dataset.m2Accordion) return;
+    node.dataset.m2Accordion = '1';
+    const control = button(heading + ' · Abrir', () => {
+      const closed = node.classList.toggle('m2-collapsed');
+      control.setAttribute('aria-expanded', String(!closed)); control.textContent = heading + (closed ? ' · Abrir' : ' · Fechar');
+    });
+    control.classList.add('m2-only', 'm2-accordion'); control.setAttribute('aria-expanded', 'false');
+    node.classList.add('m2-collapsed'); node.before(control);
+  }
+  all('.doc-hub-column > .doc-block').forEach(block => {
+    const title = block.querySelector('.doc-block-title');
+    accordion(block, title?.textContent.trim() || 'Documentos');
+  });
+  const firstForm = document.querySelector('#page-producao form');
+  accordion(firstForm, 'Novo lançamento');
+  const stages = document.querySelector('#tbody-tabela-registro, #tabelaCorpo');
+  let stageKey = '';
+  if (stages) {
+    const bar = document.createElement('label'); bar.className = 'm2-stage m2-only';
+    bar.textContent = 'ETAPA DO PREENCHIMENTO';
+    const select = document.createElement('select'); select.setAttribute('aria-label','Etapa das certidões'); bar.append(select);
+    stages.closest('table').before(bar);
+    function updateStages() {
+      const headings = all('.titulo-secao-reg, .titulo-secao', stages);
+      const names = headings.map(h => h.textContent.trim());
+      if (names.join('|') !== stageKey) {
+        stageKey = names.join('|'); select.replaceChildren();
+        names.forEach((name, i) => { const o = document.createElement('option'); o.value = i; o.textContent = name; select.append(o); });
+      }
+      let group = -1;
+      all('tr', stages).forEach(row => {
+        if (row.querySelector('.titulo-secao-reg, .titulo-secao')) group++;
+        row.classList.toggle('m2-other-stage', group >= 0 && group !== Number(select.value));
+      });
+    }
+    select.addEventListener('change', updateStages);
+    new MutationObserver(updateStages).observe(stages, {childList:true}); updateStages();
+  }
+  const configs = [
+    ['#tabela-corpo', [3,4,5,6], 3],
+    ['#tabela-imoveis-linear-body', [1,2,3], 1],
+    ['#tabela-taxas-body', [0,1,12], 1],
+    ['#tabela-gerencial-fluxo-body', [0,1,3,4], 0]
+  ];
+  configs.forEach(([selector, keep, target]) => {
+    const body = document.querySelector(selector); if (!body) return;
+    function enhance() {
+      all(':scope > tr', body).forEach(row => {
+        const cells = [...row.cells]; if (cells.length < 5 || row.querySelector('.m2-expand')) return;
+        row.classList.add('m2-compact');
+        cells.forEach((cell, i) => { if (!keep.includes(i)) cell.classList.add('m2-secondary'); });
+        const b = button('Ver todos os detalhes', () => {
+          const expanded = row.classList.toggle('m2-expanded');
+          b.textContent = expanded ? 'Recolher detalhes' : 'Ver todos os detalhes'; b.setAttribute('aria-expanded', String(expanded));
+        });
+        b.classList.add('m2-only','m2-expand'); b.setAttribute('aria-expanded','false'); cells[target].append(b);
+      });
+    }
+    new MutationObserver(enhance).observe(body, {childList:true}); enhance();
+  });
+  // Nenhum valor é clonado: alternar tamanho da tela preserva os inputs originais.
+  mq.addEventListener('change', () => document.activeElement?.blur());
+})();
+
+</script>
 </body>
 </html>
