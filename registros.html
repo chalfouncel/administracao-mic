@@ -51,6 +51,48 @@
             background-color: white;
         }
     </style>
+<style id="mic-mobile-20261121">
+
+@media screen and (max-width: 800px) {
+ html,body {height:auto!important;min-height:100%;overflow-x:clip;overflow-y:auto!important;}
+ body {font-size:16px;}
+ body>.container {display:block;max-width:100%;width:100%;margin:12px auto;padding:0 12px 28px;}
+ header {flex-wrap:wrap;gap:12px;padding:14px 12px;}
+ header .brand-area {min-width:0;gap:10px;} header h1 {font-size:1rem;overflow-wrap:anywhere;} header p {font-size:.8rem;}
+ header>div:last-child {flex-wrap:wrap;gap:8px;max-width:100%;overflow-wrap:anywhere;}
+ .card {padding:14px!important;border-radius:12px;min-width:0;}
+ .card-title {gap:10px;flex-wrap:wrap;align-items:flex-start;font-size:1rem;}
+ .card-title>div {flex-wrap:wrap;max-width:100%;}
+ input:not([type=checkbox]):not([type=radio]),select,textarea {font-size:16px!important;min-height:44px;max-width:100%;box-sizing:border-box;}
+ label {font-size:.85rem!important;line-height:1.4;}
+ button,.btn,.doc-link-btn {min-height:44px;white-space:normal;touch-action:manipulation;}
+ .btn {height:auto!important;font-size:.875rem!important;padding:10px 12px!important;}
+ input[type=checkbox] {width:22px!important;height:22px!important;}
+ .tabs {display:flex;position:sticky;top:0;z-index:40;gap:8px;padding:10px 0;background:var(--bg,#f4f6f9);overflow-x:auto;scrollbar-width:thin;}
+ .tab-btn {flex:0 0 auto;min-height:46px;padding:10px 14px;border-radius:8px;font-size:.875rem;}
+ .grid-2,.grid-3 {grid-template-columns:minmax(0,1fr);}
+ .grid-2>*,.grid-3>*,.registros-split-layout>* {min-width:0;}
+ dialog {max-height:calc(100dvh - 24px);max-width:calc(100vw - 24px);padding:18px!important;overflow:auto;}
+ dialog form>div {flex-wrap:wrap;}
+ .auth-card {max-height:calc(100dvh - 32px);overflow:auto;padding:20px 16px;}
+ #auth-modal,#mfa-modal,#modal-hub,#pdf-modal,#reajuste-modal,#relatorio-modal {overflow-y:auto;}
+ .hub-card {padding:24px 18px;} .btn-module {min-height:64px;line-height:1.5;}
+}
+
+@media screen and (max-width:800px){
+ .tabela-registro-form,.planilha-tabela {display:block;width:100%;}
+ .tabela-registro-form thead,.planilha-tabela thead {display:none;}
+ .tabela-registro-form tbody,.planilha-tabela tbody {display:block;}
+ .tabela-registro-form tr,.planilha-tabela tr {display:flex;flex-wrap:wrap;margin-bottom:10px;gap:8px;}
+ .tabela-registro-form td,.planilha-tabela td {display:block;flex:1 1 100%;min-width:0;width:100%;border:0;padding:4px 0;}
+ .tabela-registro-form td:empty,.planilha-tabela td:empty {display:none;}
+ .tabela-registro-form td.titulo-secao-reg,.planilha-tabela td.titulo-secao {padding:12px;border-radius:8px;margin-top:14px;}
+ .tabela-registro-form input,.planilha-tabela input {min-width:0;border:1px solid #cbd5e1;border-radius:6px;padding:10px;}
+ .tabela-registro-form td>div {min-width:0;}
+ .table-responsive {overflow:visible;}
+ #formularioContainer>.d-flex {flex-wrap:wrap;gap:10px;}
+}
+</style>
 </head>
 <body class="bg-light">
 
