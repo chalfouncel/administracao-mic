@@ -751,14 +751,13 @@ table.table-compact tbody .col-tax::before,table.table-compact th.th-filtro:nth-
           </div>
           <div style="display: flex; flex-direction: column; gap: 8px;">
             <button class="btn btn-dark w-100" style="width: 100%;" onclick="gerarTabelaRegistroDinamicamente()">Gerar Formulário</button>
-            <button class="btn btn-danger w-100" style="width: 100%; height: 28px;" onclick="excluirProcessoRegistro()">🗑️ Finalizar / Remover Card</button>
+            <button class="btn btn-danger w-100" style="width: 100%; height: 28px;" onclick="excluirProcessoRegistro()">🗑️ Remover Card</button>
           </div>
         </div>
 
         <div id="container-tabela-registro" style="display: none; overflow-x: auto;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; gap: 8px;">
-              <button class="btn btn-success" style="font-size: 0.8rem; padding: 8px 14px;" onclick="concluirProcessoRegistro()">✅ Concluir Certidões</button>
               <button class="btn btn-danger" style="font-size: 0.8rem; padding: 8px 14px;" onclick="excluirProcessoRegistro()">🗑️ Remover Card</button>
             </div>
             <button class="btn btn-gold" onclick="salvarDadosDoRegistroDB()" id="btnSalvarRegistroAtual">💾 Salvar Dados das Certidões</button>
@@ -1500,6 +1499,13 @@ document.addEventListener('click', function(e) {
     const idx = dadosDB.findIndex(x => x.id === id);
     if (idx === -1) return;
 
+    // Mantém o card pendente mesmo se a situação do lançamento mudar.
+    if (campo === 'situacao' && String(dadosDB[idx].situacao || '').toUpperCase() === 'VENDA') {
+      const registroCertidao = obterObjetoDadosCertidao(dadosDB[idx]) || {};
+      if (registroCertidao.concluido !== true) {
+        dadosDB[idx].dados_registro = {...registroCertidao, card_iniciado: true};
+      }
+    }
     dadosDB[idx][campo] = valorNovo;
     const recalculado = calcularFórmulas(dadosDB[idx]);
     dadosDB[idx] = recalculado;
@@ -2657,7 +2663,7 @@ document.addEventListener('click', function(e) {
         const dados = obterObjetoDadosCertidao(d);
         if (dados?.concluido === true) return false;
         const preenchido = !!(dados && (dados.vend || dados.comp || dados.imovel || dados.anotacoes_registro));
-        return (String(d.situacao || '').toUpperCase() === 'VENDA' && String(d.recebido || '').toUpperCase() === 'NÃO') || preenchido;
+        return String(d.situacao || '').toUpperCase() === 'VENDA' || dados?.card_iniciado === true || preenchido;
       });
       const manuais = certidoesManuais.filter(c => c.dados_registro?.concluido !== true).map(c => obterRegistroCertidao('manual:' + c.id));
       container.innerHTML = [...manuais, ...registros].map(reg => {
@@ -2702,20 +2708,20 @@ document.addEventListener('click', function(e) {
     }
   }
 
-  async function finalizarCardCertidao(remover) {
+  async function excluirProcessoRegistro() {
     if (!idRegistroAberto || operacaoCertidao) return;
-    if (!confirm(remover ? 'Remover este card da fila? Os dados serão preservados e a venda não será apagada.' : 'Concluir as certidões e retirar o card da fila? A venda será preservada.')) return;
+    const registro = obterRegistroCertidao(idRegistroAberto);
+    if (!registro) return alert('Card não encontrado. Atualize a lista.');
+    const nome = registro.nome || 'Sem nome';
+    if (!confirm('1 de 2 — Remover o card "' + nome + '" da lista de certidões?')) return;
+    if (!confirm('2 de 2 — Confirmar a remoção de "' + nome + '"? O card deixará de aparecer. Os dados preenchidos e a venda serão preservados.')) return;
     operacaoCertidao = true;
     try {
       await persistirDadosCertidao({...coletarDadosCertidao(), concluido: true});
       voltarParaGridRegistros(true);
-    } catch (erro) { alert('Erro ao finalizar: ' + erro.message); }
+    } catch (erro) { alert('Não foi possível remover o card: ' + erro.message); }
     finally { operacaoCertidao = false; }
   }
-
-  function concluirProcessoRegistro() { return finalizarCardCertidao(false); }
-  function excluirProcessoRegistro() { return finalizarCardCertidao(true); }
-
 
   function abrirDetalheRegistro(id, interno = false) {
     if (operacaoCertidao && !interno) return;
