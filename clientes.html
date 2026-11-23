@@ -1500,7 +1500,7 @@ document.addEventListener('click', function(e) {
     if (idx === -1) return;
 
     // Mantém o card pendente mesmo se a situação do lançamento mudar.
-    if (campo === 'situacao' && String(dadosDB[idx].situacao || '').toUpperCase() === 'VENDA') {
+    if (entradaAutomaticaCertidao(dadosDB[idx])) {
       const registroCertidao = obterObjetoDadosCertidao(dadosDB[idx]) || {};
       if (registroCertidao.concluido !== true) {
         dadosDB[idx].dados_registro = {...registroCertidao, card_iniciado: true};
@@ -2648,6 +2648,43 @@ document.addEventListener('click', function(e) {
     }
   }
 
+  function entradaAutomaticaCertidao(item) {
+    return String(item.situacao || '').trim().toUpperCase() === 'VENDA' &&
+      String(item.recebido || '').trim().toUpperCase() === 'NÃO';
+  }
+
+  async function registrarEntradaCertidao(item) {
+    const dados = obterObjetoDadosCertidao(item) || {};
+    if (dados.concluido === true || dados.card_iniciado === true || !entradaAutomaticaCertidao(item)) return;
+    const anterior = JSON.stringify(item.dados_registro);
+    const filtro = new URLSearchParams({
+      id: 'eq.' + item.id, situacao: 'eq.' + item.situacao, recebido: 'eq.' + item.recebido,
+      dados_registro: item.dados_registro == null ? 'is.null' : 'eq.' + JSON.stringify(item.dados_registro)
+    });
+    // Atualização condicional: não sobrescreve certidões alteradas por outra tela.
+    const resultado = await requisicaoCertidao('clientes_producao?' + filtro, 'PATCH', {
+      dados_registro: {...dados, card_iniciado: true}
+    });
+    if (!Array.isArray(resultado)) throw new Error('Não foi possível confirmar a entrada do card. Atualize a lista.');
+    if (JSON.stringify(item.dados_registro) !== anterior || dadosDB.find(d => d.id === item.id) !== item) {
+      throw new Error('O lançamento mudou durante a consulta. Abra novamente a aba Certidões.');
+    }
+    if (resultado.length === 1) {
+      item.dados_registro = resultado[0].dados_registro;
+      return;
+    }
+    const atual = await requisicaoCertidao('clientes_producao?id=eq.' + encodeURIComponent(item.id) + '&select=*');
+    if (!Array.isArray(atual) || atual.length !== 1) throw new Error('O lançamento não está mais disponível. Atualize a página.');
+    if (JSON.stringify(item.dados_registro) !== anterior || dadosDB.find(d => d.id === item.id) !== item) {
+      throw new Error('O lançamento mudou durante a consulta. Abra novamente a aba Certidões.');
+    }
+    Object.assign(item, atual[0]);
+    const atualizado = obterObjetoDadosCertidao(item) || {};
+    if (entradaAutomaticaCertidao(item) && !atualizado.concluido && !atualizado.card_iniciado) {
+      throw new Error('Os dados mudaram. Abra novamente a aba Certidões para registrar a entrada do card.');
+    }
+  }
+
   async function renderizarGridRegistros() {
     const chamada = ++cargaCertidoes;
     const container = document.getElementById('container-grid-registros');
@@ -2658,12 +2695,17 @@ document.addEventListener('click', function(e) {
       if (!Array.isArray(resposta)) throw new Error('Resposta inválida ao consultar cards.');
       certidoesManuais = resposta;
       const vinculadas = new Set(certidoesManuais.map(c => c.venda_id).filter(Boolean));
+      for (const item of dadosDB) {
+        if (chamada !== cargaCertidoes) return;
+        if (!vinculadas.has(item.id)) await registrarEntradaCertidao(item);
+      }
+      if (chamada !== cargaCertidoes) return;
       const registros = dadosDB.filter(d => {
         if (vinculadas.has(d.id)) return false;
         const dados = obterObjetoDadosCertidao(d);
         if (dados?.concluido === true) return false;
         const preenchido = !!(dados && (dados.vend || dados.comp || dados.imovel || dados.anotacoes_registro));
-        return String(d.situacao || '').toUpperCase() === 'VENDA' || dados?.card_iniciado === true || preenchido;
+        return entradaAutomaticaCertidao(d) || dados?.card_iniciado === true || preenchido;
       });
       const manuais = certidoesManuais.filter(c => c.dados_registro?.concluido !== true).map(c => obterRegistroCertidao('manual:' + c.id));
       container.innerHTML = [...manuais, ...registros].map(reg => {
