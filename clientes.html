@@ -2580,20 +2580,29 @@ document.addEventListener('click', function(e) {
     finally { botao.disabled = false; }
   }
 
+  function vendaSemCertidoesPreenchidas(dados) {
+    if (dados == null) return true;
+    if (typeof dados !== 'object' || Array.isArray(dados)) return false;
+    return Object.entries(dados).every(([chave, valor]) => {
+      if (chave === 'card_iniciado' || chave === 'concluido') return valor == null || typeof valor === 'boolean';
+      if (chave === 'anotacoes_registro') return valor == null || valor === '';
+      return false;
+    });
+  }
+
   function filtrarVendasCertidao() {
     const normalizar = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
     const termo = normalizar(document.getElementById('busca-venda-certidao').value);
     const ocupadas = new Set(certidoesManuais.map(c => c.venda_id).filter(Boolean));
     const vendas = (window.vendasParaCertidao || []).filter(v => {
-      const dados = obterObjetoDadosCertidao(v);
-      return !ocupadas.has(v.id) && (!dados || Object.keys(dados).length === 0) && normalizar(v.nome).includes(termo);
+      return !ocupadas.has(v.id) && vendaSemCertidoesPreenchidas(v.dados_registro) && normalizar(v.nome).includes(termo);
     });
     document.getElementById('venda-certidao').innerHTML = '<option value="">Selecione a venda...</option>' + vendas.map(v =>
       '<option value="' + v.id + '">' + escaparCertidao(v.nome + ' — ' + v.mes + '/' + v.ano + ' — #' + v.id) + '</option>'
     ).join('');
     document.getElementById('total-vendas-certidao').textContent = vendas.length
       ? vendas.length + ' venda(s) disponível(is). Vendas com certidões já preenchidas não são substituídas.'
-      : 'Nenhuma venda disponível para esta busca. Cadastre a venda primeiro; vendas com certidões/histórico não podem receber outro card.';
+      : 'Nenhuma venda disponível para esta busca. Vendas já vinculadas ou com dados de certidões preenchidos não são substituídas.';
   }
 
   async function confirmarVinculoCertidao(evento) {
@@ -2603,6 +2612,10 @@ document.addEventListener('click', function(e) {
     const vendaId = Number(document.getElementById('venda-certidao').value);
     const venda = (window.vendasParaCertidao || []).find(v => v.id === vendaId);
     if (!registro?.manual || registro.venda_id || !venda) return;
+    if (!vendaSemCertidoesPreenchidas(venda.dados_registro)) {
+      alert('A venda possui dados de certidões. Atualize a lista antes de vincular.');
+      return;
+    }
     if (!confirm('Vincular este card a "' + venda.nome + '" — #' + venda.id + '? Os dados preenchidos serão preservados.')) return;
     operacaoCertidao = true;
     const botao = document.getElementById('btn-confirmar-vinculo');
