@@ -302,6 +302,8 @@
   .doc-item-desc { font-size: 0.66rem; color: #64748b; }
   .doc-link-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.68rem; font-weight: 700; background: #001e60; color: #fff; text-decoration: none; border-radius: 4px; transition: 0.2s; white-space: nowrap; }
   .doc-link-btn:hover { background: var(--accent); color: #121315; }
+
+#painel-vinculo-certidao[hidden] { display: none !important; }
 </style>
 
 <style id="mic-mobile-20261121">
@@ -2555,8 +2557,8 @@ document.addEventListener('click', function(e) {
   function atualizarPainelVinculo() {
     const registro = obterRegistroCertidao();
     const painel = document.getElementById('painel-vinculo-certidao');
-    painel.hidden = !registro?.manual;
-    if (!registro?.manual) return;
+    painel.hidden = !registro?.manual || !!registro.venda_id;
+    if (painel.hidden) return;
     document.getElementById('situacao-vinculo-certidao').textContent = registro.venda_id
       ? 'Vinculado: ' + (registro.nomeVenda || 'Venda') + ' — lançamento #' + registro.venda_id
       : 'Sem contrato vinculado. Você já pode preencher e salvar as certidões.';
