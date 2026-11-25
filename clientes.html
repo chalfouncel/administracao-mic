@@ -304,6 +304,10 @@
   .doc-link-btn:hover { background: var(--accent); color: #121315; }
 
 #painel-vinculo-certidao[hidden] { display: none !important; }
+.kpi-comparacao { grid-column: 1 / -1; min-width: 0; padding-top: 9px; border-top: 1px solid #e2e8f0; font-size: 0.72rem; line-height: 1.5; color: #475569; overflow-wrap: anywhere; }
+.kpi-comparacao strong { display: block; color: #92400e; font-weight: 700; }
+.kpi-comparacao.recorde-superado strong { color: #15803d; }
+@media (max-width:800px) { .kpi-comparacao {font-size:13px;} }
 </style>
 
 <style id="mic-mobile-20261121">
@@ -708,8 +712,8 @@ table.table-compact tbody .col-tax::before,table.table-compact th.th-filtro:nth-
 
   <div id="page-graficos" class="tab-page">
     <div class="kpi-row">
-      <div class="kpi-card" style="border-left-color: #001e60;"><div class="kpi-main-info"><div class="kpi-card-title">Faturamento Histórico Total</div><div class="kpi-card-val" id="kpi-fat-total">R$ 0,00</div></div><div class="kpi-breakdown-right" id="kpi-fat-breakdown"></div></div>
-      <div class="kpi-card" style="border-left-color: #c59b27;"><div class="kpi-main-info"><div class="kpi-card-title">VGV Total Acumulado</div><div class="kpi-card-val" id="kpi-vgv-total">R$ 0,00</div></div><div class="kpi-breakdown-right" id="kpi-vgv-breakdown"></div></div>
+      <div class="kpi-card" style="border-left-color: #001e60;"><div class="kpi-main-info"><div class="kpi-card-title">Faturamento Histórico Total</div><div class="kpi-card-val" id="kpi-fat-total">R$ 0,00</div></div><div class="kpi-breakdown-right" id="kpi-fat-breakdown"></div><div id="kpi-fat-comparacao" class="kpi-comparacao" aria-live="polite"></div></div>
+      <div class="kpi-card" style="border-left-color: #c59b27;"><div class="kpi-main-info"><div class="kpi-card-title">VGV Total Acumulado</div><div class="kpi-card-val" id="kpi-vgv-total">R$ 0,00</div></div><div class="kpi-breakdown-right" id="kpi-vgv-breakdown"></div><div id="kpi-vgv-comparacao" class="kpi-comparacao" aria-live="polite"></div></div>
       <div class="kpi-card" style="border-left-color: #2563eb;"><div class="kpi-main-info"><div class="kpi-card-title">Contratos de Venda</div><div class="kpi-card-val" id="kpi-qtd-vendas">0</div></div><div class="kpi-breakdown-right" id="kpi-vendas-breakdown"></div></div>
       <div class="kpi-card" style="border-left-color: #70ad47;"><div class="kpi-main-info"><div class="kpi-card-title">Recebimento ADM Atual</div><div class="kpi-card-val" id="kpi-taxa-adm">R$ 0,00</div></div><div class="kpi-breakdown-right" id="kpi-adm-breakdown"></div></div>
     </div>
@@ -1935,7 +1939,61 @@ document.addEventListener('click', function(e) {
     renderizarGraficoMultianual();
   }
 
+  function calcularComparacaoRecordes(linhas, anoAtual) {
+    const normalizar = v => String(v || '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+    const resultado = { fat: { atual: 0, anos: {} }, vgv: { atual: 0, anos: {} } };
+    for (const d of linhas) {
+      const ano = Number(d.ano), recebido = normalizar(d.recebido);
+      if (!Number.isInteger(ano) || ano <= 0 || ano > anoAtual) continue;
+      if (recebido !== 'SIM' && recebido !== 'NAO') continue;
+      const liquido = Number(d.valor_liquido) || 0;
+      const venda = normalizar(d.situacao) === 'VENDA';
+      const valor = (Number(d.valor) || 0) * (normalizar(d.corretor) === 'MARIO' ? 1 : 0.5);
+      if (ano === anoAtual) {
+        resultado.fat.atual += liquido;
+        if (venda) resultado.vgv.atual += valor;
+      } else if (recebido === 'SIM') {
+        resultado.fat.anos[ano] = (resultado.fat.anos[ano] || 0) + liquido;
+        if (venda) resultado.vgv.anos[ano] = (resultado.vgv.anos[ano] || 0) + valor;
+      }
+    }
+    for (const item of Object.values(resultado)) {
+      const melhor = Object.entries(item.anos).sort((a,b) => b[1] - a[1] || Number(b[0]) - Number(a[0]))[0];
+      item.anoRecorde = melhor ? Number(melhor[0]) : null;
+      item.recorde = melhor ? melhor[1] : null;
+      item.diferenca = melhor ? Math.round((item.atual - item.recorde) * 100) / 100 : null;
+    }
+    return resultado;
+  }
+
+  function atualizarComparacaoRecordes() {
+    const ano = Number(new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'America/Sao_Paulo' }).format(new Date()));
+    const comparacao = calcularComparacaoRecordes(dadosDB || [], ano);
+    for (const tipo of ['fat', 'vgv']) {
+      const painel = document.getElementById('kpi-' + tipo + '-comparacao');
+      if (!painel) continue;
+      const item = comparacao[tipo];
+      const resumo = document.createElement('div');
+      resumo.textContent = ano + ' recebido + a receber: R$ ' + formatarMoedaInput(item.atual);
+      const mensagem = document.createElement('strong');
+      if (item.recorde === null) {
+        mensagem.textContent = 'Sem resultado recebido de anos anteriores para comparar.';
+      } else if (item.diferenca > 0) {
+        const percentual = item.recorde > 0 ? ' (+' + (100 * item.diferenca / item.recorde).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%)' : '';
+        mensagem.textContent = 'Supera o recorde de ' + item.anoRecorde + ' em R$ ' + formatarMoedaInput(item.diferenca) + percentual + '.';
+      } else if (item.diferenca === 0) {
+        mensagem.textContent = 'Iguala o recorde de ' + item.anoRecorde + '.';
+      } else {
+        mensagem.textContent = 'Faltam R$ ' + formatarMoedaInput(-item.diferenca) + ' para igualar o recorde de ' + item.anoRecorde + '.';
+      }
+      painel.className = 'kpi-comparacao' + (item.diferenca > 0 ? ' recorde-superado' : '');
+      painel.replaceChildren(resumo, mensagem);
+      painel.title = 'Comparação do ano atual (recebido SIM e NÃO) com o melhor ano anterior recebido SIM. Inclui valores ainda não recebidos; não é projeção de novas vendas.';
+    }
+  }
+
   function renderizarAbaGraficos() {
+    atualizarComparacaoRecordes();
     if (!dadosDB || dadosDB.length === 0) return;
 
     let totalFatHist = 0;
