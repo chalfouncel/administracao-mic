@@ -714,8 +714,8 @@ table.table-compact tbody .col-tax::before,table.table-compact th.th-filtro:nth-
     <div class="kpi-row">
       <div class="kpi-card" style="border-left-color: #001e60;"><div class="kpi-main-info"><div class="kpi-card-title">Faturamento Histórico Total</div><div class="kpi-card-val" id="kpi-fat-total">R$ 0,00</div></div><div class="kpi-breakdown-right" id="kpi-fat-breakdown"></div><div id="kpi-fat-comparacao" class="kpi-comparacao" aria-live="polite"></div></div>
       <div class="kpi-card" style="border-left-color: #c59b27;"><div class="kpi-main-info"><div class="kpi-card-title">VGV Total Acumulado</div><div class="kpi-card-val" id="kpi-vgv-total">R$ 0,00</div></div><div class="kpi-breakdown-right" id="kpi-vgv-breakdown"></div><div id="kpi-vgv-comparacao" class="kpi-comparacao" aria-live="polite"></div></div>
-      <div class="kpi-card" style="border-left-color: #2563eb;"><div class="kpi-main-info"><div class="kpi-card-title">Contratos de Venda</div><div class="kpi-card-val" id="kpi-qtd-vendas">0</div></div><div class="kpi-breakdown-right" id="kpi-vendas-breakdown"></div></div>
-      <div class="kpi-card" style="border-left-color: #70ad47;"><div class="kpi-main-info"><div class="kpi-card-title">Recebimento ADM Atual</div><div class="kpi-card-val" id="kpi-taxa-adm">R$ 0,00</div></div><div class="kpi-breakdown-right" id="kpi-adm-breakdown"></div></div>
+      <div class="kpi-card" style="border-left-color: #2563eb;"><div class="kpi-main-info"><div class="kpi-card-title">Contratos de Venda</div><div class="kpi-card-val" id="kpi-qtd-vendas">0</div></div><div class="kpi-breakdown-right" id="kpi-vendas-breakdown"></div><div id="kpi-contratos-comparacao" class="kpi-comparacao" aria-live="polite"></div></div>
+      <div class="kpi-card" style="border-left-color: #70ad47;"><div class="kpi-main-info"><div class="kpi-card-title">Recebimento ADM Atual</div><div class="kpi-card-val" id="kpi-taxa-adm">R$ 0,00</div></div><div class="kpi-breakdown-right" id="kpi-adm-breakdown"></div><div id="kpi-adm-comparacao" class="kpi-comparacao" aria-live="polite"></div></div>
     </div>
     <div class="card" style="margin-bottom: 14px;"><div class="card-title"><span id="titulo-painel-meta">Acompanhamento de Metas</span><div style="display: flex; align-items: center; gap: 8px;"><label style="font-size: 0.72rem; font-weight: 800;">Ano de Referência:</label><select id="sel-ano-graficos" onchange="renderizarAbaGraficos()" style="width: 95px; padding: 3px 6px;"></select></div></div><div style="display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start;"><div style="overflow-x: auto;"><table class="tabela-metas-justa"><thead><tr><th>Mês</th><th style="text-align:right;">Receita</th><th style="text-align:center;">META MÊS</th><th style="text-align:center;">META ANO</th></tr></thead><tbody id="tabela-metas-corpo"></tbody></table></div><div class="chart-container"><canvas id="chart-metas-mensais"></canvas></div></div></div>
     <div class="card" style="margin-bottom: 14px;"><div class="card-title"><span>Evolução Mensal Comparativa (Multianual com Valores)</span><div style="display:flex; gap:6px;"><button class="filter-pill-btn active" onclick="trocarFiltroRecebiveis('TODOS', this)">Geral (Todos)</button><button class="filter-pill-btn" onclick="trocarFiltroRecebiveis('VENDA', this)">Vendas</button><button class="filter-pill-btn" onclick="trocarFiltroRecebiveis('ALUGUEL', this)">Aluguel</button></div></div><div class="chart-container" style="height: 330px;"><canvas id="chart-recebiveis-multianual"></canvas></div></div>
@@ -1941,7 +1941,7 @@ document.addEventListener('click', function(e) {
 
   function calcularComparacaoRecordes(linhas, anoAtual) {
     const normalizar = v => String(v || '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-    const resultado = { fat: { atual: 0, anos: {} }, vgv: { atual: 0, anos: {} } };
+    const resultado = { fat: { atual: 0, anos: {} }, vgv: { atual: 0, anos: {} }, contratos: { atual: 0, anos: {} }, adm: { atual: 0, anos: {} } };
     for (const d of linhas) {
       const ano = Number(d.ano), recebido = normalizar(d.recebido);
       if (!Number.isInteger(ano) || ano <= 0 || ano > anoAtual) continue;
@@ -1949,10 +1949,17 @@ document.addEventListener('click', function(e) {
       const liquido = Number(d.valor_liquido) || 0;
       const venda = normalizar(d.situacao) === 'VENDA';
       const valor = (Number(d.valor) || 0) * (normalizar(d.corretor) === 'MARIO' ? 1 : 0.5);
+      const contratoMario = venda && normalizar(d.corretor) === 'MARIO';
+      const nome = normalizar(d.nome);
+      const administracao = nome === 'RECEBIMENTO DAS ADMINISTRACOES' || nome.includes('ADMINISTRACOES M&IC');
       if (ano === anoAtual) {
         resultado.fat.atual += liquido;
+        if (contratoMario) resultado.contratos.atual++;
+        if (administracao) resultado.adm.atual += liquido;
         if (venda) resultado.vgv.atual += valor;
       } else if (recebido === 'SIM') {
+        if (contratoMario) resultado.contratos.anos[ano] = (resultado.contratos.anos[ano] || 0) + 1;
+        if (administracao) resultado.adm.anos[ano] = (resultado.adm.anos[ano] || 0) + liquido;
         resultado.fat.anos[ano] = (resultado.fat.anos[ano] || 0) + liquido;
         if (venda) resultado.vgv.anos[ano] = (resultado.vgv.anos[ano] || 0) + valor;
       }
@@ -1969,22 +1976,25 @@ document.addEventListener('click', function(e) {
   function atualizarComparacaoRecordes() {
     const ano = Number(new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'America/Sao_Paulo' }).format(new Date()));
     const comparacao = calcularComparacaoRecordes(dadosDB || [], ano);
-    for (const tipo of ['fat', 'vgv']) {
+    for (const tipo of ['fat', 'vgv', 'contratos', 'adm']) {
       const painel = document.getElementById('kpi-' + tipo + '-comparacao');
       if (!painel) continue;
       const item = comparacao[tipo];
+      const formatar = valor => tipo === 'contratos' ? valor + (valor === 1 ? ' contrato' : ' contratos') : 'R$ ' + formatarMoedaInput(valor);
       const resumo = document.createElement('div');
-      resumo.textContent = ano + ' recebido + a receber: R$ ' + formatarMoedaInput(item.atual);
+      resumo.textContent = tipo === 'contratos'
+        ? ano + ' contratos (recebido SIM + NÃO): ' + item.atual
+        : ano + (tipo === 'adm' ? ' ADM anual recebido + a receber: ' : ' recebido + a receber: ') + formatar(item.atual);
       const mensagem = document.createElement('strong');
       if (item.recorde === null) {
         mensagem.textContent = 'Sem resultado recebido de anos anteriores para comparar.';
       } else if (item.diferenca > 0) {
         const percentual = item.recorde > 0 ? ' (+' + (100 * item.diferenca / item.recorde).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%)' : '';
-        mensagem.textContent = 'Supera o recorde de ' + item.anoRecorde + ' em R$ ' + formatarMoedaInput(item.diferenca) + percentual + '.';
+        mensagem.textContent = 'Supera o recorde de ' + item.anoRecorde + ' em ' + formatar(item.diferenca) + percentual + '.';
       } else if (item.diferenca === 0) {
         mensagem.textContent = 'Iguala o recorde de ' + item.anoRecorde + '.';
       } else {
-        mensagem.textContent = 'Faltam R$ ' + formatarMoedaInput(-item.diferenca) + ' para igualar o recorde de ' + item.anoRecorde + '.';
+        mensagem.textContent = (tipo === 'contratos' && item.diferenca === -1 ? 'Falta ' : 'Faltam ') + formatar(-item.diferenca) + ' para igualar o recorde de ' + item.anoRecorde + '.';
       }
       painel.className = 'kpi-comparacao' + (item.diferenca > 0 ? ' recorde-superado' : '');
       painel.replaceChildren(resumo, mensagem);
