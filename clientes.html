@@ -1793,7 +1793,7 @@ document.addEventListener('click', function(e) {
       const valOriginal = parseFloat(d.valor) || 0;
 
       const isMario = String(c).trim().toLowerCase() === 'mario' || String(c).trim().toLowerCase() === 'mário';
-      const valAjustado = isMario ? valOriginal : (valOriginal * 0.5);
+      const valAjustado = isMario ? valOriginal : (valOriginal * 0.3);
 
       vgvCorretor[c] = (vgvCorretor[c] || 0) + valAjustado;
       totalVGV += valAjustado;
@@ -1948,7 +1948,7 @@ document.addEventListener('click', function(e) {
       if (recebido !== 'SIM' && recebido !== 'NAO') continue;
       const liquido = Number(d.valor_liquido) || 0;
       const venda = normalizar(d.situacao) === 'VENDA';
-      const valor = (Number(d.valor) || 0) * (normalizar(d.corretor) === 'MARIO' ? 1 : 0.5);
+      const valor = (Number(d.valor) || 0) * (normalizar(d.corretor) === 'MARIO' ? 1 : 0.3);
       const contratoMario = venda && normalizar(d.corretor) === 'MARIO';
       const nome = normalizar(d.nome);
       const administracao = nome === 'RECEBIMENTO DAS ADMINISTRACOES' || nome.includes('ADMINISTRACOES M&IC');
@@ -2034,7 +2034,7 @@ document.addEventListener('click', function(e) {
       const valVgvOriginal = parseFloat(d.valor) || 0;
 
       if (rec && ano && sit === 'VENDA') {
-        const fatorVgv = isMario ? 1.0 : 0.5;
+        const fatorVgv = isMario ? 1.0 : 0.3;
         const valVgvAjustado = valVgvOriginal * fatorVgv;
         totalVgvHist += valVgvAjustado;
         vgvPorAno[ano] = (vgvPorAno[ano] || 0) + valVgvAjustado;
@@ -2397,7 +2397,7 @@ document.addEventListener('click', function(e) {
         const corr = String(curr.corretor || '').trim().toLowerCase();
         const v = parseFloat(curr.valor) || 0;
         const isMario = corr === 'mario' || corr === 'mário';
-        return acc + (isMario ? v : v * 0.5);
+        return acc + (isMario ? v : v * 0.3);
       }, 0);
     });
 
