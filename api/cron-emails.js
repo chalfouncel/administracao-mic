@@ -88,7 +88,7 @@ export default async function handler(req, res) {
                 // Consulta a situação atual; não altera o recibo ou os valores da emissão.
                 const filtrosConsumo = new URLSearchParams({
                     id: 'eq.' + item.locacao_id,
-                    select: 'id,transf_contas_consumo'
+                    select: 'id,transf_contas_consumo,status_cobranca'
                 });
                 const consultaConsumo = await fetch(SUPABASE_URL + '/rest/v1/locacoes?' + filtrosConsumo, {
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
@@ -102,6 +102,24 @@ export default async function handler(req, res) {
                     typeof contratosConsumo[0].transf_contas_consumo !== 'boolean') {
                     throw new Error('Situação das contas de consumo não identificada. O e-mail permanece pendente.');
                 }
+                let reciboEmailHtml;
+                if (item.recibo_base64) {
+                    reciboEmailHtml = `<img src="${item.recibo_base64}" alt="Recibo M&IC" style="max-width:100%;border:1px solid #ddd;border-radius:8px;margin-top:20px;" />`;
+                } else {
+                    // Recupera somente o snapshot da emissão; não recalcula valores atuais.
+                    const estado = JSON.parse(contratosConsumo[0].status_cobranca || '{}');
+                    const recibo = estado[item.mes_ref + '_recibo'];
+                    if (!recibo || recibo.link !== item.link_asaas || recibo.id !== fatura.id ||
+                        recibo.vencimento !== item.data_vencimento ||
+                        Math.round(Number(recibo.valor) * 100) !== Math.round(Number(item.valor_total) * 100) ||
+                        !Array.isArray(recibo.linhas) || !recibo.linhas.length ||
+                        !recibo.linhas.every(l => Array.isArray(l) && l.length === 2 && l.every(v => typeof v === 'string'))) {
+                        throw new Error('Recibo original não confirmado. O e-mail permanece pendente.');
+                    }
+                    const escapar = v => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+                    reciboEmailHtml = `<table style="width:100%;border-collapse:collapse;margin-top:20px;">${recibo.linhas.map(l => `<tr><td style="padding:8px;border-bottom:1px solid #ddd;">${escapar(l[0])}</td><td style="padding:8px;border-bottom:1px solid #ddd;text-align:right;">${escapar(l[1])}</td></tr>`).join('')}<tr><td style="padding:10px;"><strong>Total</strong></td><td style="padding:10px;text-align:right;"><strong>${Number(recibo.valor).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</strong></td></tr></table>`;
+                }
+
                 const avisoConsumo = contratosConsumo[0].transf_contas_consumo ? '' : `
                     <div style="margin:20px 0; padding:16px; background:#fff7ed; border:2px solid #c2410c; border-radius:8px; color:#9a3412;">
                         <strong>⚠️ PENDÊNCIA — CONTAS DE CONSUMO</strong>
@@ -122,7 +140,7 @@ export default async function handler(req, res) {
                                 <a href="${item.link_asaas}" style="display: inline-block; padding: 12px 24px; background-color: #001e60; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">Pagar Fatura Oficial</a>
                                 ${avisoConsumo}
                                 <p>Abaixo, segue o recibo descritivo dos valores deste mês:</p>
-                                <img src="${item.recibo_base64}" alt="Recibo M&IC" style="max-width: 100%; border: 1px solid #ddd; border-radius: 8px; margin-top: 20px;" />
+                                ${reciboEmailHtml}
                                 <hr style="margin-top: 30px; border: none; border-top: 1px solid #eee;" />
                                 <p style="font-size: 12px; color: #888;">M&IC Corretores de Imóveis<br>Gestão de Locação Automatizada</p>
                             </div>
