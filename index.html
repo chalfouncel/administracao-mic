@@ -2736,13 +2736,6 @@ body{background:#f5f5f1}header{background:#18201c;border-bottom:2px solid #b8954
           txtChaveWpp = `PIX: ${pixBruto}`;
       }
 
-      let texto = `Prezado(a) ${c.proprietario},\nSegue repasse de *${repasseMesTexto}*:\n`;
-      let titularStr = c.titular_pix ? `\nTitular: ${c.titular_pix}` : `\nTitular: ${c.proprietario}`;
-      texto += `\n💰 *TOTAL REPASSADO: ${fmtMoeda(valProprietario)}*\nO valor foi transferido para: ${txtChaveWpp}${titularStr}`;
-      
-      if (!repassaCond && valCondominioPix > 0) { texto += `\n📌 *Nota:* O Condomínio (${fmtMoeda(valCondominioPix)}) foi transferido direto ao Síndico (PIX: ${c.pix_condominio}).`; }
-      if (!repassaSeguro && seg > 0) { texto += `\n📌 *Nota:* O Seguro (${fmtMoeda(seg)}) foi retido para pagamento pela corretora.`; }
-
       let statusCob = {}; try { statusCob = JSON.parse(c.status_cobranca || '{}'); } catch(e) {}
       let statusRep = {}; try { statusRep = JSON.parse(c.status_repasse || '{}'); } catch(e) {} 
       
@@ -2764,6 +2757,26 @@ body{background:#f5f5f1}header{background:#18201c;border-bottom:2px solid #b8954
 
       let isCobrancaPaga = statusCob[mesRef] === 'recebida';
       let isRepasseFeito = statusRep[mesRef] === 'recebida';
+      const tituloValorRepasse = isRepasseFeito ? 'TOTAL REPASSADO' : 'VALOR DO REPASSE';
+      const situacaoTextoRepasse = isRepasseFeito ? 'Repasse confirmado no sistema' : 'Repasse ainda não confirmado';
+      let texto = [
+          '🏡 *M&IC | DEMONSTRATIVO DE REPASSE*', '',
+          'Olá, *' + (c.proprietario || 'proprietário(a)') + '*!', '',
+          '📅 *Referência:* ' + repasseMesTexto,
+          '📍 *Imóvel:* ' + (c.endereco || 'Não informado'), '',
+          (isRepasseFeito ? '✅ ' : '⏳ ') + '*' + situacaoTextoRepasse + '*', '',
+          '💰 *' + tituloValorRepasse + ': ' + fmtMoeda(valProprietario) + '*', '',
+          '*DADOS DO DESTINATÁRIO*',
+          '• Titular: ' + (c.titular_pix || c.proprietario || 'Não informado'),
+          '• ' + txtChaveWpp
+      ].join('\n');
+      const notasRepasse = [];
+      if (!repassaCond && valCondominioPix > 0) notasRepasse.push('• Condomínio: ' + fmtMoeda(valCondominioPix) + ' destinado diretamente ao síndico (PIX: ' + (c.pix_condominio || 'Não informado') + ').');
+      if (!repassaSeguro && seg > 0) notasRepasse.push('• Seguro: ' + fmtMoeda(seg) + ' reservado para pagamento pela corretora.');
+      if (notasRepasse.length) texto += '\n\n*OBSERVAÇÕES*\n' + notasRepasse.join('\n');
+      texto += '\n\nEm caso de dúvida, fale conosco por aqui.\n*M&IC Corretores de Imóveis*';
+      const escRepasse = valor => String(valor || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+
 
       let bgPainel = isRepasseFeito ? '#dcfce7' : '#f8fafc'; 
       let borderCor = isRepasseFeito ? '#22c55e' : '#cbd5e1'; 
@@ -2793,9 +2806,20 @@ body{background:#f5f5f1}header{background:#18201c;border-bottom:2px solid #b8954
       const idTextArea = `txt-rep-${idReg}`; const idCard = `img-rep-${idReg}`;
       container.innerHTML += `
         <div style="background: ${bgPainel}; border: 2px solid ${borderCor}; border-radius: 8px; padding: 16px; max-width: 460px; margin: 0 auto; width: 100%;">
-           <div id="${idCard}" class="receipt-box"><div style="font-weight:900; font-size:1.1rem; color:var(--primary);">REPASSE</div>
-              <p style="font-size:0.9rem; margin-bottom:12px;"><strong>Proprietário:</strong> ${c.proprietario}</p><hr>
-              <div class="comp-total"><span>TOTAL REPASSADO:</span> <span>${fmtMoeda(valProprietario)}</span></div>
+           <div id="${idCard}" class="receipt-box" style="padding:24px;border-radius:12px;">
+              <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;color:#8d7134;">M&IC CORRETORES DE IMÓVEIS</div>
+              <div style="font-weight:800;font-size:22px;color:#172c24;margin:8px 0 4px;">Demonstrativo de repasse</div>
+              <p style="font-size:13px;color:#64748b;margin-bottom:18px;">${escRepasse(repasseMesTexto)}</p>
+              <div style="font-size:10px;color:#64748b;font-weight:bold;">PROPRIETÁRIO</div>
+              <p style="font-weight:700;margin:4px 0 14px;">${escRepasse(c.proprietario)}</p>
+              <div style="font-size:10px;color:#64748b;font-weight:bold;">IMÓVEL</div>
+              <p style="font-size:13px;line-height:1.5;margin:4px 0 18px;overflow-wrap:anywhere;">${escRepasse(c.endereco)}</p>
+              <div style="padding:16px;background:${isRepasseFeito ? '#edf7f0' : '#fff8e8'};border-radius:8px;">
+                <div style="font-size:11px;font-weight:bold;color:#475569;">${tituloValorRepasse}</div>
+                <div style="font-size:28px;font-weight:800;color:#173f2d;margin:6px 0;">${fmtMoeda(valProprietario)}</div>
+                <div style="font-size:12px;color:#475569;">${situacaoTextoRepasse}</div>
+              </div>
+              <p style="font-size:11px;color:#64748b;margin:16px 0 0;">Demonstrativo administrativo • não substitui o comprovante bancário.</p>
            </div>
            
            <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin: 16px 0 10px 0; font-size:0.75rem; color:#475569; text-align: left; border: 1px solid #e2e8f0;">
